@@ -1,0 +1,95 @@
+<section class="container brain">
+  <form novalidate [formGroup]="searchForm">
+
+    <div class="row">
+
+      <div class="col-3 search-container">
+
+        <!-- start of search -->
+        <div class="row">
+          <div class="col">
+
+            <div class="row">
+              <div class="col">
+                <label>Filter</label>
+                <input type="text" formControlName="comments" class="form-control" (ngModelChange)="searchTitle($event)"
+                  placeholder="Search titles" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col">
+                <label>Labs</label>
+                <select class="form-control" formControlName="labs" (ngModelChange)="searchLab($event)">
+                  <option value="0">All</option>
+                  <option *ngFor="let lab of labs; let i = index" [value]="lab.id">
+                    {{lab.lab_name}}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- end search-->
+
+
+      </div> <!-- end of left side -->
+      <!-- start of right side list -->
+
+      <div class="col-1 buffer-column"></div>
+
+
+      <div class="col-8">
+        <div class="row">
+          <div class="col title" *ngIf="states.length > 0">
+            <p>{{states.length}} different Neuroglancer views</p>
+          </div>
+
+          <div class="col title" *ngIf="states.length < 1">
+            <p>There are no results for that query. Remove or change the search parameters to find more Neuroglancer
+              views</p>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col content-container">
+            <div *ngFor="let state of states | paginate
+        : {
+            itemsPerPage: tableSize,
+            currentPage: page,
+            totalItems: count
+          }; let i = index;" class="card">
+
+              <a *ngIf="(authService.sessionActive | async)" class="card-body card-a" target="_blank"
+                href="{{ngUrl}}?id={{state.id}}&multi=1">
+                <p class="card-title">{{state.comments}}</p>
+                <img src="https://www.brainsharer.org/images/screenshot/thumbnail_{{state.id}}.png">
+                <p class="card-text" style="margin-top:4px;">Lab: {{state.lab }}</p>
+              </a>
+              <a *ngIf="!(authService.sessionActive | async)" class="card-body card-a" target="_blank"
+                href="{{ngUrl}}?id={{state.id}}">
+                <p class="card-title">{{state.comments}}</p>
+                <img src="https://www.brainsharer.org/images/screenshot/thumbnail_{{state.id}}.png">
+                <p class="card-text" style="margin-top:4px;">Lab: {{state.lab }}</p>
+              </a>
+
+            </div>
+          </div>
+        </div> <!-- end of list -->
+
+        <div class="d-flex justify-content-center data-pagination">
+          <pagination-controls previousLabel="Prev" nextLabel="Next" (pageChange)="onTableDataChange($event)">
+          </pagination-controls>
+        </div>
+
+
+      </div>
+
+
+
+    </div> <!-- end of only row -->
+
+  </form>
+</section> <!-- end of container -->

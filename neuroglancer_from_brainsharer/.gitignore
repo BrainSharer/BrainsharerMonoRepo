@@ -1,0 +1,16 @@
+src/neuroglancer/services/firebase.ts
+/node_modules/
+/dist/
+/trans
+/build/
+/coverage/
+/npm-debug.log
+*.pyc
+__pycache__
+*.sw[pmn]
+.vscode
+tsconfig.tsbuildinfo
+/.eggs
+/.tox
+/.idea/
+./.env

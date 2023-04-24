@@ -1,0 +1,108 @@
+/* start of create state list */
+.container {
+  margin: 10px;
+}
+
+
+.content-container {
+  padding: 10px 6px 0px 10px;
+  /* border-radius: 50px; */
+  margin-top: 0px;
+  /* display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  grid-gap: 15px;
+  */
+  /* background: rgba(76, 175, 80, 0.3); */
+  /* Green background with 30% opacity */
+  background: #FFFFFF;
+}
+
+.buffer-column {
+  width: 1px;
+}
+
+.collapsed-container {
+  padding: 0px;
+  margin: 0px 0px 0px 0px;
+  /* Green background with 30% opacity */
+}
+
+.title {
+  font-style: italic;
+}
+
+.card-container {
+  padding: 2px;
+  margin-top: 5px;
+  border-radius: 5px;
+  background: #ccc;
+}
+.card>a {
+  text-decoration: none;
+  color: #000000;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #A5C3A6;
+  margin: 2px;
+}
+
+.card>a:hover {
+  box-shadow: 2px 2px 0px #fd9a6ce5;
+  transform: scale(1.00)
+}
+
+/* start of create state */
+section {
+  margin: 10px;
+}
+
+/* start of search */
+.search-form {
+  margin: 0px 0px 10px 0px;
+}
+
+.collapse-button {
+  border: none;
+}
+
+.collapsed-card {
+  background: #ccc;
+  margin-left: 4px;
+  padding: 4px;
+  border-radius: 5px;
+}
+
+div.item-checkbox {
+  width: 100%;
+  height: 100%;
+  margin-left: 10px;
+}
+
+div.item-checkbox>label {
+  display: block;
+  padding: 2px 5px;
+}
+
+div.item-checkbox>label>input {
+  margin-right: 5px;
+}
+
+.collapsible:hover,
+.all:hover {
+  color: #ffffff;
+  background-color: #0066FF;
+}
+
+.content {
+  width: 97%;
+  border: 1px solid #000;
+  border-top: 0px;
+  background-color: #FFF;
+  margin: 3px 0px 0px 3px;
+  padding: 3px;
+  font: 500 16px/1.5 Arial;
+}
+
+.submit-button {
+  margin: 10px 0 0 20px;
+}

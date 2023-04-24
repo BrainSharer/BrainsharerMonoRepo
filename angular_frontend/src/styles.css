@@ -1,0 +1,36 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { 
+    margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; 
+}
+
+
+.brainXXX::before {
+    content: ""; 
+    z-index: -1;
+    background-image: url('/assets/250.png');
+    background-size: contain;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
+    opacity: 0.4;
+    resize: both;
+  }
+
+/* left side filter bar */
+.search-container {
+    padding: 10px;
+    border-radius: 25px;
+    /* Green background with 30% opacity 
+    background: rgba(76, 175, 80, 0.3); */
+    background: #FFFFFF;
+  }
+
+.data-pagination {
+    margin: 10px 0px 0px 0px;
+    font-size: smaller;
+  }
+  

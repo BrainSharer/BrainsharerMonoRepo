@@ -1,0 +1,147 @@
+<section class="container brain">
+  <form novalidate [formGroup]="searchForm">
+
+    <div class="row">
+
+      <div class="col-3 search-container">
+
+        <!-- start of search -->
+        <div class="row">
+          <div class="col">
+        
+            <div class="row">
+              <div class="col">
+                <label>Filter</label>
+                <input type="text" formControlName="comments" class="form-control" (ngModelChange)="searchTitle($event)" placeholder="Search titles"/>
+              </div>
+            </div>
+        
+            <div class="row">
+              <div class="col">
+                <label>Labs</label>
+                <select class="form-control"  formControlName="labs" (ngModelChange)="searchLab($event)">
+                  <option value="0">All</option>
+                  <option *ngFor="let lab of labs; let i = index" [value]="lab.id">
+                    {{lab.lab_name}}
+                  </option>
+                </select>
+              </div>
+            </div>
+        
+            <div class="row">
+              <div class="col">
+                <label>Volume types</label>
+                <select class="form-control"  formControlName="layer_types" (ngModelChange)="searchLayerType($event)">
+                  <option *ngFor="let layer_type of layer_types; let i = index" [value]="layer_type.id">
+                    {{layer_type.name}}
+                  </option>
+                </select>
+              </div>
+            </div>
+        
+            <!--
+            <div class="row">
+              <div class="col">
+                <label>Volume types</label>
+                <div *ngFor="let layer_type of layer_types; let i = index">
+                  <label>
+                    <input type="checkbox" value="{{layer_types[i].id}}" id="id_{{layer_types[i].id}}"
+                      (change)="toggleLeftSide($any($event.target)?.checked, layer_types[i].id)">
+                    {{layer_types[i].name}}
+                  </label>
+                </div>
+              </div>
+            </div>
+            -->
+
+          </div>          
+        </div>
+        
+        <!-- end search-->
+
+        <div class="row">
+          <div class="col">
+            <div class="title">Choose 3D volumes and image volumes</div>
+            <mat-accordion>
+              <mat-expansion-panel *ngFor="let group of groups | paginate
+              : {
+                  itemsPerPage: tableSize,
+                  currentPage: page,
+                  totalItems: count
+                }; let i = index;" class="accordion-container">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    {{ group.group_name }} {{ group.layer_type}}
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+                <div class="collapsed-container">
+                  <div *ngFor="let state of states">
+                    <div class="item-checkbox" *ngIf="group.group_name == state.group_name">
+                      <label>
+                        <input type="checkbox" value="{{state.id}}" id="id_{{state.id}}"
+                          (change)="toggleRightSide($any($event.target)?.checked, state.id)">{{state.layer_name}}
+                        {{state.description}} Volume type: {{state.layer_type}}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>              
+            </mat-accordion>
+        </div>
+        </div>
+
+        <div class="d-flex justify-content-center data-pagination">
+            <pagination-controls previousLabel="Prev" nextLabel="Next" (pageChange)="onTableDataChange($event)">
+            </pagination-controls>
+        </div>
+
+      </div> <!-- end of left side -->
+      <!-- start of right side list -->
+
+      <div class="col-1 buffer-column"></div>
+
+      <div class="col-8 content-container">
+
+        <div class="title" *ngIf="selectedStates.length > 0">
+          <p>Data to add to Neuroglancer</p>
+        </div>
+
+        <div class="title" *ngIf="selectedStates.length < 1">
+          <p>Click on the data checkboxes on the left side of this page to add data.</p>
+        </div>
+
+        <div *ngFor="let state of selectedStates" class="card-container">
+
+
+          <div class="card">
+            <div class="row no-gutters">
+              <div class="col-auto">
+                <img src="https://brainsharer.org/images/thumbnail/{{state.group_name}}.{{state.layer_name}}.png" 
+                class="create-view-img"
+                onerror="this.src='https://www.brainsharer.org/images/screenshot/placeholder.png';"
+                alt="{{state.group_name}}">
+              </div>
+              <div class="col">
+                <div class="card-block px-2">
+                  <h4 class="card-title">{{state.group_name}}</h4>
+                  <p class="card-text">{{state.layer_name }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer w-100 text-muted">
+              {{state.lab_name }}
+          </div>
+          </div>
+        </div>
+        <div class="submit-button" *ngIf="selectedStates.length > 0">
+          <button class="btn btn-primary" type="submit" (click)="onSubmit()">Submit</button>
+        </div>
+
+      </div> <!-- end of list -->
+
+
+
+    </div> <!-- end of only row -->
+
+  </form>
+</section> <!-- end of container -->

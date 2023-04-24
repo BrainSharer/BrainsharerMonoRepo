@@ -1,0 +1,17 @@
+.user-loader {
+	align-self: center;
+}
+
+.user-list {
+	display: inline-flex;
+}
+
+.user-div {
+	display: inline-flex;
+	white-space: nowrap;
+	padding: 2px;
+	align-items: center;
+	justify-content: center;
+	font: 12px sans-serif;
+	font-weight: 600;
+}

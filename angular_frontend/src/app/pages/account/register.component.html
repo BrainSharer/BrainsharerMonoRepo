@@ -1,0 +1,100 @@
+<div class="row justify-content-center">
+  <div class="col-4">
+    <p>Join the Brainsharer community</p>
+  </div>
+</div>
+
+<div class="register-form brain">
+  <form [formGroup]="addForm" (ngSubmit)="register()">
+    <div class="form-group col-4">
+      <label>Username</label>
+      <input type="text" formControlName="username" class="form-control"
+        [ngClass]="{ 'is-invalid': submitted && f['username'].errors }" />
+      <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
+        <div *ngIf="f['username'].errors['required']">Username is required</div>
+        <div *ngIf="f['username'].errors['minlength']">
+          Username must be at least 3 characters
+        </div>
+        <div *ngIf="f['username'].errors['maxlength']">
+          Username must not exceed 20 characters
+        </div>
+        <div *ngIf="f['username'].errors['existing']">
+          That username has already been taken, please choose another.
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group col-4">
+      <label>First name</label>
+      <input type="text" formControlName="first_name" class="form-control"
+        [ngClass]="{ 'is-invalid': submitted && f['first_name'].errors }" />
+      <div *ngIf="submitted && f['first_name'].errors" class="invalid-feedback">
+        <div *ngIf="f['first_name'].errors['required']">First name is required</div>
+      </div>
+    </div>
+
+    <div class="form-group col-4">
+      <label>Last name</label>
+      <input type="text" formControlName="last_name" class="form-control"
+        [ngClass]="{ 'is-invalid': submitted && f['last_name'].errors }" />
+      <div *ngIf="submitted && f['last_name'].errors" class="invalid-feedback">
+        <div *ngIf="f['last_name'].errors['required']">Last name is required</div>
+      </div>
+    </div>
+
+    <div class="form-group col-4">
+      <label>Email</label>
+      <input type="text" formControlName="email" class="form-control"
+        [ngClass]="{ 'is-invalid': submitted && f['email'].errors }" />
+      <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+        <div *ngIf="f['email'].errors['required']">Email is required</div>
+        <div *ngIf="f['email'].errors['email']">Email is invalid</div>
+        <div *ngIf="f['email'].errors['existing']">
+          That email has already been taken, please choose another.
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group col-4">
+      <label>Password</label>
+      <input type="password" formControlName="password" class="form-control" autocomplete="on"
+        [ngClass]="{ 'is-invalid': submitted && f['password'].errors }" />
+      <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
+        <div *ngIf="f['password'].errors['required']">Password is required</div>
+        <div *ngIf="f['password'].errors['minlength']">
+          Password must be at least 8 characters
+        </div>
+        <div *ngIf="f['password'].errors['maxlength']">
+          Username must not exceed 40 characters
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group col-4">
+      <label>Confirm Password</label>
+      <input type="password" formControlName="password2" class="form-control" autocomplete="on"
+        [ngClass]="{ 'is-invalid': submitted && f['password2'].errors }" />
+      <div *ngIf="submitted && f['password2'].errors" class="invalid-feedback">
+        <div *ngIf="f['password2'].errors['required']">
+          Confirm Password is required
+        </div>
+        <div *ngIf="f['password2'].errors['matching']">
+          Confirm Password does not match
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-group col-4 re-captcha">
+      <re-captcha (resolved)="checkCaptcha($event)" name="recaptchaReactive" 
+      siteKey="6Lft4F0eAAAAAByzzWQ19xqYPzYGcOVdI4XKtkHu"></re-captcha>
+    </div>
+
+      <div class="form-group bottom-row">
+      <button [disabled]="!captchaResolved" type="submit" class="btn btn-primary">Register</button>
+    </div>
+  </form>
+</div>
+
+
+
+
