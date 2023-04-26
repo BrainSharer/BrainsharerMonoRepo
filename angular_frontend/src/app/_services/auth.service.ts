@@ -62,6 +62,8 @@ export class AuthService {
      * The Django REST uses simplejwt for token stuff. The token gets sent
      * to use in the response data['access'] 
      * See: https://django-rest-framework-simplejwt.readthedocs.io/en/latest/getting_started.html
+     * This has been deprecated as we do the logging in via Django. Django will then redirect
+     * back to the angular app after the login.
      * @param username string for the username from the login page
      * @param password string for password
      * @returns 
@@ -147,6 +149,10 @@ export class AuthService {
     this.sessionActive = new BehaviorSubject<boolean>(false);
     this.notificationService.showWarning('You have been logged out', 'Success');
     this.router.navigate(['/']);
+    // const redirecturl = 'http://localhost:8000/admin/logout/';
+    // window.location.href = redirecturl;
+    // window.open(redirecturl);
+
   }
 
 

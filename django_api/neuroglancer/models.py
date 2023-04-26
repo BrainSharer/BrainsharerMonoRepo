@@ -1,4 +1,3 @@
-import os
 from django.db import models
 from django.conf import settings
 from django.utils.html import escape
@@ -7,8 +6,8 @@ from django.utils.translation import gettext_lazy
 import re
 import json
 import pandas as pd
-import numpy as np
 from django.template.defaultfilters import truncatechars
+from authentication.models import Lab
 from brain.models import AtlasModel, Animal
 from django_mysql.models import EnumField
 
@@ -20,15 +19,15 @@ LINE_ID = 53
 POLYGON_ID = 54
 UNMARKED = 'UNMARKED'
 
-class UrlModel(models.Model):
-    """Model corresponding to the neuroglancer json states stored in the neuroglancer_url table.
+class NeuroglancerState(models.Model):
+    """Model corresponding to the neuroglancer json states stored in the neuroglancer_state table.
     This name was used as the original verion of Neuroglancer stored all the data in the URL.
     """
     
     id = models.BigAutoField(primary_key=True)
-    url = models.JSONField(verbose_name="Neuroglancer State")
+    neuroglancer_state = models.JSONField(verbose_name="Neuroglancer State")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, null=False,
-                              blank=False, db_column="person_id",
+                              blank=False, db_column="FK_user_id",
                                verbose_name="User")
     public = models.BooleanField(default = True, db_column='active')
     readonly = models.BooleanField(default = False, verbose_name='Read only')
@@ -39,11 +38,11 @@ class UrlModel(models.Model):
 
     @property
     def short_description(self):
-        return truncatechars(self.url, 50)
+        return truncatechars(self.neuroglancer_state, 50)
 
     @property
     def escape_url(self):
-        return escape(self.url)
+        return escape(self.neuroglancer_state)
 
     @property
     def animal(self):
@@ -53,8 +52,8 @@ class UrlModel(models.Model):
         :return: the first match if found, otherwise NA
         """
         animal = "NA"
-        match = re.search('data/(.+?)/neuroglancer_data', str(self.url))
-        neuroglancer_json = self.url
+        match = re.search('data/(.+?)/neuroglancer_data', str(self.neuroglancer_state))
+        neuroglancer_json = self.neuroglancer_state
         image_layers = [layer for layer in neuroglancer_json['layers'] if layer['type'] == 'image']
         if len(image_layers) >0:
             first_image_layer = json.dumps(image_layers[0])
@@ -64,10 +63,22 @@ class UrlModel(models.Model):
         return animal
 
     @property
+    def lab(self):
+        '''
+        The primary lab of the user
+        :param obj: animal model
+        '''
+        lab = "NA"
+        if self.owner is not None and self.owner.lab is not None:
+            lab = self.owner.lab
+        return lab
+
+
+    @property
     def point_frame(self):
         df = None
-        if self.url is not None:
-            point_data = self.find_values('annotations', self.url)
+        if self.neuroglancer_state is not None:
+            point_data = self.find_values('annotations', self.neuroglancer_state)
             if len(point_data) > 0:
                 d = [row['point'] for row in point_data[0]]
                 df = pd.DataFrame(d, columns=['X', 'Y', 'Section'])
@@ -78,8 +89,8 @@ class UrlModel(models.Model):
     def points(self):
         result = None
         dfs = []
-        if self.url is not None:
-            json_txt = self.url
+        if self.neuroglancer_state is not None:
+            json_txt = self.neuroglancer_state
             layers = json_txt['layers']
             for layer in layers:
                 if 'annotations' in layer:
@@ -107,8 +118,8 @@ class UrlModel(models.Model):
     @property
     def layers(self):
         layer_list = []
-        if self.url is not None:
-            json_txt = self.url
+        if self.neuroglancer_state is not None:
+            json_txt = self.neuroglancer_state
             layers = json_txt['layers']
             for layer in layers:
                 if 'annotations' in layer:
@@ -121,7 +132,7 @@ class UrlModel(models.Model):
         verbose_name = "Neuroglancer state"
         verbose_name_plural = "Neuroglancer states"
         ordering = ('comments', 'created')
-        db_table = 'neuroglancer_urls'
+        db_table = 'neuroglancer_state'
 
     def __str__(self):
         return u'{}'.format(self.comments)
@@ -150,7 +161,38 @@ class UrlModel(models.Model):
         json.loads(json_repr, object_hook=_decode_dict)  # Return value ignored.
         return results
 
-class Points(UrlModel):
+
+class NeuroglancerView(AtlasModel):
+    group_name = models.CharField(max_length=50, verbose_name='Animal/Structure name')
+    lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_lab_id", verbose_name='Lab')
+    layer_name = models.CharField(max_length=255, blank=False, null=False)
+    description = models.TextField(max_length=2001, blank=False, null=False)
+    url = models.TextField(max_length=2001, blank=False, null=False)
+    thumbnail_url = models.TextField(max_length=2001, blank=False, null=False, verbose_name='Thumbnail name')
+    layer_type = EnumField(choices=['annotation', 'image','segmentation'], blank=False, null=False, default='image')
+    cross_section_orientation = models.CharField(max_length=255, blank=True, null=True, verbose_name='Cross section orientation (4 numbers seperated by comma)')
+    resolution = models.FloatField(verbose_name="XY Resolution (um)")
+    zresolution = models.FloatField(verbose_name="Z Resolution (um)")
+    width = models.IntegerField(null=False, blank=False, default=60000, verbose_name="Width (pixels)")
+    height = models.IntegerField(null=False, blank=False, default=30000, verbose_name="Height (pixels)")
+    depth = models.IntegerField(null=False, blank=False, default=450, verbose_name="Depth (pixels, sections)")
+    max_range = models.IntegerField(null=False, blank=False, default=5000, verbose_name="Intensity range (INT8=0,255, INT16=0,65535)")
+    updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)
+
+    class Meta:
+        managed = False
+        db_table = 'available_neuroglancer_data'
+        verbose_name = 'Available Neuroglancer data'
+        verbose_name_plural = 'Available Neuroglancer data'
+        ordering = ['lab', 'group_name', 'layer_name']
+
+
+    def __str__(self):
+        return u'{} {}'.format(self.group_name, self.description)
+
+
+
+class Points(NeuroglancerState):
     """Model corresponding to the annotation points table in the database
     """
     
@@ -184,12 +226,10 @@ class BrainRegion(AtlasModel):
     id = models.BigAutoField(primary_key=True)
     abbreviation = models.CharField(max_length=200)
     description = models.TextField(max_length=2001, blank=False, null=False)
-    color = models.PositiveIntegerField()
-    hexadecimal = models.CharField(max_length=7)
 
     class Meta:
         managed = False
-        db_table = 'structure'
+        db_table = 'brain_region'
         verbose_name = 'Brain region'
         verbose_name_plural = 'Brain regions'
 
@@ -203,10 +243,10 @@ class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
     id = models.BigAutoField(primary_key=True)
     animal = models.ForeignKey(Animal, models.CASCADE, null=True, db_column="FK_prep_id", verbose_name="Animal")
-    neuroglancer_model = models.ForeignKey(UrlModel, models.CASCADE, null=True, db_column="FK_state_id", verbose_name="Neuroglancer state")
-    brain_region = models.ForeignKey(BrainRegion, models.CASCADE, null=True, db_column="FK_structure_id",
+    neuroglancer_model = models.ForeignKey(NeuroglancerState, models.CASCADE, null=True, db_column="FK_state_id", verbose_name="Neuroglancer state")
+    brain_region = models.ForeignKey(BrainRegion, models.CASCADE, null=True, db_column="FK_brain_region_id",
                                verbose_name="Brain region")
-    annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_annotator_id",
+    annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_user_id",
                                verbose_name="Annotator", blank=False, null=False)
     annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
     updated = models.DateTimeField(auto_now=True)
@@ -388,72 +428,6 @@ class StructureCom(AnnotationAbstract):
         return u'{} {}'.format(self.annotation_session, self.source)
 
 
-class ArchiveSet(AtlasModel):
-    """This class model is for set of archives. It gets used by the AnnotationPointArchive.
-    """
-    
-    id = models.BigAutoField(primary_key=True)
-    annotation_session = models.ForeignKey(AnnotationSession, models.CASCADE, null=False, db_column="FK_session_id",
-                               verbose_name="Annotation session")
-    def __str__(self):
-        return u'{}'.format(self.annotation_session)
-
-    class Meta:
-        managed = False
-        db_table = 'archive_set'
-        verbose_name = 'Annotation Archive'
-        verbose_name_plural = 'Annotation Archives'
-
-
-class AnnotationPointArchive(AnnotationAbstract):
-    """This class is for an archive of annotation points
-    """
-    
-    polygon_index = models.CharField(max_length=40, blank=True, null=True,default=0)
-    point_order = models.IntegerField(blank=False, null=False, default=0)
-    source = models.CharField(max_length=255)
-    cell_type = models.ForeignKey(CellType, models.CASCADE, db_column="FK_cell_type_id",
-                               verbose_name="Cell type", default=None, null=True)
-    archive = models.ForeignKey(ArchiveSet, models.CASCADE, db_column="FK_archive_set_id",
-                               verbose_name="Archive set", default=None)
-
-    class Meta:
-        managed = False
-        db_table = 'annotations_point_archive'
-        verbose_name = 'Annotation Point Archive'
-        verbose_name_plural = 'Annotation Points Archive'
-        constraints = [models.UniqueConstraint(fields=['annotation_session', 'x', 'y', 'z'], name='unique backup')]        
-    
-    def __str__(self):
-        return u'{} {}'.format(self.annotation_session, self.source)
-
-class AnnotationArchive(AnnotationSession):
-    class Meta:
-        proxy = True
-
-    @property
-    def cell_type(self):
-        if self.is_polygon_sequence():
-            return None
-        elif self.is_marked_cell():
-            one_row = AnnotationPointArchive.objects.filter(
-                annotation_session__id=self.id).first()
-            if one_row is None:
-                return None
-            else:
-                return one_row.cell_type
-        elif self.is_structure_com():
-            return None
-
-    @property
-    def source(self):
-        one_row = AnnotationPointArchive.objects.filter(
-            annotation_session__id=self.id).first()
-        if one_row is None:
-            return None
-        else:
-            return one_row.source
-
 
 class BrainShape(AtlasModel):
     """This class will hold the numpy data for a brain region."""
@@ -487,35 +461,4 @@ class BrainShape(AtlasModel):
     
     midsection.short_description = 'Midsection'
 
-class AlignmentScore(models.Model):
-    """A model that holds the alignment score data."""
-    class Meta:
-        managed = False
-        db_table = 'annotations_points'
-        verbose_name = 'Alignment Score'
-        verbose_name_plural = 'Alignment Scores'
 
-    def __str__(self):
-        return u'{}'.format(self.prep_id)
-
-class AtlasToBeth(models.Model):
-    """A model that holds the alignment score data. This is another version of the alignment
-    score and needs to be renamed."""
-    class Meta:
-        managed = False
-        db_table = 'annotations_points'
-        verbose_name = 'Aligned Atlas to Beth'
-        verbose_name_plural = 'Aligned Atlas to Beth'
-
-    def __str__(self):
-        return u'{}'.format(self.prep_id)
-
-class AnnotationStatus(models.Model):
-    class Meta:
-        managed = False
-        db_table = 'annotations_points'
-        verbose_name = 'Annotation Status'
-        verbose_name_plural = 'Annotation Status'
-
-    def __str__(self):
-        return u'{}'.format(self.prep_id)

@@ -62,6 +62,7 @@ export class DataService {
                 map((data: Response): Response => {
                     return data;
                 }), catchError(error => {
+                    console.error(error);
                     return throwError(() => new Error('Error: ' + error))
                 })
             )
@@ -115,6 +116,16 @@ export class DataService {
     public register({ userData }: { userData: User; }): Observable<User> {
         return this.httpClient.post<User>(this.API_URL + '/register/', userData);
     }
+
+    /**
+     * Handle the subscription outside of this class
+     * @param route 
+     * @returns raw http get
+     */
+    public getHttpData = (route: string):Observable<any> => {
+        return this.httpClient.get<Response>(route);
+      }
+      
 
 }
 

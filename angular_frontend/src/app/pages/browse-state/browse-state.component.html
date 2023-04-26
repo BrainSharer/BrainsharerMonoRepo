@@ -1,4 +1,10 @@
 <section class="container brain">
+
+  <div class="center" *ngIf="isLoading">
+    <img src="/assets/loading.gif">
+  </div>
+
+
   <form novalidate [formGroup]="searchForm">
 
     <div class="row">
@@ -43,45 +49,63 @@
 
       <div class="col-8">
         <div class="row">
-          <div class="col title" *ngIf="states.length > 0">
-            <p>{{states.length}} different Neuroglancer views</p>
+            <div class="col title" *ngIf="dataSource.data.length > 0">
+            <p>Displaying {{dataSource.data.length}} of {{resultsCount}} different Neuroglancer views</p>
           </div>
 
-          <div class="col title" *ngIf="states.length < 1">
+          <div class="col title" *ngIf="dataSource.data.length < 1">
             <p>There are no results for that query. Remove or change the search parameters to find more Neuroglancer
               views</p>
           </div>
+
+
         </div>
 
+
         <div class="row">
-          <div class="col content-container">
-            <div *ngFor="let state of states | paginate
-        : {
-            itemsPerPage: tableSize,
-            currentPage: page,
-            totalItems: count
-          }; let i = index;" class="card">
+                    <div class="col content-container">
+            <!-- start of table-->
 
-              <a *ngIf="(authService.sessionActive | async)" class="card-body card-a" target="_blank"
-                href="{{ngUrl}}?id={{state.id}}&multi=1">
-                <p class="card-title">{{state.comments}}</p>
-                <img src="https://www.brainsharer.org/images/screenshot/thumbnail_{{state.id}}.png">
-                <p class="card-text" style="margin-top:4px;">Lab: {{state.lab }}</p>
-              </a>
-              <a *ngIf="!(authService.sessionActive | async)" class="card-body card-a" target="_blank"
-                href="{{ngUrl}}?id={{state.id}}">
-                <p class="card-title">{{state.comments}}</p>
-                <img src="https://www.brainsharer.org/images/screenshot/thumbnail_{{state.id}}.png">
-                <p class="card-text" style="margin-top:4px;">Lab: {{state.lab }}</p>
-              </a>
+            <table mat-table [dataSource]="dataSource" matSort >
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+                <td mat-cell *matCellDef="let element"> {{element.id}} </td>
+              </ng-container>
+              <ng-container matColumnDef="comments">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Comments </th>
+                <td mat-cell *matCellDef="let element"> {{element.comments}} </td>
+              </ng-container>
+              <ng-container matColumnDef="created">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Created </th>
+                <td mat-cell *matCellDef="let element"> {{element.created | date}} </td>
+              </ng-container>
+              <ng-container matColumnDef="lab">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header> Lab </th>
+                <td mat-cell *matCellDef="let element"> {{element.lab}} </td>
+              </ng-container>
+              <ng-container matColumnDef="view">
+                  <th mat-header-cell *matHeaderCellDef> Neuroglancer view </th>
+                  <td mat-cell *matCellDef="let element">
+                    <a class="dropdown-item" (click)="redirectToView(element.id)" ><img src="/assets/placeholder.png" style="width:80px;height:50px;" alt="view"></a>
+                  </td>
+                </ng-container>
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
 
-            </div>
+            <!-- end of table-->
           </div>
         </div> <!-- end of list -->
 
-        <div class="d-flex justify-content-center data-pagination">
-          <pagination-controls previousLabel="Prev" nextLabel="Next" (pageChange)="onTableDataChange($event)">
-          </pagination-controls>
+        <div class="d-flex justify-content-center data-pagination"  *ngIf="dataSource.data.length > 0">
+          <!-- Angular 8 pagination -->
+          <mat-paginator 
+            [length]="resultsCount" 
+            [pageSize]="resultsPerPage" 
+            [pageIndex]="page"
+            (page)="onChangePage($event)"
+            color="warn"></mat-paginator>
+          
         </div>
 
 

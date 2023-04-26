@@ -9,7 +9,7 @@ import os
 from django.contrib import admin
 from django.forms import TextInput, Textarea, DateInput, NumberInput, Select
 from django.db import models
-from django.db.models import Count
+from django.conf import settings
 import csv
 from django.http import HttpResponse
 from django.contrib.admin.widgets import AdminDateWidget
@@ -18,7 +18,7 @@ from django.utils.safestring import mark_safe
 
 from brain.forms import save_slide_model, TifInlineFormset, scene_reorder
 from brain.models import (Animal, Histology, Injection, Virus, InjectionVirus,
-                          OrganicLabel, ScanRun, Slide, SlideCziToTif, Section)
+                          ScanRun, Slide, SlideCziToTif, Section)
 
 
 class AtlasAdminModel(admin.ModelAdmin):
@@ -125,10 +125,10 @@ class HistologyAdmin(AtlasAdminModel, ExportCsvMixin):
             exporter method.
 
     """
-    list_display = ('prep_id', 'label', 'performance_center')
+    list_display = ('prep_id', 'performance_center')
     search_fields = ('prep__prep_id',)
     autocomplete_fields = ['prep_id']
-    ordering = ['prep_id', 'label']
+    ordering = ['prep_id']
     exclude = ('created',)
 
 @admin.register(Injection)
@@ -171,9 +171,8 @@ class InjectionVirusAdmin(AtlasAdminModel):
         :AtlasAdminModel: The base admin model
 
     """
-    list_display = ('prep_id', 'injection_comments', 'virus_name', 'created')
+    list_display = ('prep_id', 'virus_name', 'created')
     fields = ['injection', 'virus']
-    search_fields = ('injection__prep__prep_id',)
     ordering = ['created']
 
     def prep_id(self, instance):
@@ -183,16 +182,7 @@ class InjectionVirusAdmin(AtlasAdminModel):
         :param instance: the obj
         :return: the prep_id (AKA the animal name) as a string
         """
-        return instance.injection.prep.prep_id
-
-    def injection_comments(self, instance):
-        """This gives the description from 
-        the injection foreign key
-
-        :param instance: the obj
-        :return: a string that contains the comments
-        """
-        return instance.injection.comments
+        return instance.injection.prep
 
     def virus_name(self, instance):
         """Gives the description from the virus foreign key
@@ -200,21 +190,6 @@ class InjectionVirusAdmin(AtlasAdminModel):
         :param instance: the obj
         """
         return instance.virus.virus_name
-
-@admin.register(OrganicLabel)
-class OrganicLabelAdmin(AtlasAdminModel, ExportCsvMixin):
-    """Description of OrganicLabelAdmin
-    This class describes the organice label for an animal. So far, 
-    it has had no data entered in it.
-
-    :Inheritance:
-        :AtlasAdminModel: The base admin model
-        :ExportCsvMixin: The class with standard features and CSV 
-            exporter method.
-    """
-    list_display = ('label_id', 'label_type', 'type_details', 'created')
-    search_fields = ('label_id',)
-    ordering = ['label_id', 'label_type', 'type_details', 'created']
 
 @admin.register(ScanRun)
 class ScanRunAdmin(AtlasAdminModel, ExportCsvMixin):
@@ -229,7 +204,7 @@ class ScanRunAdmin(AtlasAdminModel, ExportCsvMixin):
         :ExportCsvMixin: The class with standard features and CSV 
             exporter method.
     """
-    list_display = ('prep_id', 'performance_center', 'machine', 'rescan_number', 'comments', 'created')
+    list_display = ('prep_id', 'performance_center', 'machine','comments', 'created')
     search_fields = ('prep__prep_id',)
     ordering = ['prep_id', 'performance_center', 'machine','comments', 'created']
 
@@ -588,14 +563,10 @@ class SectionAdmin(AtlasAdminModel, ExportCsvMixin):
                 orderby = histology.side_sectioned_first
 
             if orderby == 'DESC':
-                sections =  Section.objects.filter(prep_id__exact=prep_id)\
-                    .filter(channel=1)\
-                    .filter(rescan_number=0)\
+                sections =  Section.objects.filter(prep_id__exact=prep_id).filter(channel=1)\
                     .order_by('-slide_physical_id', '-scene_number')
             else:
-                sections = Section.objects.filter(prep_id__exact=prep_id)\
-                    .filter(channel=1)\
-                    .filter(rescan_number=0)\
+                sections = Section.objects.filter(prep_id__exact=prep_id).filter(channel=1)\
                     .order_by('slide_physical_id', 'scene_number')
 
         return sections
@@ -684,7 +655,7 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 
 
-admin.site.site_header = 'Active Brain Atlas Admin'
-admin.site.site_title = "Active Brain Atlas"
-admin.site.index_title = "Welcome to Active Brain Atlas Portal"
-admin.site.site_url = "https://github.com/ActiveBrainAtlas2"
+admin.site.site_header = 'Brainsharer Admin'
+admin.site.site_title = "Brainsharer"
+admin.site.index_title = "Welcome to Brainsharer Portal"
+admin.site.site_url = settings.BASE_FRONTEND_URL

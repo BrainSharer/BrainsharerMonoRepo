@@ -1,8 +1,57 @@
 /* start of create state list */
+.table-browse {
+  border: 2px #CCCCCC;
+}
+
+table {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 500px;
+}
+th.mat-header-cell {
+  font-size: larger;
+	background: #1C2532;
+  color: #FFFFFF;
+}
+
+th.mat-header-cell,
+td.mat-cell,
+td.mat-footer-cell {
+  text-align: left;
+  max-width: 400px;
+  padding: 10px;
+  border-bottom: 1px solid #ffa600;
+  border-top: 1px solid #ffa600;
+}
+td.mat-cell:first-child {
+  /* row border */
+  border-left: 1px solid #ffa600;
+}
+
+td.mat-cell:last-child {
+  /* row border */
+  border-right: 1px solid #ffa600;
+}
+
+
+table, th, td {
+  border: 1px solid;
+}
 .container {
   margin: 10px;
 }
+mat-sidenav-container, mat-sidenav-content, mat-sidenav {
+  height: 100%;
+}
 
+mat-sidenav {
+  width: 250px;
+}
+
+main {
+  padding: 10px;
+}
 
 .content-container {
   padding: 10px 6px 0px 10px;
@@ -31,68 +80,6 @@
   font-style: italic;
 }
 
-.card-container {
-  padding: 2px;
-  margin-top: 5px;
-  border-radius: 5px;
-  background: #ccc;
-}
-.card>a {
-  text-decoration: none;
-  color: #000000;
-  border-style: solid;
-  border-width: 1px;
-  border-color: #A5C3A6;
-  margin: 2px;
-}
-
-.card>a:hover {
-  box-shadow: 2px 2px 0px #fd9a6ce5;
-  transform: scale(1.00)
-}
-
-/* start of create state */
-section {
-  margin: 10px;
-}
-
-/* start of search */
-.search-form {
-  margin: 0px 0px 10px 0px;
-}
-
-.collapse-button {
-  border: none;
-}
-
-.collapsed-card {
-  background: #ccc;
-  margin-left: 4px;
-  padding: 4px;
-  border-radius: 5px;
-}
-
-div.item-checkbox {
-  width: 100%;
-  height: 100%;
-  margin-left: 10px;
-}
-
-div.item-checkbox>label {
-  display: block;
-  padding: 2px 5px;
-}
-
-div.item-checkbox>label>input {
-  margin-right: 5px;
-}
-
-.collapsible:hover,
-.all:hover {
-  color: #ffffff;
-  background-color: #0066FF;
-}
-
 .content {
   width: 97%;
   border: 1px solid #000;
@@ -103,6 +90,20 @@ div.item-checkbox>label>input {
   font: 500 16px/1.5 Arial;
 }
 
-.submit-button {
-  margin: 10px 0 0 20px;
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -moz-transform: translateX(-50%) translateY(-50%);
+  -webkit-transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%) translateY(-50%);
+}
+
+
+a:visited {
+  background-color:#1C2532;
+}
+
+a:hover {
+  background-color: #CCCCCC;
 }

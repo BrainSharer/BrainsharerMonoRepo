@@ -13,7 +13,7 @@ export class InterceptService implements HttpInterceptor {
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     if (request.headers.get(VALIDATE)) {
-      console.log('Intercepting URL=' + request.url);
+      // console.log('Intercepting URL=' + request.url);
       request = request.clone({
         headers: request.headers.delete(VALIDATE)
       });

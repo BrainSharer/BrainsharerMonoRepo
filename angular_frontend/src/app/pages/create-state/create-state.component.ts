@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormControl } from '@angular/forms';
+import { UntypedFormGroup, UntypedFormControl } from '@angular/forms';
 
 import { GroupView, StateView } from 'src/app/_models/state_view';
 import { GroupSet } from 'src/app/_models/group.set';
@@ -24,10 +24,10 @@ export class CreateStateComponent implements OnInit {
   animalUrl = this.baseUrl + '/animal';
   labUrl = this.baseUrl + '/labs';
   stateUrl = this.baseUrl + '/states';
-  searchForm: FormGroup = new FormGroup({
-    comments: new FormControl(''),
-    labs: new FormControl(''),
-    layer_types: new FormControl('')
+  searchForm: UntypedFormGroup = new UntypedFormGroup({
+    comments: new UntypedFormControl(''),
+    labs: new UntypedFormControl(''),
+    layer_types: new UntypedFormControl('')
   });
 
   page: number = 1;

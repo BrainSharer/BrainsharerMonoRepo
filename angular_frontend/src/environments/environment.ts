@@ -10,8 +10,7 @@ export const environment = {
   GOOGLE_URL: 'http://localhost:8000/google/',
   recaptcha: {
     siteKey: '6LfKNi0cAAAAACeYwFRY9_d_qjGhpiwYUo5gNW5-',
-  },
-  
+  },  
 };
 
 

@@ -10,9 +10,11 @@
                 <li class="nav-item">
                     <a class="nav-link" routerLink="browse-state">Browse views</a>
                 </li>
+                
                 <li class="nav-item" *ngIf="(authService.sessionActive | async)">
                     <a class="nav-link" routerLink="create-view">Create view</a>
                 </li>
+                
                 <li class="nav-item">
                     <a class="nav-link" routerLink="contact">Contact</a>
                 </li>
@@ -25,8 +27,8 @@
                         <img src="/assets/blank_avatar.png" class="avatar" alt="Avatar">{{authService.getFullname()}}<b class="caret"></b>
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" (click)="authService.logout()">
-                            <i class="fa fa-sliders"></i>Logout</a></li>
+                        <li><a (click)="clickLocalLogout()" class="dropdown-item"><i class="fa fa-user-o"></i>Logout</a></li>
+                        <li><a (click)="clickAdmin()" class="dropdown-item"><i class="fa fa-gears"></i>Admin</a></li>
                     </ul>
                 </li>
 
@@ -35,8 +37,11 @@
                         <img src="/assets/blank_avatar.png" class="avatar" alt="Avatar">Guest <b class="caret"></b></a>
 				
                     <ul class="dropdown-menu">
-					<li><a routerLink="/account/login" class="dropdown-item"><i class="fa fa-user-o"></i> Login</a></li>
-                    <li><a routerLink="/account/register" class="dropdown-item"><i class="fa fa-sliders"></i> Register</a></li>
+                        <li><a (click)="clickGoogle()" class="dropdown-item"><img src="/assets/btn_google_signin_light_normal_web.png"></a></li>
+                        <li><a (click)="clickGithub()" class="dropdown-item"><img src="/assets/github-login.png"></a></li>
+                        <li><a (click)="clickLocalLogin()"  class="dropdown-item"><i class="fa fa-user-o"></i>Local login</a></li>
+                        <li><a (click)="clickLocalRegister()" class="dropdown-item"><i class="fa fa-sliders"></i>Register</a></li>
+                        <li><a (click)="clickLocalLostPassword()" class="dropdown-item"><i class="fa fa-sliders"></i>Reset password</a></li>
                     </ul>
                 </li>
                 

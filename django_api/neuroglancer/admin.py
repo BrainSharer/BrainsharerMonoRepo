@@ -24,14 +24,11 @@ from plotly.offline import plot
 import plotly.express as px
 from brain.models import ScanRun
 from brain.admin import AtlasAdminModel, ExportCsvMixin
-from neuroglancer.models import AnnotationSession, ArchiveSet, MarkedCellWorkflow, \
-    UrlModel,  BrainRegion, Points, \
-    PolygonSequence, MarkedCell, StructureCom, CellType
+from neuroglancer.models import AnnotationSession, BrainRegion, CellType, \
+    MarkedCellWorkflow, MarkedCell, NeuroglancerState, NeuroglancerView, Points, PolygonSequence, StructureCom
 from neuroglancer.dash_view import dash_scatter_view
 from neuroglancer.url_filter import UrlFilter
-from neuroglancer.tasks import restore_annotations
-from background_task.models import Task
-from background_task.models import CompletedTask
+
 
 
 def datetime_format(dtime):
@@ -57,20 +54,20 @@ def get_points_in_session(id):
     return len(points)
 
 
-@admin.register(UrlModel)
-class UrlModelAdmin(admin.ModelAdmin):
+@admin.register(NeuroglancerState)
+class NeuroglancerStateAdmin(admin.ModelAdmin):
     """This class provides the admin backend to the JSON data produced by Neuroglancer.
     In the original version of Neuroglancer, all the data was stored in the URL, hence
-    the name of this class. The name: 'UrlModel' will be changed in future versions.
+    the name of this class. The name: 'NeuroglancerState' will be changed in future versions.
     """
     formfield_overrides = {
         models.CharField: {'widget': TextInput(attrs={'size': '100'})},
     }
-    list_display = ('animal', 'open_neuroglancer', 'open_multiuser', 'owner', 'created')
+    list_display = ('animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'created')
     ordering = ['-readonly', '-updated']
     readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
-    exclude = ['url']
-    list_filter = ['updated', 'created', 'readonly', UrlFilter, ]
+    exclude = ['neuroglancer_state']
+    list_filter = ['updated', 'created', 'readonly', UrlFilter, 'public']
     search_fields = ['comments']
 
     def __init__(self, model, admin_site):
@@ -95,7 +92,7 @@ class UrlModelAdmin(admin.ModelAdmin):
         """
         
         # Convert the data to sorted, indented JSON
-        response = json.dumps(instance.url, sort_keys=True, indent=2)
+        response = json.dumps(instance.neuroglancer_state, sort_keys=True, indent=2)
         # Truncate the data. Alter as needed
         response = response[:3000]
         # Get the Pygments formatter
@@ -130,6 +127,10 @@ class UrlModelAdmin(admin.ModelAdmin):
     open_multiuser.short_description = 'Multi-User'
     open_multiuser.allow_tags = True
 
+@admin.register(NeuroglancerView)
+class NeuroglancerViewAdmin(AtlasAdminModel):
+    list_display = ('id', 'group_name', 'lab', 'layer_name', 'url', 'active','created')
+
 
 @admin.register(Points)
 class PointsAdmin(admin.ModelAdmin):
@@ -139,7 +140,7 @@ class PointsAdmin(admin.ModelAdmin):
 
     list_display = ('animal', 'comments', 'owner', 'show_points', 'updated')
     ordering = ['-created']
-    readonly_fields = ['url', 'created', 'user_date', 'updated']
+    readonly_fields = ['neuroglancer_state', 'created', 'user_date', 'updated']
     search_fields = ['comments']
     list_filter = ['created', 'updated', 'readonly']
 
@@ -151,7 +152,7 @@ class PointsAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Returns the query set of points where the layer contains annotations"""
         points = Points.objects.filter(
-            url__layers__contains={'type': 'annotation'})
+            neuroglancer_state__layers__contains={'type': 'annotation'})
         return points
 
     def show_points(self, obj):
@@ -177,13 +178,13 @@ class PointsAdmin(admin.ModelAdmin):
         """Provides a link to the 3D point graph
 
         :param request: http request
-        :param id:  id of url
+        :param id:  id of neuroglancer_state
         :param args:
         :param kwargs:
         :return: 3dGraph in a django template
         """
-        urlModel = UrlModel.objects.get(pk=id)
-        df = urlModel.points
+        neuroglancerState = NeuroglancerState.objects.get(pk=id)
+        df = neuroglancerState.points
         plot_div = "No points available"
         if df is not None and len(df) > 0:
             self.display_point_links = True
@@ -201,15 +202,15 @@ class PointsAdmin(admin.ModelAdmin):
             plot_div = plot(fig, output_type='div', include_plotlyjs=False)
         context = dict(
             self.admin_site.each_context(request),
-            title=urlModel.comments,
+            title=neuroglancerState.comments,
             chart=plot_div
         )
         return TemplateResponse(request, "points_graph.html", context)
 
     def view_points_data(self, request, id, *args, **kwargs):
         """Provides the HTML link to the table data"""
-        urlModel = UrlModel.objects.get(pk=id)
-        df = urlModel.points
+        neuroglancerState = NeuroglancerState.objects.get(pk=id)
+        df = neuroglancerState.points
         result = 'No data'
         display = False
         if df is not None and len(df) > 0:
@@ -219,10 +220,10 @@ class PointsAdmin(admin.ModelAdmin):
                 index=False, classes='table table-striped table-bordered', table_id='tab')
         context = dict(
             self.admin_site.each_context(request),
-            title=urlModel.comments,
+            title=neuroglancerState.comments,
             chart=result,
             display=display,
-            opts=UrlModel._meta,
+            opts=NeuroglancerState._meta,
         )
         return TemplateResponse(request, "points_table.html", context)
 
@@ -428,35 +429,10 @@ class StructureComAdmin(admin.ModelAdmin):
             title=title,
             chart=result,
             display=display,
-            opts=UrlModel._meta,
+            opts=NeuroglancerState._meta,
         )
         return TemplateResponse(request, "points_table.html", context)
 
-
-@admin.action(description='Restore the selected archive')
-def restore_archive(modeladmin, request, queryset):
-    """This method will restore data from the annotation_points_archive table to the 
-    annotations_points table.
-    
-    1. Set existing data to inactive (quick)
-    2. Move inactive data to archive (select, insert, slow, use background)
-    3. Move archived data to existing (select, insert, slow use background)
-
-    :param request: the HTTP request
-    :param queryset: the query set used to fetch data
-    """
-    n = len(queryset)
-    if n != 1:
-        messages.error(
-            request, 'Check just one archive. You cannot restore more than one archive.')
-    else:
-        archiveSet = queryset[0]
-        restore_annotations(archiveSet)
-        messages.info(
-            request, f"""The {archiveSet.annotation_session.source} layer
-                for {archiveSet.annotation_session.animal.prep_id} has been restored and 
-                moved out of the archive and into the {archiveSet.annotation_session.annotation_type} 
-                table. ID={archiveSet.id}""")
 
 
 @admin.action(description='Delete Data related to the Selected Session')
@@ -586,111 +562,6 @@ class AnnotationSessionAdmin(AtlasAdminModel):
             title=title,
             chart=result,
             display=display,
-            opts=UrlModel._meta,
+            opts=NeuroglancerState._meta,
         )
         return TemplateResponse(request, "points_table.html", context)
-
-@admin.register(ArchiveSet)
-class ArchiveSetAdmin(AtlasAdminModel):
-    """Class that provides admin capability for managing a region of the brain. This
-    was also called a structure.
-    """
-    actions = [restore_archive]
-
-    fields = ['annotation_session', 'created']
-    list_display = ('get_animal', 'get_name', 'get_annotation_type', 'created')
-    ordering = ['annotation_session__animal__prep_id']
-    list_filter = ['created', 'annotation_session__annotation_type']
-    search_fields = ['annotation_session__animal__prep_id']
-
-    def get_queryset(self, request):
-        qs = ArchiveSet.objects.filter(active=True)
-        return qs
-
-    def get_animal(self, obj):
-            return obj.annotation_session.animal
-
-    get_animal.admin_order_field  = 'annotation_session__animal__prep_id'  #Allows column order sorting
-    get_animal.short_description = 'Animal'  #Renames column head    
-    def get_name(self, obj):
-            return obj.annotation_session.annotator
-
-    get_name.admin_order_field  = 'annotation_session__annotator'  #Allows column order sorting
-    get_name.short_description = 'Annotator'  #Renames column head    
-    def get_annotation_type(self, obj):
-            return obj.annotation_session.annotation_type
-
-    get_annotation_type.admin_order_field  = 'annotation_session__annotation_type'  #Allows column order sorting
-    get_annotation_type.short_description = 'Annotation type'  #Renames column head    
-
-    def has_delete_permission(self, request, obj=None):
-        """Returns false as the data is readonly
-        """
-        return False
-
-    def has_add_permission(self, request, obj=None):
-        """Returns false as the data is readonly
-        """
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        """Returns false as the data is readonly
-        """
-        return False
-
-'''
-@admin.register(AnnotationPointArchive)
-class AnnotationArchiveAdmin(admin.ModelAdmin):
-    """A class to admin the archived annotations. 
-    It inherits from the AnnotationSessionAdmin
-    This should show annotations that are inactive.
-    """
-    
-    list_display = ['animal', 'annotation_type', 'annotator', 'created']
-    ordering = ['animal__prep_id'] 
-    search_fields = ['animal__prep_id', 'annotation_type']
-    
-
-    def get_queryset(self, request):
-        distinct = AnnotationPointArchive.objects.values_list('annotation_session_id', flat=True).distinct()
-        qs = AnnotationSession.objects.filter(pk__in=[id for id in distinct])
-        return qs
-'''
-##### The code below is for the tasks. It doesn't really belong in the neuroglancer category
-##### but we had to put it somewhere
-
-admin.site.unregister(Task)
-admin.site.unregister(CompletedTask)
-
-
-@admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    """This admin class is for taking care of the tasks associated with the pre-processing """
-    display_filter = ['task_name']
-    search_fields = ['task_name', 'task_params', ]
-    list_display = ['task_name', 'run_at', 'priority', 'attempts',
-                    'has_error', 'locked_by', 'locked_by_pid_running', 'creator']
-
-    def has_add_permission(self, request, obj=None):
-        """Returns false as this data comes in from the pre-processing """
-        return False
-
-
-@admin.register(CompletedTask)
-class CompletedTaskAdmin(admin.ModelAdmin):
-    """This class is used to admin the completed tasks. These are tasks that are long running
-    and take to long for an HTTP request. They get sent to the supervisord daemon to be run
-    outside the scope of the HTTP request."""
-
-    display_filter = ['task_name']
-    list_display = ['task_name', 'run_at', 'attempts',
-                    'has_error',  'creator']
-    list_filter = ['run_at', ]
-
-    def has_add_permission(self, request):
-        """Returns false as it is added by another process."""
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        """Returns false as it is added by another process."""
-        return False

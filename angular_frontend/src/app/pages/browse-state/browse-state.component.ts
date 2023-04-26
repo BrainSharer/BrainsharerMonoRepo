@@ -1,11 +1,16 @@
-import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormControl } from '@angular/forms';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { UntypedFormGroup, UntypedFormControl } from '@angular/forms';
 
-import { State } from 'src/app/_models/state';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
+import {MatPaginator, PageEvent} from '@angular/material/paginator';
+
+import { NeuroglancerState } from 'src/app/_models/state';
 import { Lab } from 'src/app/_models/lab';
 import { DataService } from 'src/app/_services/data.service';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/_services/auth.service';
+
 
 
 @Component({
@@ -13,24 +18,32 @@ import { AuthService } from 'src/app/_services/auth.service';
   templateUrl: './browse-state.component.html',
   styleUrls: ['./browse-state.component.css']
 })
+
 export class BrowseStateComponent implements OnInit {
+  displayedColumns: string[] = ['id', 'comments', 'lab', 'created', 'view'];
+  dataSource = new MatTableDataSource<NeuroglancerState>();
+  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  resultsCount = 0;
+  resultsPerPage = 10;
+  offset: number | undefined;
+  isLoading = true;
+
+
   labs: Lab[] = [];
-  states: State[] = [];
+  neuroglancer_states: NeuroglancerState[] = [];
   baseUrl = environment.API_URL;
   ngUrl = environment.NG_URL;
   url_ID = 0;
   animalUrl = this.baseUrl + '/animal';
   labUrl = this.baseUrl + '/labs';
-  neuroUrl = this.baseUrl + '/neuroglancer';
-  searchForm: FormGroup = new FormGroup({
-    comments: new FormControl(''),
-    labs: new FormControl(''),
+  neuroUrl = this.baseUrl + '/neuroglancers';
+  searchForm: UntypedFormGroup = new UntypedFormGroup({
+    comments: new UntypedFormControl(''),
+    labs: new UntypedFormControl(''),
   });
 
-  page: number = 1;
-  count: number = 0;
-  tableSize: number = 6;
-  tableSizes: any = [3, 6, 9, 12];
+  page: number = 0;
 
 
   constructor(private dataService: DataService,
@@ -41,6 +54,10 @@ export class BrowseStateComponent implements OnInit {
     this.setLabs(this.labUrl);
   }
 
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+    this.sort.sortChange.subscribe(() => this.paginator.pageIndex = 0);
+  }
 
   public searchLab(search: number): void {
     const url = this.neuroUrl + '?lab=' + search;
@@ -64,20 +81,26 @@ export class BrowseStateComponent implements OnInit {
   }
 
   private setData(url: string): void {
+    this.isLoading = true;
     this.dataService.getData(url).subscribe(response => {
-      this.states = response.results;
+      this.resultsCount = response.count;
+      this.dataSource.data = response.results as NeuroglancerState[];
+      this.isLoading = false;
     });
   }
 
-  public onTableDataChange(event: any) {
-    this.page = event;
-    this.setData(this.neuroUrl);
+  public redirectToView = (id: string) => {
+    const redirecturl = this.ngUrl + '?id=' + id;
+    window.open(redirecturl, '_blank');
   }
 
-  public onTableSizeChange(event: any): void {
-    this.tableSize = event.target.value;
-    this.page = 1;
-    this.setData(this.neuroUrl);
+  public onChangePage(pe:PageEvent) {
+    // "http://localhost:8000/neuroglancer?limit=10&offset=10",
+    this.page = pe.pageIndex;
+    let offset = pe.pageIndex * this.resultsPerPage;
+    let url = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + offset;
+    console.log(url);
+    this.setData(url);
   }
 
 

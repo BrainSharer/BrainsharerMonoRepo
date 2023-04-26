@@ -1,5 +1,5 @@
 
-export interface State {    
+export interface NeuroglancerState {    
     id: number;
     owner: number;
     comments: string;

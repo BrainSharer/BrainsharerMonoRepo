@@ -25,12 +25,12 @@ import { InterceptService } from 'src/app/_services/intercept.service';
     ],
     imports: [
         BrowserModule,
+        BrowserAnimationsModule,
         HttpClientModule,
         AppRoutingModule,
         FormsModule,
         NgbModule,
         ReactiveFormsModule,
-        BrowserAnimationsModule,
         ToastrModule.forRoot()
     ],
     providers: [InterceptService, { provide: HTTP_INTERCEPTORS, useClass: InterceptService, multi: true }, AuthService, CookieService, AuthGuard],

@@ -3,6 +3,8 @@ import random
 import numpy as np
 from django.http.response import Http404
 from neuroglancer.models import UNMARKED
+DEBUG = True
+from timeit import default_timer as timer
 
 default_annotation_layer = dict(
     type='annotation', annotations=[], name='annotation', source='')
@@ -29,7 +31,7 @@ class AnnotationLayer:
             self.tool = annotation_layer['tool']
         self.source = annotation_layer['source']
         self._type = 'annotation'
-        self.parse_annotations()
+        self.parse_annotations() # this method takes a long time for volumes
 
     def __str__(self):
         return "str method: annotation_layer is %s, b is %s" % (self.annotation_layer)
@@ -39,26 +41,52 @@ class AnnotationLayer:
         object mappings in python.  This step groups points into polygons and polygons into volumes 
         """
         annotations = []
+        function_mapping = {'polygon': self.parse_polygon,
+                            'volume': self.parse_volume,
+                            'point': self.parse_point,
+                            'cell': self.parse_point,
+                            'com': self.parse_point,
+                            'line': self.parse_line,
+        }
+        start_time = timer()
         for annotationi in self.annotations:
-            if annotationi['type'] == 'polygon':
-                annotations.append(self.parse_polygon(annotationi))
-            elif annotationi['type'] == 'volume':
-                annotations.append(self.parse_volume(annotationi))
-            elif annotationi['type'] == 'point':
-                annotations.append(self.parse_point(annotationi))
-            elif annotationi['type'] == 'cell':
-                annotations.append(self.parse_point(
-                    annotationi, point_class='Cell'))
-            elif annotationi['type'] == 'com':
-                annotations.append(self.parse_point(
-                    annotationi, point_class='COM'))
-            elif annotationi['type'] == 'line':
-                annotations.append(self.parse_line(annotationi))
+            annotations.append(function_mapping[annotationi['type']](annotationi))
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Appending annotations took {total_elapsed_time} seconds.')
+
+        start_time = timer()
         self.annotations = np.array(annotations)
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Puting annotations in a numpy array took {total_elapsed_time} seconds.')
+
+        self.annotations_to_id_mapping = {}
+        self.annotation_removed = {}
+
+        for annotation in self.annotations:
+            assert not annotation.id in self.annotations_to_id_mapping # annotation id should be unique
+            if annotation._type == "line":
+                assert not hasattr(annotation, "child_ids") # line annotations can not have children
+
+            self.annotations_to_id_mapping[annotation.id] = annotation
+
+        start_time = timer()
         self.group_annotations('polygon')
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Grouping polygon annotations took {total_elapsed_time} seconds.')
         # self.reorder_polygon_points()
         # self.check_polygon_points()
+        start_time = timer()
         self.group_annotations('volume')
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Grouping volume annotations took {total_elapsed_time} seconds.')
 
     def parse_point(self, point_json, point_class='Point'):
         """Parse the neuroglancer json of a point annotation
@@ -100,10 +128,11 @@ class AnnotationLayer:
         return polygon
 
     def parse_volume(self, volume_json):
-        '''
-        Parse the neuroglancer json of a volume annotation
+        """Parse the neuroglancer json of a volume annotation. This method takes a LONG TIME for big volumes
+        
         :param volume_json: dictionary of neuroglancer polygon annotation json state
-        '''
+        """
+        
         volume = Volume(
             volume_json['id'], volume_json['childAnnotationIds'], volume_json['source'])
         if 'description' in volume_json:
@@ -115,26 +144,31 @@ class AnnotationLayer:
         search in the annnotation in the layer for one with a set id 
         :param id: UUID annotation id set by neuroglancer
         '''
-        search_result = [annotationi.id ==
-                         id for annotationi in self.annotations]
-        if sum(search_result) == 0:
+        if id in self.annotations_to_id_mapping:
+            return self.annotations_to_id_mapping[id]
+        else: 
             print('annotation not found')
-        elif sum(search_result) > 1:
-            print('more than one result found')
-        return search_result
+            return None
 
     def group_annotations(self, _type):
-        '''
-        The main function to group points into polygons and polygons into volumes
+        """The main function to group points into polygons and polygons into volumes.
+        This method takes a long time.
+        
         :param _type: string to determing if we are grouping points to polygons are polygons to volumes
-        '''
+        """
+
         for annotationi in self.annotations:
+            if annotationi in self.annotation_removed:
+                continue
             if annotationi._type == _type:
                 annotationi.childs = []
                 for childid in annotationi.child_ids:
                     annotationi.childs.append(self.get_annotation_with_id(childid))
-                    self.delete_annotation_with_id(childid)
+                    self.annotation_removed[childid] = True
                 annotationi.childs = np.array(annotationi.childs)
+
+        self.delete_annotations()
+        
 
     def reorder_polygon_points(self):
         '''
@@ -169,24 +203,34 @@ class AnnotationLayer:
                     first_point, start_points, end_points)
 
     def get_annotation_with_id(self, id):
-        '''
-        returns the annotation object with a set id
+        """Returns the annotation object with a set id
+        
         :param id: UUID string assigned by neuroglancer
-        '''
-        search_result = self.search_annotation_with_id(id)
-        if sum(search_result) == 0:
-            return None
+        """
+
+        if id in self.annotations_to_id_mapping and id not in self.annotation_removed:
+            return self.annotations_to_id_mapping[id]
         else:
-            return self.annotations[search_result][0]
+            print("annotation not found")
+            return None
 
     def delete_annotation_with_id(self, id):
-        '''
-        Delete annotation with a set id from the list of annotations
+        """Delete annotation with a set id from the list of annotations
+        
         :param id:UUID string assigned by neuroglancer
-        '''
+        """
 
         search_result = self.search_annotation_with_id(id)
         self.annotations = self.annotations[np.logical_not(search_result)]
+
+    def delete_annotations(self):
+        """Delete annotations for annotations attribute that have id in annotation_removed dict 
+        
+        """
+
+        new_annotations = [annotation for annotation in self.annotations if not annotation.id in self.annotation_removed]
+
+        self.annotations = np.array(new_annotations)
 
     def get_volumes(self):
         """return all the volumes int this layer
@@ -203,9 +247,9 @@ class AnnotationLayer:
         return [i for i in self.annotations if i._type == 'polygons']
 
     def to_json(self):
-        '''
-        convert an annotation to it's json form.  To be implemented
-        '''
+        """Convert an annotation to it's json form.  To be implemented
+        """
+
         point_json = {}
         ...
 
@@ -390,9 +434,10 @@ class Polygon(Annotation):
 
 
 class Volume(Annotation):
-    '''
-    Volume Annotation
-    '''
+    """Volume Annotation
+    This class takes a LONG TIME!!!
+    """
+    
 
     def __init__(self, id, child_ids, source):
         """Initialize the volume annotation
@@ -411,9 +456,11 @@ class Volume(Annotation):
 
     def get_volume_name_and_contours(self, downsample_factor=1):
         """Get the name of volume and dictionary of contours
+
         Returns:
             str,dict: The name of the volume in question and the dictionary containing the contour points
         """
+        
         assert hasattr(self, 'description')
         volume_contours = {}
         for childi in self.childs:
