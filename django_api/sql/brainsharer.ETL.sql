@@ -268,8 +268,13 @@ FROM active_atlas_production.elastix_transformation;
 -- Fixes
 ALTER TABLE brainsharer.brain_region MODIFY COLUMN abbreviation varchar(200) NOT NULL COLLATE utf8mb4_bin;
 update django_site set domain='brainsharer.org', name='brainsharer.org' where id = 2;
--- run this command
+-- run these command
 -- python manage.py remove_stale_contenttypes --include-stale-apps
+-- find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+-- find . -path "*/migrations/*.pyc"  -delete
+-- python manage.py migrate
+-- python manage.py makemigrations neuroglancer
+-- python manage.py migrate neuroglancer
 update neuroglancer_state set active = 0;
 update neuroglancer_state set active = 1 where id in (21,809,810,811,812,813,814,815,816, 817);
 

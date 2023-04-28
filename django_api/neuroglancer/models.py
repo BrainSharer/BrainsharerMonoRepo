@@ -128,7 +128,7 @@ class NeuroglancerState(models.Model):
         return layer_list
 
     class Meta:
-        managed = False
+        managed = True
         verbose_name = "Neuroglancer state"
         verbose_name_plural = "Neuroglancer states"
         ordering = ('comments', 'created')

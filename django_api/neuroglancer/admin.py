@@ -63,12 +63,23 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.CharField: {'widget': TextInput(attrs={'size': '100'})},
     }
-    list_display = ('animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'created')
+    list_display = ('animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'lab', 'created')
     ordering = ['-readonly', '-updated']
     readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
     exclude = ['neuroglancer_state']
     list_filter = ['updated', 'created', 'readonly', UrlFilter, 'public']
     search_fields = ['comments']
+
+
+    def get_queryset(self, request):
+        """Returns the query set of points where the layer contains annotations"""
+        rows = NeuroglancerState.objects.all()
+        if not request.user.is_superuser:
+            labs = [p.id for p in request.user.labs.all()]
+            print(labs)
+            rows = rows.filter(owner__lab__in=labs)
+        return rows
+
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
@@ -77,12 +88,6 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
         """Returns false as the data is only added via Neuroglancer"""
         return False
 
-
-    '''
-    def get_list_display_links(self, request, list_display):
-        super().get_list_display_links(request, list_display)
-        return None
-    '''
     def pretty_url(self, instance):
         """Function to display pretty version of the JSON data.
         It uses the pygments library to make the JSON readable.
