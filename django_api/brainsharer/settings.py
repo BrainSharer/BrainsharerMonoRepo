@@ -7,8 +7,8 @@ from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIE
     GITHUB_OAUTH2_CLIENT_SECRET
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEBUG = False
-ALLOWED_HOSTS = ['brainsharer.org', 'www.brainsharer.org', 'localhost']
+DEBUG = True
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -31,17 +31,21 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'django_plotly_dash.middleware.BaseMiddleware',
+    'django_plotly_dash.middleware.ExternalRedirectionMiddleware',
     'authentication.cookiemiddleware.CookieMiddleware'
 ]
 
@@ -119,32 +123,56 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-BASE_BACKEND_URL = 'https://www.brainsharer.org'
-BASE_FRONTEND_URL = 'https://www.brainsharer.org'
-CORS_ALLOWED_ORIGINS = ['https://www.brainsharer.org', 'https://brainsharer.org']
+# dash/plotly stuff
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [('127.0.0.1', 6379),],
+        },
+    },
+}
+
+PLOTLY_COMPONENTS = [
+    'dash_core_components',
+    'dash_html_components',
+    'dash_bootstrap_components',
+    'dash_renderer',
+    'dpd_components',
+    'dpd_static_support',
+]
+
+##### django extensions graph models
+GRAPH_MODELS = {
+  'app_labels': ["brain", "neuroglancer",],
+  'group_models': True,
+}
+
+BASE_BACKEND_URL = 'http://localhost:8000'
+BASE_FRONTEND_URL = 'http://localhost:4200'
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
 DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'
 DEFAULT_FROM_EMAIL = "drinehart@physics.ucsd.edu"
-EMAIL_HOST = "smtp.ucsd.edu"
-FORCE_SCRIPT_NAME = '/brainsharer/'
-#FOR HOSTING IN SUBDIRECTORY
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 GITHUB_OAUTH2_CLIENT_ID = '3ad4b114f66ffb3b6ed8'
 GOOGLE_OAUTH2_CLIENT_ID = '821517150552-71h6bahua9qul09l90veb8g3hii6ed25.apps.googleusercontent.com'
-HOST = "brainsharer.org"
+HTTP_HOST = "http://localhost/brainsharer"
 INTERNAL_IPS = ['127.0.0.1']
 LANGUAGE_CODE = 'en-us'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = BASE_FRONTEND_URL
+LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
 MEDIA_URL = '/share/'
-NEUROGLANCER_PROD_HOST = "https://www.brainsharer.org/ng"
-NG_URL = "https://www.brainsharer.org/ng"
+NG_URL = "http://localhost/brainsharer/ng"
 SILENCED_SYSTEM_CHECKS = ['mysql.E001']
 SITE_ID = 2
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'assets'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'Asia/Bangkok'
 USE_I18N = True
 USE_L10N = True
-USER_ID = 1
-USE_X_FORWARDED_HOST = True
+

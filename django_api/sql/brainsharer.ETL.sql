@@ -258,6 +258,12 @@ UNION
 SELECT app, name, NOW() AS applied 
 FROM brainsharer_aws.django_migrations;
 
+-- elastix_transformation
+
+INSERT INTO brainsharer.elastix_transformation (id,FK_prep_id,section,rotation,xshift,yshift,metric,iteration,created,active)
+SELECT id, prep_id AS FK_prep_id,section,rotation,xshift,yshift,metric,iteration,created,active
+FROM active_atlas_production.elastix_transformation;
+
 
 -- Fixes
 ALTER TABLE brainsharer.brain_region MODIFY COLUMN abbreviation varchar(200) NOT NULL COLLATE utf8mb4_bin;

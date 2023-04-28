@@ -150,8 +150,7 @@ export class StateAPI {
 
     access: string | undefined;
 
-    constructor(private stateUrl: string, 
-        private imageserverStateUrl: string) { }
+    constructor(private stateUrl: string) { }
 
     public async getUser(): Promise<User> {
         let userjson = {'user_id': 0, 'username': ''};
@@ -283,7 +282,7 @@ export class StateAPI {
      * @returns A JSON object of the Segmenation
      */
     public async segmentVolume(stateID: number | string, volumeId: string): Promise<Segmentation> {
-        const url = `${this.imageserverStateUrl.substring(0, this.imageserverStateUrl.lastIndexOf('/'))}/contour_to_segmentation/${stateID}/${volumeId}`;
+        const url = `${this.stateUrl.substring(0, this.stateUrl.lastIndexOf('/'))}/contour_to_segmentation/${stateID}/${volumeId}`;
 
         const response = await fetchOk(url, {
             method: 'GET',
@@ -315,7 +314,7 @@ export class StateAPI {
 }
 
 
-export const stateAPI = new StateAPI(`${AppSettings.API_ENDPOINT}/neuroglancer`, `${AppSettings.IMAGESERVER_API_ENDPOINT}/neuroglancer`);
+export const stateAPI = new StateAPI(`${AppSettings.API_ENDPOINT}/neuroglancer`);
 
 
 export const urlParams = getUrlParams();
@@ -343,8 +342,7 @@ export class StateLoader extends RefCounted {
         this.stateAPI = stateAPI;
 
         /**
-         * Try getting the session var from Django. If there is none,
-         * try getting the cookies from the angular front end.
+         * Try getting the cookies from the Django backend
          * that were actually sent from Django when logging in.
          */
         this.stateAPI.getUser().then(user => {
