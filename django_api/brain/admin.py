@@ -257,14 +257,9 @@ class TifInline(admin.TabularInline):
         animal = obj.slide.scan_run.prep_id
         tif_file = obj.file_name
         png = tif_file.replace('tif', 'png')
-        # DK55_slide112_2020_09_21_9205_S1_C1.png
-        testfile = f"/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{animal}/www/scene/{png}"
-        if os.path.isfile(testfile):
-            thumbnail = f"https://activebrainatlas.ucsd.edu/data/{animal}/www/scene/{png}"
-            return mark_safe(
-                '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
-        else:
-            return mark_safe('<div>Not available</div>')
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/www/scene/{png}"
+        return mark_safe(
+            '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
 
     scene_image.short_description = 'Pre Image'
 
