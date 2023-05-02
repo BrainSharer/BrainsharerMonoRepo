@@ -1,9 +1,9 @@
-.. ActiveBrainAtlas documentation master file, created by
+.. Brainsharer documentation master file, created by
    sphinx-quickstart on Wed Jun  1 15:07:58 2022.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-The ActiveBrainAtlas's documentation
+Brainsharer documentation
 ============================================
 These pages contain documentation regarding the MVC (model, view, and controller) programming
 classes for the Django database interface. Django breaks up this interface into 'apps'. The two
@@ -46,12 +46,11 @@ Use the side navigation panel to view different classes and methods within each 
    Neuroglancer tests <modules/neuroglancer/tests.rst>
    Neuroglancer tasks <modules/neuroglancer/tasks.rst>
    REST API endpoints <modules/neuroglancer/views.rst>
-   Bulk annotation inserts <modules/neuroglancer/bulk_insert.rst>
    Align atlas tools <modules/neuroglancer/atlas.rst>
 
 .. toctree::
    :maxdepth: 1
-   :caption: Entity relationship diagram for the Active brain atlas database:
+   :caption: Entity relationship diagram for the Brainsharer database:
    
    Diagram showing database tables and columns <modules/erd.rst>
 

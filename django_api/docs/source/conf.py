@@ -29,6 +29,13 @@ import django
 import inspect
 django.setup()
 
+
+try:
+  from skimage import io
+except ImportError:
+  print("oh no 2")
+
+
 # -- Project information -----------------------------------------------------
 
 project = 'Brainsharer database portal'
@@ -113,7 +120,7 @@ html_css_files = ['custom.css',]
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Activebrainatlasdatabaseportaldoc'
+htmlhelp_basename = 'Brainsharerportaldoc'
 
 
 # -- Options for Epub output -------------------------------------------------

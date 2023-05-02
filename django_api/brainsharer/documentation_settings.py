@@ -17,10 +17,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'background_task',
+    'authentication',
     'brain',
+    'mouselight',
     'neuroglancer',
     'rest_framework',
+    'django_extensions',
 ]
 
 
@@ -36,7 +38,7 @@ MIDDLEWARE = [
     'django_plotly_dash.middleware.ExternalRedirectionMiddleware',
 ]
 
-ROOT_URLCONF = 'activebrainatlas.urls'
+ROOT_URLCONF = 'brainsharer.urls'
 
 TEMPLATES = [
     {
@@ -69,14 +71,35 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-MEDIA_URL = '/share/'
-
 ##### django extensions graph models
 GRAPH_MODELS = {
-  'app_labels': ["brain", "neuroglancer",],
+  'app_labels': ["brain", "neuroglancer", "mouselight"],
   'group_models': True,
 }
+AUTH_USER_MODEL = 'authentication.User'
+BASE_BACKEND_URL = 'http://localhost:8000'
+BASE_FRONTEND_URL = 'http://localhost:4200'
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
+DEFAULT_AUTO_FIELD='django.db.models.BigAutoField'
+DEFAULT_FROM_EMAIL = "drinehart@physics.ucsd.edu"
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+GITHUB_OAUTH2_CLIENT_ID = '3ad4b114f66ffb3b6ed8'
+GOOGLE_OAUTH2_CLIENT_ID = '821517150552-71h6bahua9qul09l90veb8g3hii6ed25.apps.googleusercontent.com'
+HTTP_HOST = "http://localhost/brainsharer"
+INTERNAL_IPS = ['127.0.0.1']
+LANGUAGE_CODE = 'en-us'
+LOGIN_REDIRECT_URL = BASE_FRONTEND_URL
+LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
+MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
+MEDIA_URL = '/share/'
+NG_URL = "http://localhost/brainsharer/ng"
+SILENCED_SYSTEM_CHECKS = ['mysql.E001']
+SITE_ID = 2
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'assets'),)
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = '/static/'
+TIME_ZONE = 'Asia/Bangkok'
+USE_I18N = True
+USE_L10N = True
