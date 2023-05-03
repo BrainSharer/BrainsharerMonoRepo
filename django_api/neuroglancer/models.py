@@ -52,14 +52,20 @@ class NeuroglancerState(models.Model):
         :return: the first match if found, otherwise NA
         """
         animal = "NA"
-        match = re.search('data/(.+?)/neuroglancer_data', str(self.neuroglancer_state))
+        pattern = 'data/(\w*)/www/neuroglancer_data'
         neuroglancer_json = self.neuroglancer_state
         image_layers = [layer for layer in neuroglancer_json['layers'] if layer['type'] == 'image']
-        if len(image_layers) >0:
+        if len(image_layers) > 0:
             first_image_layer = json.dumps(image_layers[0])
-            match = re.search('data/(.+?)/neuroglancer_data', first_image_layer)
+            match = re.search(pattern, first_image_layer)
             if match is not None and match.group(1) is not None:
                 animal = match.group(1)
+            else:
+                pattern = 'data/(\w*)/neuroglancer_data'
+                match = re.search(pattern, first_image_layer)
+                if match is not None and match.group(1) is not None:
+                    animal = match.group(1)
+
         return animal
 
     @property
