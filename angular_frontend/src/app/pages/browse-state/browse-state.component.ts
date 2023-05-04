@@ -60,17 +60,16 @@ export class BrowseStateComponent implements OnInit {
   }
 
   public searchLab(search: number): void {
+    this.page = 0;
     const url = this.neuroUrl + '?lab=' + search;
-    console.log(url);
     this.setData(url);
-    this.page = 1;
   }
 
 
   public searchTitle(search: string): void {
+    this.page = 0;
     const url = this.neuroUrl + '?comments=' + search;
     this.setData(url);
-    this.page = 1;
   }
 
   private setLabs(url: string): void {
@@ -81,6 +80,7 @@ export class BrowseStateComponent implements OnInit {
   }
 
   private setData(url: string): void {
+    console.log(url);
     this.isLoading = true;
     this.dataService.getData(url).subscribe(response => {
       this.resultsCount = response.count;
@@ -93,13 +93,17 @@ export class BrowseStateComponent implements OnInit {
     const redirecturl = this.ngUrl + '?id=' + id;
     window.open(redirecturl, '_blank');
   }
+  
+  public redirectToMulti = (id: string) => {
+    const redirecturl = this.ngUrl + '?id=' + id + "&multi=1";
+    window.open(redirecturl, '_blank');
+  }
 
   public onChangePage(pe:PageEvent) {
     // "http://localhost:8000/neuroglancer?limit=10&offset=10",
     this.page = pe.pageIndex;
-    let offset = pe.pageIndex * this.resultsPerPage;
-    let url = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + offset;
-    console.log(url);
+    this.offset = pe.pageIndex * this.resultsPerPage;
+    let url = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + this.offset;
     this.setData(url);
   }
 

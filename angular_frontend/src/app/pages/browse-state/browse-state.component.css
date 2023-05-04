@@ -99,11 +99,18 @@ main {
   transform: translateX(-50%) translateY(-50%);
 }
 
-
-a:visited {
-  background-color:#1C2532;
+.hoverlink {
+  cursor: pointer;
+  opacity:0.3;
 }
 
-a:hover {
-  background-color: #CCCCCC;
+.hoverlink:hover {
+  color: #CCCCCC;
+  opacity:1;
 }
+
+.fa-users  {
+  padding: 0 0 0 20px;
+  color: #1C2532;
+}
+

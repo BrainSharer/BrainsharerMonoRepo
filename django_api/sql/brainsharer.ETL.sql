@@ -228,8 +228,8 @@ INSERT INTO brainsharer.annotation_session (id, annotation_type, FK_user_id, FK_
 FK_brain_region_id, active, created, updated)
 SELECT id, annotation_type, FK_annotator_id, FK_prep_id, FK_state_id,
 FK_structure_id, active, created, updated
-FROM active_atlas_development.annotation_session
-WHERE FK_annotator_id IN (2,3,41,23,16,38,40)
+FROM active_atlas_production.annotation_session
+WHERE FK_annotator_id IN (1,2,3,41,23,16,34,37,38,40,41)
 ORDER BY id;
 
 INSERT INTO brainsharer.marked_cells 
@@ -279,3 +279,38 @@ update neuroglancer_state set active = 0;
 update neuroglancer_state set active = 1 where id in (21,809,810,811,812,813,814,815,816, 817);
 
 update auth_user set is_staff = 1, is_superuser = 1 where email = 'ybadiev@gmail.com';
+
+drop view if exists sections;
+
+CREATE VIEW `sections` AS
+select
+	`sc`.`id` AS `id`,
+	`a`.`prep_id` AS `prep_id`,
+	`sr`.`rescan_number` AS `rescan_number`,
+	`s`.`file_name` AS `czi_file`,
+	`s`.`slide_physical_id` AS `slide_physical_id`,
+	`s`.`id` AS `FK_slide_id`,
+	`sc`.`file_name` AS `file_name`,
+	`sc`.`id` AS `tif_id`,
+	`sc`.`scene_number` AS `scene_number`,
+	`sc`.`scene_index` AS `scene_index`,
+	`sc`.`channel` AS `channel`,
+	`sc`.`channel` - 1 AS `channel_index`,
+	`sc`.`active` AS `active`,
+	`sc`.`created` AS `created`
+from
+	(((`animal` `a`
+join `scan_run` `sr` on
+	(`a`.`prep_id` = `sr`.`FK_prep_id`))
+join `slide` `s` on
+	(`sr`.`id` = `s`.`FK_scan_run_id`))
+join `slide_czi_to_tif` `sc` on
+	(`s`.`id` = `sc`.`FK_slide_id`))
+where
+	`s`.`slide_status` = 'Good'
+	and `sc`.`active` = 1;
+	
+
+UPDATE neuroglancer_state 
+SET neuroglancer_state = REPLACE (neuroglancer_state, 'activebrainatlas.ucsd.edu/data/', 'imageserv.dk.ucsd.edu/data/')
+WHERE neuroglancer_state like '%activebrainatlas.ucsd.edu/data/%';

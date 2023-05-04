@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 admin.site.register(User)
 class CustomUserAdmin(BaseUserAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'lab', 'get_labs']
+    list_display = ['username', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser', 'lab', 'get_labs']
     def get_labs(self, obj):
         # for the many to many case 
         labs = "\n".join([p.lab_name for p in obj.labs.all()])
