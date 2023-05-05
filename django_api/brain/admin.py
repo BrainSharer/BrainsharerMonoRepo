@@ -257,7 +257,7 @@ class TifInline(admin.TabularInline):
         animal = obj.slide.scan_run.prep_id
         tif_file = obj.file_name
         png = tif_file.replace('tif', 'png')
-        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/www/scene/{png}"
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/scene/{png}"
         return mark_safe(
             '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
 
