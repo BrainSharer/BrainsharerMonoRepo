@@ -338,13 +338,8 @@ class Section(AtlasModel):
         :return: HTML that provides a link to the histogram
         """
         png = self.file_name.replace('tif','png')
-        testfile = "/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{}/histogram/CH1/{}".format(self.prep_id, png)
-        if os.path.isfile(testfile):
-            histogram = "https://activebrainatlas.ucsd.edu/data/{}/histogram/CH1/{}".format(self.prep_id, png)
-            return mark_safe(
-            '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(histogram) )
-        else:
-            return mark_safe('<div>Not available</div>')
+        histogram = f"https://imageserv.dk.ucsd.edu/data/{self.prep_id}/histogram/CH1/{png}"
+        return mark_safe('<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(histogram) )
     histogram.short_description = 'Histogram'
 
     def image_tag(self):
@@ -354,13 +349,8 @@ class Section(AtlasModel):
         """
         png = self.file_name.replace('tif', 'png')
         # http://localhost:8000/data/DK39/thumbnail/DK39_ID_0002_slide058_S1_C2.png
-        testfile = "/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{}/www/{}".format(self.prep_id, png)
-        if os.path.isfile(testfile):
-            thumbnail = "https://activebrainatlas.ucsd.edu/data/{}/www/{}".format(self.prep_id, png)
-            return mark_safe(
-                '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
-        else:
-            return mark_safe('<div>Not available</div>')
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.prep_id}/scene/{png}"
+        return mark_safe('<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
 
     image_tag.short_description = 'Image'
 

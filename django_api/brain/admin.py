@@ -273,14 +273,10 @@ class TifInline(admin.TabularInline):
         animal = obj.slide.scan_run.prep_id
         tif_file = self.section_number(obj)
         png = tif_file.replace('tif', 'png')
-        filepath = f"{animal}/www/section/{png}"
-        testfile = f"/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{filepath}"
-        if os.path.isfile(testfile):
-            thumbnail = f"https://activebrainatlas.ucsd.edu/data/{filepath}"
-            return mark_safe(
-                '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
-        else:
-            return mark_safe('<div>Not available</div>')
+        filepath = f"{animal}/section/{png}"
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{filepath}"
+        return mark_safe(
+            '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
 
     section_image.short_description = 'Post Image'
 
