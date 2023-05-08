@@ -1,14 +1,10 @@
 /* start of create state list */
-.table-browse {
-  border: 2px #CCCCCC;
+@media screen and (min-width: 960px) {
+.mat-table {
+  border: 0;
+  vertical-align: middle
 }
 
-table {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  min-width: 500px;
-}
 th.mat-header-cell {
   font-size: larger;
 	background: #1C2532;
@@ -19,7 +15,6 @@ th.mat-header-cell,
 td.mat-cell,
 td.mat-footer-cell {
   text-align: left;
-  max-width: 400px;
   padding: 10px;
   border-bottom: 1px solid #ffa600;
   border-top: 1px solid #ffa600;
@@ -45,49 +40,16 @@ mat-sidenav-container, mat-sidenav-content, mat-sidenav {
   height: 100%;
 }
 
-mat-sidenav {
-  width: 250px;
-}
-
-main {
-  padding: 10px;
-}
 
 .content-container {
   padding: 10px 6px 0px 10px;
-  /* border-radius: 50px; */
   margin-top: 0px;
-  /* display: grid; 
-  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
-  grid-gap: 15px;
-  */
-  /* background: rgba(76, 175, 80, 0.3); */
-  /* Green background with 30% opacity */
   background: #FFFFFF;
 }
 
-.buffer-column {
-  width: 1px;
-}
-
-.collapsed-container {
-  padding: 0px;
-  margin: 0px 0px 0px 0px;
-  /* Green background with 30% opacity */
-}
 
 .title {
   font-style: italic;
-}
-
-.content {
-  width: 97%;
-  border: 1px solid #000;
-  border-top: 0px;
-  background-color: #FFF;
-  margin: 3px 0px 0px 3px;
-  padding: 3px;
-  font: 500 16px/1.5 Arial;
 }
 
 .center {
@@ -114,3 +76,4 @@ main {
   color: #1C2532;
 }
 
+}

@@ -5,21 +5,6 @@ body {
     margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; 
 }
 
-
-.brainXXX::before {
-    content: ""; 
-    z-index: -1;
-    background-image: url('/assets/250.png');
-    background-size: contain;
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    bottom: 0px;
-    left: 0px;
-    opacity: 0.4;
-    resize: both;
-  }
-
 /* left side filter bar */
 .search-container {
     padding: 10px;

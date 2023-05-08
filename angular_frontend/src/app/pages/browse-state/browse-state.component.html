@@ -1,4 +1,4 @@
-<section class="container brain">
+<section class="container">
 
   <div class="center" *ngIf="isLoading">
     <img src="/assets/loading.gif">
@@ -9,7 +9,7 @@
 
     <div class="row">
 
-      <div class="col-3 search-container">
+      <div class="col-3">
 
         <!-- start of search -->
         <div class="row">
@@ -44,10 +44,9 @@
       </div> <!-- end of left side -->
       <!-- start of right side list -->
 
-      <div class="col-1 buffer-column"></div>
 
 
-      <div class="col-8">
+      <div class="col-9">
         <div class="row">
             <div class="col title" *ngIf="dataSource.data.length > 0">
             <p>Displaying {{dataSource.data.length}} of {{resultsCount}} different Neuroglancer views</p>
@@ -66,7 +65,7 @@
                     <div class="col content-container">
             <!-- start of table-->
 
-            <table mat-table [dataSource]="dataSource" matSort >
+            <mat-table [dataSource]="dataSource" matSort >
               <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
                 <td mat-cell *matCellDef="let element"> {{element.id}} </td>
@@ -92,7 +91,7 @@
                 </ng-container>
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-            </table>
+            </mat-table>
 
             <!-- end of table-->
           </div>
@@ -117,4 +116,5 @@
     </div> <!-- end of only row -->
 
   </form>
-</section> <!-- end of container -->
+
+</section> <!-- end of container holding entire page -->

@@ -1,14 +1,17 @@
-    <nav class="navbar navbar-expand-xl navbar-light">
+    <nav class="navbar navbar-expand-md navbar-light">
 
-        <a class="navbar-brand main-header" href="#"><i class="fa fa-cube"></i>Princeton/UCSD Brainsharer</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand" href="#"><i class="fa fa-cube"></i>Princeton/UCSD Brainsharer</a>
+        
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" 
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
-        </button>
+          </button>
+
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+            <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
-                    <a class="nav-link" routerLink="browse-state">Browse views</a>
+                    <a class="nav-link" routerLink="browse-state">Browse</a>
                 </li>
                 
                 <li class="nav-item" *ngIf="(authService.sessionActive | async)">
@@ -20,9 +23,9 @@
                 </li>
             </ul>
 
-            <ul class="navbar-nav ml-auto">
+            <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
 
-                <li class="nav-item dropdown" *ngIf="(authService.sessionActive | async)" style="margin-right:10px;">
+                <li class="nav-item dropdown" *ngIf="(authService.sessionActive | async)">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" data-bs-toggle="dropdown">
                         <img src="/assets/blank_avatar.png" class="avatar" alt="Avatar">{{authService.getFullname()}}<b class="caret"></b>
                     </a>
@@ -32,16 +35,16 @@
                     </ul>
                 </li>
 
-                <li class="nav-item dropdown" *ngIf="!(authService.sessionActive | async)" style="margin-right:10px;">
+                <li class="nav-item dropdown" *ngIf="!(authService.sessionActive | async)">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" data-bs-toggle="dropdown" >
                         <img src="/assets/blank_avatar.png" class="avatar" alt="Avatar">Guest <b class="caret"></b></a>
 				
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu" style="right: 0; left: auto;">
                         <li><a (click)="clickGoogle()" class="dropdown-item"><img src="/assets/btn_google_signin_light_normal_web.png"></a></li>
                         <li><a (click)="clickGithub()" class="dropdown-item"><img src="/assets/github-login.png"></a></li>
-                        <li><a (click)="clickLocalLogin()"  class="dropdown-item"><i class="fa fa-user-o"></i>Local login</a></li>
-                        <li><a (click)="clickLocalRegister()" class="dropdown-item"><i class="fa fa-sliders"></i>Register</a></li>
-                        <li><a (click)="clickLocalLostPassword()" class="dropdown-item"><i class="fa fa-sliders"></i>Forgot password</a></li>
+                        <li><a (click)="clickLocalLogin()"  class="dropdown-item"><i class="fa fa-user-o"></i> Local login</a></li>
+                        <li><a (click)="clickLocalRegister()" class="dropdown-item"><i class="fa fa-sliders"></i> Register</a></li>
+                        <li><a (click)="clickLocalLostPassword()" class="dropdown-item"><i class="fa fa-key"></i> Forgot password</a></li>
                     </ul>
                 </li>
                 
