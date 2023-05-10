@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 from scipy.ndimage.measurements import center_of_mass
 
-from abakit.atlas.volume2contour import average_masks
+#####TODO from abakit.atlas.volume2contour import average_masks
 
 class VolumeMaker:
 
@@ -84,5 +84,5 @@ class VolumeMaker:
             if sectioni > 0:
                 next = interpolated[:,:,sectioni*2]
                 last = interpolated[:,:,sectioni*2-2]
-                interpolated[:,:,sectioni*2-1] = average_masks(next,last)
+                #####TODO interpolated[:,:,sectioni*2-1] = average_masks(next,last)
         return interpolated,origin
