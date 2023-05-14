@@ -65,7 +65,7 @@
                     <div class="col content-container">
             <!-- start of table-->
 
-            <mat-table [dataSource]="dataSource" matSort >
+            <mat-table [dataSource]="dataSource" *ngIf="dataSource.data.length > 0" matSort>
               <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
                 <td mat-cell *matCellDef="let element"> {{element.id}} </td>
