@@ -64,6 +64,7 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
         models.CharField: {'widget': TextInput(attrs={'size': '100'})},
     }
     list_display = ('animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'lab', 'created')
+    list_per_page = 25
     ordering = ['-readonly', '-updated']
     readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
     exclude = ['neuroglancer_state']
@@ -74,10 +75,12 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Returns the query set of points where the layer contains annotations"""
         rows = NeuroglancerState.objects.all()
+        rows = rows.defer('neuroglancer_state')
         if not request.user.is_superuser:
             labs = [p.id for p in request.user.labs.all()]
             print(labs)
             rows = rows.filter(owner__lab__in=labs)
+        
         return rows
 
 

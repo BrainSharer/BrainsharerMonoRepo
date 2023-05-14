@@ -76,6 +76,19 @@ class RotationSerializer(serializers.Serializer):
     label = serializers.CharField()
     source = serializers.CharField()
 
+class NeuroglancerNoStateSerializer(serializers.ModelSerializer):
+    """Override method of entering a url into the DB.
+    This serializer ignores the JSON state as it is a really big
+    field to serialize when unneccessary.
+    """
+    animal = serializers.CharField(required=False)
+    lab = serializers.CharField(required=False)
+
+    class Meta:
+        model = NeuroglancerState
+        ordering = ['-created']
+        exclude = ('neuroglancer_state', )
+
 class NeuroglancerStateSerializer(serializers.ModelSerializer):
     """Override method of entering a url into the DB.
     The url *probably* can't be in the NeuroglancerState when it is returned
@@ -86,8 +99,10 @@ class NeuroglancerStateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NeuroglancerState
-        fields = '__all__'
         ordering = ['-created']
+        fields = '__all__'
+
+
 
     def create(self, validated_data):
         """This method gets called when a user clicks New in Neuroglancer

@@ -28,7 +28,7 @@ from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, Neurogl
     NeuroglancerState, BrainRegion, StructureCom, CellType
 from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
-    PolygonSerializer, RotationSerializer, NeuroglancerStateSerializer
+    PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import background_archive_and_insert_annotations, \
     nobackground_archive_and_insert_annotations
 from neuroglancer.contours.create_contours import make_volumes
@@ -416,7 +416,7 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
     """
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = LimitOffsetPagination
-    serializer_class = NeuroglancerStateSerializer
+    serializer_class = NeuroglancerNoStateSerializer
 
     def get_queryset(self):
         """
