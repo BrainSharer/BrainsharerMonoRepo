@@ -3,7 +3,7 @@
 
     <div class="row">
 
-      <div class="col-3 search-container">
+      <div class="col-8 search-container">
 
         <!-- start of search -->
         <div class="row">
@@ -38,22 +38,6 @@
                 </select>
               </div>
             </div>
-        
-            <!--
-            <div class="row">
-              <div class="col">
-                <label>Volume types</label>
-                <div *ngFor="let layer_type of layer_types; let i = index">
-                  <label>
-                    <input type="checkbox" value="{{layer_types[i].id}}" id="id_{{layer_types[i].id}}"
-                      (change)="toggleLeftSide($any($event.target)?.checked, layer_types[i].id)">
-                    {{layer_types[i].name}}
-                  </label>
-                </div>
-              </div>
-            </div>
-            -->
-
           </div>          
         </div>
         
@@ -65,7 +49,7 @@
             <mat-accordion>
               <mat-expansion-panel *ngFor="let group of groups | paginate
               : {
-                  itemsPerPage: tableSize,
+                  itemsPerPage: resultsPerPage,
                   currentPage: page,
                   totalItems: count
                 }; let i = index;" class="accordion-container">
@@ -98,9 +82,8 @@
       </div> <!-- end of left side -->
       <!-- start of right side list -->
 
-      <div class="col-1 buffer-column"></div>
 
-      <div class="col-8 content-container">
+      <div class="col-4 content-container">
 
         <div class="title" *ngIf="selectedStates.length > 0">
           <p>Data to add to Neuroglancer</p>
@@ -130,8 +113,9 @@
             </div>
             <div class="card-footer w-100 text-muted">
               {{state.lab_name }}
-          </div>
-          </div>
+              <button style="float: right;" class="btn btn-danger btn-sm" (click)="onRemove(state)">Remove</button>
+            </div>
+        </div>
         </div>
         <div class="submit-button" *ngIf="selectedStates.length > 0">
           <button class="btn btn-primary" type="submit" (click)="onSubmit()">Submit</button>

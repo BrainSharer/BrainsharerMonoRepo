@@ -23,7 +23,7 @@ from neuroglancer.annotation_base import AnnotationBase
 from neuroglancer.annotation_layer import AnnotationLayer, random_string, create_point_annotation
 from neuroglancer.annotation_manager import DEBUG
 from neuroglancer.atlas import align_atlas, get_scales
-from neuroglancer.create_state_views import create_layer, create_neuroglancer_model, prepare_bottom_attributes, prepare_top_attributes
+from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, StructureCom, CellType
 from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
@@ -394,7 +394,7 @@ class NeuroglancerAvailableData(viewsets.ModelViewSet):
         Optionally restricts the returned purchases to a given animal,
         by filtering against a `animal` query parameter in the URL.
         """
-        queryset = NeuroglancerView.objects.all()
+        queryset = NeuroglancerView.objects.order_by('group_name','layer_type', 'layer_name').all()
         animal = self.request.query_params.get('animal')
         lab = self.request.query_params.get('lab')
         layer_type = self.request.query_params.get('layer_type')
@@ -469,16 +469,18 @@ def create_state(request):
         layers = []
         data = [i for i in data if not (i['id'] == 0)]
         titles = []
-        state = prepare_top_attributes(data[0])
+        stateManager = NeuroglancerJSONStateManager()
+        stateManager.prepare_top_attributes(data[0])
         for d in data:
             id = int(d['id'])
             if id > 0:
-                layer = create_layer(d)
+                layer = stateManager.create_layer(d)
                 layers.append(layer)
                 title = f"{d['group_name']} {d['layer_name']}" 
                 titles.append(title)
-        state['layers'] = layers
-        bottom = prepare_bottom_attributes()
-        state.update(bottom)
-        state_id = create_neuroglancer_model(state, titles)
+        stateManager.state['layers'] = layers
+        stateManager.prepare_bottom_attributes()
+        for k,v in stateManager.state.items():
+            print(k,v)
+        state_id = stateManager.create_neuroglancer_model(titles)
         return JsonResponse(state_id, safe=False)

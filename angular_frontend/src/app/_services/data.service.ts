@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -7,6 +7,7 @@ import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { StateView } from '../_models/state_view';
 import { User } from '../_models/user';
+import { Lab } from '../_models/lab';
 
 
 /**
@@ -67,6 +68,7 @@ export class DataService {
                 })
             )
     }
+
     // Specific get for a state
     public filterStates(animal: string): Observable<any> {
         return this.httpClient.get<Response>(this.API_URL + '/states?animal=' + animal).

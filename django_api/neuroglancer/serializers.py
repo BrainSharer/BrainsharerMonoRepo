@@ -169,5 +169,5 @@ class NeuroglancerViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = NeuroglancerView
         fields = '__all__'
-        ordering = ['id']
+        ordering = ['group_name', 'layer_type', 'layer_name']
 

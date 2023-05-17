@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { UntypedFormGroup, UntypedFormControl } from '@angular/forms';
 
 import { MatTableDataSource } from '@angular/material/table';
@@ -22,29 +22,29 @@ import { AuthService } from 'src/app/_services/auth.service';
 export class BrowseStateComponent implements OnInit {
   displayedColumns: string[] = ['id', 'comments', 'lab', 'created', 'view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
-  @ViewChild(MatSort) sort!: MatSort;
+  @ViewChild(MatSort) sort: MatSort = new MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  page: number = 0;
   resultsCount = 0;
   resultsPerPage = 10;
   offset = 0;
   isLoading = true;
   title_filter: string | undefined;
   lab_filter: number | undefined;
-
-
   labs: Lab[] = [];
   neuroglancer_states: NeuroglancerState[] = [];
+  
   baseUrl = environment.API_URL;
   ngUrl = environment.NG_URL;
   animalUrl = this.baseUrl + '/animal';
   labUrl = this.baseUrl + '/labs';
   neuroUrl = this.baseUrl + '/neuroglancers';
+
   searchForm: UntypedFormGroup = new UntypedFormGroup({
     comments: new UntypedFormControl(''),
     labs: new UntypedFormControl(''),
   });
 
-  page: number = 0;
 
 
   constructor(private dataService: DataService,
@@ -98,7 +98,6 @@ export class BrowseStateComponent implements OnInit {
     this.dataService.getData(url).subscribe(response => {
       this.labs = response.results;
     });
-
   }
 
   /**
@@ -158,7 +157,7 @@ export class BrowseStateComponent implements OnInit {
     let url = this.buildUrl();
     console.log(url);
     this.isLoading = true;
-    this.dataService.getData(url).subscribe(response => {
+    this.dataService.getSecureData(url).subscribe(response => {
       this.resultsCount = response.count;
       this.dataSource.data = response.results as NeuroglancerState[];
       this.isLoading = false;

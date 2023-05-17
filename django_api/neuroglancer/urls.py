@@ -2,7 +2,6 @@ from django.urls import path, include
 from neuroglancer.views import NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
     SaveAnnotation, NeuroglancerGroupAvailableData, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
     GetCOM, GetMarkedCellList, GetMarkedCell, GetCellTypes
-from neuroglancer.create_state_views import fetch_layers
 
 from rest_framework import routers
 app_name = 'neuroglancer'
@@ -19,7 +18,6 @@ general_urls = [
     path('groups', NeuroglancerGroupAvailableData.as_view()),
     path('landmark_list',LandmarkList.as_view()),
     path('createstate', create_state),
-    path('fetch_layers/<int:animal_id>', fetch_layers, name='fetch_layers')
 ]
 
 transformation_relate_urls = [ 
