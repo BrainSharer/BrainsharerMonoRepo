@@ -45,7 +45,7 @@ INSERT INTO brainsharer.elastix_transformation (id,FK_prep_id,section,rotation,x
 SELECT id, prep_id AS FK_prep_id,section,rotation,xshift,yshift,metric,iteration,created,active
 FROM active_atlas_production.elastix_transformation
 WHERE id NOT IN (SELECT id FROM elastix_transformation)
-and FK_prep_id NOT IN ('DK37', 'DK77');
+and prep_id NOT IN ('DK37', 'DK77');
 
 
 
