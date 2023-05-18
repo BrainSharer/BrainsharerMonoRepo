@@ -1,8 +1,8 @@
 /* start of create state list */
 @media screen and (min-width: 960px) {
 .mat-table {
-  border: 0;
-  vertical-align: middle
+  border: 10;
+  vertical-align: middle;
 }
 
 th.mat-header-cell {
@@ -10,12 +10,11 @@ th.mat-header-cell {
 	background: #1C2532;
   color: #FFFFFF;
 }
-
 th.mat-header-cell,
 td.mat-cell,
 td.mat-footer-cell {
   text-align: left;
-  padding: 10px;
+  padding: 5px;
   border-bottom: 1px solid #ffa600;
   border-top: 1px solid #ffa600;
 }
