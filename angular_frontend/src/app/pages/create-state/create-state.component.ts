@@ -16,9 +16,7 @@ import { environment } from 'src/environments/environment';
 export class CreateStateComponent implements OnInit {
   resultsCount = 0;
   resultsPerPage = 10;
-  offset = 0;
-  page: number = 1;
-  count: number = 0;
+  page: number = 0;
   isLoading = true;
   layer_type_filter: string | undefined;
   lab_filter: number | undefined;
@@ -107,7 +105,8 @@ export class CreateStateComponent implements OnInit {
    * @returns a URL as string
    */
     private buildUrl(): string {
-      let baseUrl = this.stateUrl + '?limit=' + this.resultsPerPage + "&offset=" + this.offset;
+      let offset = (this.page - 1) * this.resultsPerPage;
+      let baseUrl = this.stateUrl + '?limit=' + this.resultsPerPage + "&offset=" + offset;
       
       if (this.lab_filter) {
         baseUrl += '&lab=' + this.lab_filter;
@@ -130,21 +129,17 @@ export class CreateStateComponent implements OnInit {
      */
     private setData(): void {
       let url = this.buildUrl();
-      console.log(url);
       this.isLoading = true;
       this.dataService.getSecureData(url).subscribe(response => {
         this.resultsCount = response.count;
         this.states = response.results;
         this.groups = Array.from(new GroupSet(response.results.map((x: GroupView) => new GroupView(x.group_name, x.layer_type))));
         this.isLoading = false;
-        console.log('resultsCount=' + this.resultsCount);
-        console.log('this.groups.length=' + this.groups.length);
       });
     }
   
 
   public toggleLeftSide(isToggled: boolean, layer_type: string): void {
-    console.log(layer_type);
     this.states.filter(element => {
       return element.layer_type == layer_type;
     })
@@ -170,7 +165,6 @@ export class CreateStateComponent implements OnInit {
   }
 
   public onRemove(state: StateView) {
-    console.log('removing id=' + state.id);
     let index: number = this.selectedStates.indexOf(state);
     if (index !== -1) {
       this.selectedStates.splice(index, 1);
@@ -185,7 +179,6 @@ export class CreateStateComponent implements OnInit {
           next: (res) => {
             this.url_ID = res;
             const redirecturl = this.ngUrl + '?id=' + this.url_ID;
-            // window.location.href = redirecturl;
             window.open(redirecturl, '_blank');
           },
           error: (e) => console.error(e)
@@ -195,12 +188,6 @@ export class CreateStateComponent implements OnInit {
 
   public onTableDataChange(event: any) {
     this.page = event;
-    this.setData();
-  }
-
-  public onTableSizeChange(event: any): void {
-    this.resultsPerPage = event.target.value;
-    this.page = 0;
     this.setData();
   }
 

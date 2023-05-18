@@ -22,7 +22,7 @@ import { AuthService } from 'src/app/_services/auth.service';
 export class BrowseStateComponent implements OnInit {
   displayedColumns: string[] = ['id', 'comments', 'lab', 'created', 'view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
-  @ViewChild(MatSort) sort: MatSort = new MatSort;
+  @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   page: number = 0;
   resultsCount = 0;

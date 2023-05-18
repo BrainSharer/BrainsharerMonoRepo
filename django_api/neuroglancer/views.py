@@ -32,6 +32,7 @@ from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
 from neuroglancer.tasks import background_archive_and_insert_annotations, \
     nobackground_archive_and_insert_annotations
 from neuroglancer.contours.create_contours import make_volumes
+from brainsharer.pagination import LargeResultsSetPagination
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -388,6 +389,7 @@ class NeuroglancerAvailableData(viewsets.ModelViewSet):
     queryset = NeuroglancerView.objects.all()
     serializer_class = NeuroglancerViewSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = LargeResultsSetPagination
 
     def get_queryset(self):
         """
@@ -414,6 +416,7 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
     Note, the update, and insert methods are over ridden in the serializer.
     It was more convienent to do them there than here.
     """
+
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = LimitOffsetPagination
     serializer_class = NeuroglancerNoStateSerializer
