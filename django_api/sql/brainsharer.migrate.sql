@@ -48,8 +48,3 @@ WHERE id NOT IN (SELECT id FROM elastix_transformation)
 and prep_id NOT IN ('DK37', 'DK77');
 
 
-
-select count(*)  from active_atlas_production.polygon_sequences 
-union
-select count(*)  from brainsharer.polygon_sequences ps ;
-
