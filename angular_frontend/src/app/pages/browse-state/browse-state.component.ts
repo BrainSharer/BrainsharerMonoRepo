@@ -83,11 +83,9 @@ export class BrowseStateComponent implements OnInit {
    * @param search string for whatever the user inputs. Searches the comments field from the database
    */
   public searchTitle(search: string): void {
-    if (search.length > 2) {
       this.title_filter = search;
       this.page = 0;
       this.setData();
-    }
   }
 
   /**

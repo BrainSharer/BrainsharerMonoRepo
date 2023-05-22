@@ -427,7 +427,7 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
         by filtering against a `animal` query parameter in the URL.
         """
 
-        queryset = NeuroglancerState.objects.filter(public=True).order_by('comments')
+        queryset = NeuroglancerState.objects.only('id').filter(public=True).order_by('comments')
         comments = self.request.query_params.get('comments')
         lab = self.request.query_params.get('lab')
         if comments is not None:

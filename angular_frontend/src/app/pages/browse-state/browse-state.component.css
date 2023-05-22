@@ -1,51 +1,27 @@
-/* start of create state list */
-@media screen and (min-width: 960px) {
-.mat-table {
-  border: 10;
-  vertical-align: middle;
+table {
+  width: 100%;
 }
 
 th.mat-header-cell {
-  font-size: larger;
-	background: #1C2532;
+  background: #1C2532;
   color: #FFFFFF;
 }
-th.mat-header-cell,
-td.mat-cell,
-td.mat-footer-cell {
-  text-align: left;
-  padding: 5px;
-  border-bottom: 1px solid #ffa600;
-  border-top: 1px solid #ffa600;
-}
-td.mat-cell:first-child {
-  /* row border */
-  border-left: 1px solid #ffa600;
-}
 
-td.mat-cell:last-child {
-  /* row border */
-  border-right: 1px solid #ffa600;
-}
-
-
-table, th, td {
-  border: 1px solid;
-}
 .container {
   margin: 10px;
 }
-mat-sidenav-container, mat-sidenav-content, mat-sidenav {
+
+mat-sidenav-container,
+mat-sidenav-content,
+mat-sidenav {
   height: 100%;
 }
-
 
 .content-container {
   padding: 10px 6px 0px 10px;
   margin-top: 0px;
   background: #FFFFFF;
 }
-
 
 .title {
   font-style: italic;
@@ -62,17 +38,52 @@ mat-sidenav-container, mat-sidenav-content, mat-sidenav {
 
 .hoverlink {
   cursor: pointer;
-  opacity:0.3;
+  opacity: 0.3;
 }
 
 .hoverlink:hover {
   color: #CCCCCC;
-  opacity:1;
+  opacity: 1;
 }
 
-.fa-users  {
-  padding: 0 0 0 20px;
+.fa-users {
+  padding-left: 5px;
   color: #1C2532;
 }
+
+
+@media screen and (min-width: 961px) {
+  th.mat-header-cell,
+  td.mat-cell,
+  td.mat-footer-cell {
+    text-align: left;
+    padding: 5px;
+  }
+
+}
+
+/* below is for smaller screens */
+@media screen and (max-width: 960px) {
+  .mat-table {
+    border: 5;
+    vertical-align: middle;
+  }
+
+  td.mat-cell:first-child {
+    /* row border */
+    border-left: 1px solid #CCCCCC;
+  }
+
+  td.mat-cell:last-child {
+    /* row border */
+    border-right: 1px solid #CCCCCC;
+  }
+
+  table,
+  th,
+  td {
+    border: 1px solid;
+  }
+
 
 }

@@ -64,8 +64,7 @@
         <div class="row">
           <div class="col content-container">
             <!-- start of table-->
-
-            <mat-table [dataSource]="dataSource" matSort class="table">
+            <table mat-table [dataSource]="dataSource" matSort  class="mat-elevation-z8">
               <tr class="mat-row" *matNoDataRow>
                 <td class="mat-cell" [attr.colspan]="displayedColumns.length">
                   No data matched the filter(s).
@@ -96,7 +95,8 @@
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-            </mat-table>
+            </table>
+            
 
             <!-- end of table-->
           </div>
