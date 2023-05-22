@@ -417,7 +417,7 @@ export class StateLoader extends RefCounted {
             }
 
         }).catch(err => {
-            StatusMessage.showTemporaryMessage(`Internal error: please see debug message.`);
+            StatusMessage.showTemporaryMessage(`Internal error getting state: please see debug message.`);
             console.log(err);
         });
     }
@@ -448,7 +448,7 @@ export class StateLoader extends RefCounted {
             StatusMessage.showTemporaryMessage(`The data was saved successfully.`);
             annotationSavedState.value = true;
         }).catch(err => {
-            StatusMessage.showTemporaryMessage(`Internal error: please see debug message.`);
+            StatusMessage.showTemporaryMessage(`Internal error saving state: ` + err);
             console.log(err);
         });
     }
@@ -551,21 +551,27 @@ export class StateLoader extends RefCounted {
         };
 
         this.stateAPI.saveState(this.stateID, state).then(() => {
-            //@ts-ignore
-            this.stateAPI.saveAnnotations(this.stateID, layerName).then((res) => {
-                // StatusMessage.showTemporaryMessage(`Annotations were sent to the database.`);
-                console.log('Annotations sent');
+            this.stateAPI.saveAnnotations(this.stateID, layerName).then(() => {
+                console.log('Annotations are being sent to the database.');
             }).catch(err => {
                 const msg = new StatusMessage();
-                msg.setErrorMessage('Internal error sending annotations: ' + err);
+                msg.setErrorMessage('Internal error saving annotations. ' + err);
                 console.log(err);
             });
 
         }).catch(err => {
-            StatusMessage.showTemporaryMessage(`Internal error: please see debug message.`);
+            const msg = new StatusMessage();
+            let message = "";
+            if (err.status === 401) {
+                message = "Your login credentials are incorrect. Try logging out and logging back in";
+            } else {
+                message = err;
+            }
+            msg.setErrorMessage('Internal error saving state and annotations. ' + message);
             console.log(err);
         });
     }
+
     /**
      * This is only saves the current annotation layer.
      * @param layerName The name of the layer the user is saving.
