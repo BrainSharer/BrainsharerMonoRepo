@@ -97,7 +97,6 @@ class AnnotationManager(AnnotationBase):
             # marked cells are treated differently than com, polygon and volume
             if annotationi.is_cell():
                 marked_cells.append(annotationi)
-
             if annotationi.is_com():
                 brain_region = get_region_from_abbreviation(annotationi.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='STRUCTURE_COM')

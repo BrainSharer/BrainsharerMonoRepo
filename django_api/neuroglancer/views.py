@@ -29,8 +29,7 @@ from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, Neurogl
 from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
-from neuroglancer.tasks import background_archive_and_insert_annotations, \
-    nobackground_archive_and_insert_annotations
+from neuroglancer.tasks import upsert_annotations
 from neuroglancer.contours.create_contours import make_volumes
 from brainsharer.pagination import LargeResultsSetPagination
 
@@ -355,12 +354,7 @@ class SaveAnnotation(views.APIView):
         found = False
         for layeri in layers:
             if layeri['type'] == 'annotation' and layeri['name'] == annotation_layer_name:
-
-                if DEBUG:
-                    nobackground_archive_and_insert_annotations(layeri, neuroglancer_state_id)
-                else:
-                    background_archive_and_insert_annotations(layeri, neuroglancer_state_id)
-                    
+                upsert_annotations(layeri, neuroglancer_state_id)                    
                 found = True
 
         if found:

@@ -39,6 +39,7 @@ class AnnotationLayer:
     def parse_annotations(self):
         """This is the main function that parses the annotation in the neuroglancer json state to custom
         object mappings in python.  This step groups points into polygons and polygons into volumes 
+        By default, 
         """
         annotations = []
         function_mapping = {'polygon': self.parse_polygon,
@@ -88,11 +89,17 @@ class AnnotationLayer:
             total_elapsed_time = round((end_time - start_time),2)
             print(f'Grouping volume annotations took {total_elapsed_time} seconds.')
 
-    def parse_point(self, point_json, point_class='Point'):
+    def parse_point(self, point_json):
         """Parse the neuroglancer json of a point annotation
         :param point_json: dictionary of neuroglancer point annotation json state
         """
-        point = eval(f'{point_class}(point_json["point"], point_json["id"])')
+        point_class = str(point_json['type']).lower()
+        classes = {'com': COM, 'point': Point, 'cell': Cell}
+        id = point_json['id']
+        coord = point_json['point']
+        point = classes[point_class](id=id, coord=coord)
+        point._type = point_class
+
         if 'description' in point_json:
             point.description = point_json['description']
 
@@ -100,6 +107,7 @@ class AnnotationLayer:
             point.category = point_json['category']
             if point.category == '':
                 point.category = UNMARKED
+
         return point
 
     def parse_line(self, line_json):
@@ -156,6 +164,7 @@ class AnnotationLayer:
         
         :param _type: string to determing if we are grouping points to polygons are polygons to volumes
         """
+        print(f'annotation layer::group_annotations _type={_type}')
 
         for annotationi in self.annotations:
             if annotationi in self.annotation_removed:
