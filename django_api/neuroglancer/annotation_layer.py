@@ -90,7 +90,8 @@ class AnnotationLayer:
             print(f'Grouping volume annotations took {total_elapsed_time} seconds.')
 
     def parse_point(self, point_json):
-        """Parse the neuroglancer json of a point annotation
+        """Parse the neuroglancer json of a point annotation.
+        There are three types of points: Point, Cell and COM
         :param point_json: dictionary of neuroglancer point annotation json state
         """
         point_class = str(point_json['type']).lower()

@@ -1,10 +1,15 @@
 import json
 import numpy as np
+import random
 from rest_framework import status
 from django.test import Client, TestCase
+from django.db.models import Count
+from django.apps import apps
+
 from authentication.models import User
 from brain.models import Animal, ScanRun
-from neuroglancer.models import AnnotationSession, MarkedCell, BrainRegion, LAUREN_ID ,CellType
+from neuroglancer.models import AnnotationSession, MarkedCell, NeuroglancerState, PolygonSequence, \
+    StructureCom, BrainRegion, LAUREN_ID, CellType
 from neuroglancer.annotation_layer import random_string
 
 class TestSetUp(TestCase):
@@ -102,22 +107,6 @@ class TestSetUp(TestCase):
                 )
         
 
-        # annotation session polygon sequence
-        query_set = AnnotationSession.objects \
-            .filter(animal=self.atlas)\
-            .filter(brain_region=self.brain_region)\
-            .filter(annotator=self.annotator)\
-            .filter(annotation_type=self.annotation_type)
-
-        if query_set is not None and len(query_set) > 0:
-            self.annotation_session_polygon_sequence = query_set[0]
-        else:
-            self.annotation_session_polygon_sequence = AnnotationSession.objects.create(\
-                animal=self.atlas,
-                brain_region=self.brain_region,
-                annotator=self.annotator,
-                annotation_type=self.annotation_type
-                )
         self.reverse=1
         self.COMsource = 'MANUAL'
         self.reference_scales = '10,10,20'
@@ -204,47 +193,113 @@ class TestAnnotations(TestSetUp):
     """A class for testing the annotations
     """
 
-    def test_get_volume(self):
+    def find_biggest_id(self, annotation_model='MarkedCell'):
+        model = apps.get_model('neuroglancer', annotation_model)
+        results = (model.objects.filter(annotation_session__neuroglancer_model__id__isnull=False)\
+                .values('annotation_session__id', 'annotation_session__neuroglancer_model__id')\
+                .annotate(dcount=Count('annotation_session__id'))\
+                .order_by('-dcount'))[0]
+        session_id = results['annotation_session__id']
+        state_id = results['annotation_session__neuroglancer_model__id']
+        dcount = results['dcount']
+        return session_id, state_id, dcount
+
+
+    def delete_random_rows(self, annotation_model, session_id, predelete):
+        model = apps.get_model('neuroglancer', annotation_model)
+        deleterows = random.randint(1, predelete)
+        ids = list(model.objects.filter(annotation_session__id=session_id).values_list('pk', flat=True))
+        ids = random.sample(ids, deleterows)
+        model.objects.filter(pk__in=ids).delete()
+        return len(ids)
+
+    def check_row_count(self, annotation_model, session_id):
+        model = apps.get_model('neuroglancer', annotation_model)
+        rows = model.objects.filter(annotation_session__id=session_id)
+        return len(rows)
+
+    def create_url(self, annotation_model):
+        session_id, state_id, dcount = self.find_biggest_id(annotation_model=annotation_model)
+        data = NeuroglancerState.objects.get(pk=state_id)
+        json_txt = data.neuroglancer_state
+        layers = json_txt['layers']
+        for layer in layers:
+            if 'annotations' in layer:
+                layer_name = layer['name']
+                break
+
+        print(f'Found {dcount} rows with session ID={session_id}')
+        return f"http://localhost:8000/save_annotations/{state_id}/{layer_name}", session_id, dcount
+
+
+    def test_get_big_marked_cell(self):
         """Test the API that returns a volume
-
-        URL = /get_volume/{self.annotation_session_polygon_sequence.id}
-
+        URL = /get_volume/{session_id}
         """
-        response = self.client.get(f"/get_volume/{self.annotation_session_polygon_sequence.id}")
+
+        session_id, state_id, dcount = self.find_biggest_id('MarkedCell')
+        response = self.client.get(f"/get_marked_cell/{session_id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_get_big_volume(self):
+        """Test the API that returns a volume
+        URL = /get_volume/{session_id}
+        """
+
+        session_id, state_id, dcount = self.find_biggest_id('PolygonSequence')
+        response = self.client.get(f"/get_volume/{session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
     
     def test_get_com(self):
         """Test the API that returns coms
-
         URL = /get_com/{self.prep_id}/{self.annotator_id}/{self.COMsource}
-
         """
+
         response = self.client.get(f"/get_com/{self.prep_id}/{self.annotator_id}/{self.COMsource}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    '''
-    This test fails for some reason!
-    def test_get_marked_cell(self):
-        """Test the API that returns marked cells
-
-        URL = /get_marked_cell/{id}
-
+    def test_save_marked_cells(self):
+        """Test saving annotations.        
+        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
         """
-        session = AnnotationSession(animal=self.animal,
-            brain_region=self.brain_region,
-            annotator=self.annotator,
-            annotation_type='MARKED_CELL')
-        session.save()
-        id = session.id
-        cell = MarkedCell(annotation_session=session,
-                          source='HUMAN_POSITIVE', x=1, y=2, z=3, cell_type=self.cell_type)
-        response = self.client.get(f"/get_marked_cell/{id}")
-        # breakpoint()
-        cell.save()
+        model = 'MarkedCell'
+        url, session_id, dcount = self.create_url(annotation_model=model)
+        predelete = self.check_row_count(model, session_id=session_id)
+        deletedrows = self.delete_random_rows(model, session_id, dcount)
+        postdelete = self.check_row_count(model, session_id=session_id)
+        response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        session.delete()
-        cell.delete()
-    '''
+        postsave = self.check_row_count(model, session_id=session_id)
+        self.assertEqual(predelete, postsave)
+        self.assertEqual(predelete, deletedrows + postdelete)
+
+
+
+    def test_save_structure_com(self):
+        """Test saving annotations.        
+        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
+        """
+        model='StructureCom'
+        url, session_id , dcount = self.create_url(annotation_model=model)
+        predelete = self.check_row_count(model, session_id=session_id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        postsave = self.check_row_count(model, session_id=session_id)
+        self.assertEqual(predelete, postsave)
+
+    def test_save_volume(self):
+        """Test saving annotations.        
+        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
+        """
+        model='PolygonSequence'
+        url, session_id, dcount = self.create_url(annotation_model=model)
+        predelete = self.check_row_count(model, session_id=session_id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        postsave = self.check_row_count(model, session_id=session_id)
+        self.assertEqual(predelete, postsave)
+
+
 
     def test_get_volume_list(self):
         """Test the API that returns the list of volumes
@@ -294,40 +349,6 @@ class TestNeuroglancer(TestSetUp):
 
         """
         response = self.client.get("/landmark_list")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
-    def test_save_annotations(self):
-        """Test saving annotations.
-        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
-
-        """
-        response = self.client.get("/save_annotations/774/Unaided [152, 156, 171, 175, 236]")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_save_annotations_800(self):
-        """Test saving annotations ID = 800.
-        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
-
-        """
-        response = self.client.get("/save_annotations/800/Sure")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        response = self.client.get("/save_annotations/800/Unure")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_save_annotations_800(self):
-        """Test saving annotations ID = 800.
-        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
-
-        """
-        response = self.client.get("/save_annotations/800/Sure")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        response = self.client.get("/save_annotations/800/Unure")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_brain_region_count(self):

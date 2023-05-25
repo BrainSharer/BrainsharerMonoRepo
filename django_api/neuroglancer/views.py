@@ -61,10 +61,10 @@ class GetVolume(AnnotationBase, views.APIView):
     def get(self, request, session_id, format=None):
         try:
             session = AnnotationSession.objects.get(pk=session_id)
-            rows = PolygonSequence.objects.filter(
-                annotation_session__pk=session_id)
+            rows = PolygonSequence.objects.filter(annotation_session__pk=session_id)
         except:
-            print('bad query')
+            print(f'Bad query in GetVolume::get with session ID={session_id}')
+            return Response('error')
         apply_scales_to_annotation_rows(rows, session.animal.prep_id)
         polygon_data = self.create_polygon_and_volume_uuids(rows)
         polygons = create_polygons(
