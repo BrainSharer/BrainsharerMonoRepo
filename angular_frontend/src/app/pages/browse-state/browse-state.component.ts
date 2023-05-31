@@ -155,7 +155,7 @@ export class BrowseStateComponent implements OnInit {
     let url = this.buildUrl();
     console.log(url);
     this.isLoading = true;
-    this.dataService.getSecureData(url).subscribe(response => {
+    this.dataService.getData(url).subscribe(response => {
       this.resultsCount = response.count;
       this.dataSource.data = response.results as NeuroglancerState[];
       this.isLoading = false;
