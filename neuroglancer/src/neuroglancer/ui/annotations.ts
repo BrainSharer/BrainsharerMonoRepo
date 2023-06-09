@@ -2063,6 +2063,19 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   trigger(mouseState: MouseSelectionState) {
     const {annotationLayer, mode} = this;
     const {session} = this;
+
+    if(session.value === undefined) {
+      let color = "#ffff00";
+      let description = "10N_L";
+      const ref = this.createNewVolumeAnn(description, color);
+      if (ref === undefined || !ref.value) {
+        StatusMessage.showTemporaryMessage("Failed to create new volume");
+        if (ref) ref.dispose();
+      } else {
+        this.session.value = <VolumeSession>{reference: ref};
+      }
+    }
+
     if (annotationLayer === undefined || mode !== VolumeToolMode.DRAW || session.value === undefined || this.childTool === undefined) {
       // Not yet ready.
       return;
@@ -3077,8 +3090,7 @@ registerLegacyTool(
     (layer, options) => undefined);
 registerLegacyTool(
     ANNOTATE_VOLUME_TOOL_ID,
-    //@ts-ignore
-    (layer, options) => undefined);
+    (layer, options) => new PlaceVolumeTool(<UserLayerWithAnnotations>layer, options, undefined, VolumeToolMode.DRAW, undefined, undefined));
 registerLegacyTool(
     ANNOTATE_CELL_TOOL_ID,
     (layer, options) => new PlaceCellTool(<UserLayerWithAnnotations>layer, options, undefined, CellToolMode.NOOP, undefined, undefined, true));
