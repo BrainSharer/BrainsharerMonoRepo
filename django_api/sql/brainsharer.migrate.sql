@@ -1,12 +1,17 @@
 use brainsharer;
 
 -- new UCSD data for neuroglancer_state
-INSERT INTO brainsharer.neuroglancer_state (neuroglancer_state,created,updated,user_date,comments,FK_user_id,readonly,active)
-SELECT AAP.url AS neuroglancer_state, AAP.created, AAP.updated, AAP.user_date, AAP.comments, AAP.person_id AS FK_user_id, AAP.readonly, AAP.active
-FROM active_atlas_production.neuroglancer_urls AS AAP 
-INNER JOIN brainsharer.neuroglancer_state AS BS ON AAP.id = BS.id
-WHERE AAP.active=1
-AND AAP.comments != BS.comments;
+INSERT INTO brainsharer.neuroglancer_state (comments, neuroglancer_state, created, updated, user_date, FK_user_id,readonly,active)
+SELECT 
+AAP.comments, AAP.url AS neuroglancer_state, AAP.created, AAP.created AS updated, AAP.user_date, 
+AAP.person_id AS FK_user_id, AAP.readonly, 1 AS active
+FROM  active_atlas_production.neuroglancer_urls AAP 
+WHERE AAP.active = 1
+EXCEPT
+SELECT 
+BS.comments, BS.neuroglancer_state, BS.created, BS.created AS updated, BS.user_date, 
+BS.FK_user_id, BS.readonly, 1 AS active
+FROM brainsharer.neuroglancer_state BS;
 
 -- annotation session
 INSERT INTO brainsharer.annotation_session (id, annotation_type, FK_user_id, FK_prep_id, FK_state_id,FK_brain_region_id, active, created, updated)
@@ -24,6 +29,7 @@ INNER JOIN brainsharer.annotation_session AS as2 ON AAP.FK_session_id = as2.id
 LEFT JOIN brainsharer.marked_cells BS on AAP.id = BS.id
 WHERE BS.id IS NULL
 AND as2.active = 1;
+
 -- polygon
 INSERT INTO brainsharer.polygon_sequences  
 SELECT AAP.*
@@ -32,6 +38,7 @@ INNER JOIN brainsharer.annotation_session AS as2 ON AAP.FK_session_id = as2.id
 LEFT JOIN brainsharer.polygon_sequences  BS on AAP.id = BS.id
 WHERE BS.id IS NULL
 AND as2.active = 1;
+
 -- structure_com
 INSERT INTO brainsharer.structure_com 
 SELECT AAP.*
@@ -40,6 +47,7 @@ INNER JOIN brainsharer.annotation_session AS as2 ON AAP.FK_session_id = as2.id
 LEFT JOIN brainsharer.structure_com  BS on AAP.id = BS.id
 WHERE BS.id IS NULL
 AND as2.active = 1;
+
 -- elastix transformation
 INSERT INTO brainsharer.elastix_transformation (id,FK_prep_id,section,rotation,xshift,yshift,metric,iteration,created,active)
 SELECT id, prep_id AS FK_prep_id,section,rotation,xshift,yshift,metric,iteration,created,active
