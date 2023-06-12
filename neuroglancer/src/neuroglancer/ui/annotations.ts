@@ -78,6 +78,7 @@ import { makeVisibilityButton } from '../widget/visibility_button';
 import { Viewer } from '../viewer';
 import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_annotation';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
+import { urlParams } from 'neuroglancer/services/state_loader';
 
 export interface LandmarkListJSON {
   land_marks: Array<string>,
@@ -2064,7 +2065,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     const {annotationLayer, mode} = this;
     const {session} = this;
 
-    if(session.value === undefined) {
+    if(session.value === undefined && urlParams.multiUserMode) {
       let color = "#ffff00";
       let description = "10N_L";
       const ref = this.createNewVolumeAnn(description, color);
