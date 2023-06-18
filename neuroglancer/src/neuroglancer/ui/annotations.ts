@@ -2065,6 +2065,18 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     const {annotationLayer, mode} = this;
     const {session} = this;
 
+    if(urlParams.multiUserMode) {
+      //@ts-ignore
+      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        if(value.type == 5) {
+          //@ts-ignore
+          session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
+        }
+        console.log(key, value);
+      });
+    }
+
     if(session.value === undefined && urlParams.multiUserMode) {
       let color = "#ffff00";
       let description = "10N_L";
