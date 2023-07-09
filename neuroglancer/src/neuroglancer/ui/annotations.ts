@@ -1557,6 +1557,21 @@ export enum PolygonToolMode {
   DRAW,
   EDIT
 }
+
+let last_location = new Float32Array(3);
+let source_location = new Float32Array(3);
+let inProgressAnnotation = false;
+let global_sourceMouseState: MouseSelectionState;
+//@ts-ignore
+let global_childAnnotationIds: string[];
+//let global_annotation;
+//@ts-ignore
+let polygon_id;
+//@ts-ignore
+let global_mouseState;
+//@ts-ignore
+let global_parentRef;
+
 /**
  * This class is used to draw polygon annotations.
  */
@@ -1590,6 +1605,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns void
    */
   trigger(mouseState: MouseSelectionState, parentRef?: AnnotationReference) {
+    global_mouseState = mouseState;
     const {annotationLayer, mode} = this;
     if (annotationLayer === undefined || mode === PolygonToolMode.EDIT) {
       // Not yet ready.
@@ -1597,7 +1613,68 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     }
 
     if (mouseState.updateUnconditionally()) {
+      if(inProgressAnnotation && urlParams.multiUserMode && this.inProgressAnnotation === undefined) {
+        //console.log("restoring annotation");
+        this.sourceMouseState = <MouseSelectionState>{...global_sourceMouseState};
+        //console.log(mouseState.unsnappedPosition[0]);
+        //console.log(mouseState.unsnappedPosition[1]);
+        //console.log(mouseState.unsnappedPosition[2]);
+        
+        this.sourcePosition = getMousePositionInAnnotationCoordinates(this.sourceMouseState, annotationLayer);
+        // Restore state of polygon tool
+        //@ts-ignore
+        this.zCoordinate = getZCoordinate(this.sourcePosition);
+        let annotation = this.getInitialAnnotation(this.sourceMouseState, annotationLayer);
+        //@ts-ignore
+        const reference = annotationLayer.source.add(annotation, /*commit=*/ false, parentRef);
+        this.layer.selectAnnotation(annotationLayer, reference.id, true);
+        //@ts-ignore
+        let save_mouse_state = mouseState.unsnappedPosition;
+        mouseState.unsnappedPosition = last_location;
+        // console.log("annotationLayer restore:");
+        //@ts-ignore
+        // annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+          //@ts-ignore
+        //   console.log(key, value);
+        // });
+        // console.log("reference restore:")
+        // console.log(reference);
+        // console.log(reference.value);
+        // console.log(annotationLayer);
+        // console.log("childAnnotationIds restore1:");
+        //@ts-ignore
+        reference.value!.childAnnotationIds = global_childAnnotationIds;
+        //@ts-ignore
+        reference.value!.childAnnotationIds.pop();
+        //@ts-ignore
+        for(let i in reference.value.childAnnotationIds) {
+          //@ts-ignore
+          console.log(reference.value.childAnnotationIds[i]);
+        }
+        this.childTool.trigger(mouseState, reference);
+
+        const disposer = () => {
+          reference.dispose();
+        };
+        this.inProgressAnnotation = {
+          //@ts-ignore
+          annotationLayer,
+          reference,
+          disposer,
+        };
+
+        mouseState.unsnappedPosition = save_mouse_state;
+        // console.log("childAnnotationIds restore:");
+        //@ts-ignore
+        // for(let i in this.inProgressAnnotation.reference.value.childAnnotationIds) {
+          //@ts-ignore
+        //   console.log(this.inProgressAnnotation.reference.value.childAnnotationIds[i]);
+        // }
+        //@ts-ignore
+        global_childAnnotationIds = this.inProgressAnnotation.reference.value.childAnnotationIds;
+      }
       if (this.inProgressAnnotation === undefined) {
+        console.log("Starting new annoation from scratch");
         if (parentRef) {
           const point = getMousePositionInAnnotationCoordinates(mouseState, annotationLayer);
           if (point === undefined) return;
@@ -1608,25 +1685,66 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
             return;
           }
         }
+
+        global_sourceMouseState = <MouseSelectionState>{...mouseState};
         this.sourceMouseState = <MouseSelectionState>{...mouseState};
+        
         this.sourcePosition = getMousePositionInAnnotationCoordinates(mouseState, annotationLayer);
+
+        //console.log("sourcePositions");
+        //console.log(this.sourcePosition![0]);
+        //console.log(this.sourcePosition![1]);
+        //console.log(this.sourcePosition![2]);
+        //console.log("mouseState.unsnappedPosition");
+        //console.log(mouseState.unsnappedPosition![0]);
+        //console.log(mouseState.unsnappedPosition![1]);
+        //console.log(mouseState.unsnappedPosition![2]);
+        source_location = new Float32Array(mouseState.unsnappedPosition);
         const annotation = this.getInitialAnnotation(mouseState, annotationLayer);
+        // console.log("annotation.id");
+        // console.log(annotation.id);
         if (parentRef) {
           //annotation.description = parentRef.value!.description;
           annotation.properties = Object.assign([], parentRef.value!.properties);
         }
         const reference = annotationLayer.source.add(annotation, /*commit=*/ false, parentRef);
+        // console.log("reference:")
+        // console.log(reference.value);
+        reference.value;
         this.layer.selectAnnotation(annotationLayer, reference.id, true);
+        polygon_id = reference.id;
         this.childTool.trigger(mouseState, reference);
         const disposer = () => {
           reference.dispose();
         };
+        inProgressAnnotation = true;
+          //@ts-ignore
         this.inProgressAnnotation = {
           annotationLayer,
           reference,
           disposer,
         };
+        // console.log("annotationLayer");
+        //@ts-ignore
+        // annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+          //@ts-ignore
+        //   console.log(key, value);
+        // });
+        // console.log("childAnnotationIds");
+        //@ts-ignore
+        // for(let i in this.inProgressAnnotation.reference.value.childAnnotationIds) {
+          //@ts-ignore
+        //   console.log(this.inProgressAnnotation.reference.value.childAnnotationIds[i]);
+        // }
+        //@ts-ignore
+        global_childAnnotationIds = this.inProgressAnnotation.reference.value.childAnnotationIds;
+        last_location = new Float32Array(mouseState.unsnappedPosition);
       } else {
+        // console.log("source location");
+        // console.log(source_location![0]);
+        // console.log(source_location![1]);
+        // console.log(source_location![2]);
+        // console.log("continueing annotation");
         const point = getMousePositionInAnnotationCoordinates(mouseState, annotationLayer);
         if (point === undefined) return;
         if(!isPointUniqueInPolygon(annotationLayer, <Polygon>(this.inProgressAnnotation.reference.value!), point)) {
@@ -1645,9 +1763,29 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
             return;
           }
         }
+        last_location = new Float32Array(mouseState.unsnappedPosition);
+        console.log("last_location location");
+        console.log(last_location![0]);
+        console.log(last_location![1]);
+        console.log(last_location![2]);
         this.childTool.trigger(mouseState, this.inProgressAnnotation.reference);
         //start new annotation
         this.childTool.trigger(mouseState, this.inProgressAnnotation.reference);
+        // console.log("just started new annotation");
+        // console.log("annotationLayer");
+        //@ts-ignore
+        // annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+          //@ts-ignore
+        //   console.log(key, value);
+        // });
+        // console.log("childAnnotationIds");
+        //@ts-ignore
+        // for(let i in this.inProgressAnnotation.reference.value.childAnnotationIds) {
+          //@ts-ignore
+        //   console.log(this.inProgressAnnotation.reference.value.childAnnotationIds[i]);
+        // }
+        //@ts-ignore
+        global_childAnnotationIds = this.inProgressAnnotation.reference.value.childAnnotationIds;
       }
     }
   }
@@ -1706,18 +1844,126 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    */
   complete(): boolean {
     const {annotationLayer, mode} = this;
-    const state = this.inProgressAnnotation;
 
+    if(inProgressAnnotation && urlParams.multiUserMode && this.inProgressAnnotation === undefined && annotationLayer != undefined) {
+      console.log("last_location location");
+      console.log(last_location![0]);
+      console.log(last_location![1]);
+      console.log(last_location![2]);
+      // console.log("source location");
+      // console.log(source_location![0]);
+      // console.log(source_location![1]);
+      // console.log(source_location![2]);
+      global_sourceMouseState.unsnappedPosition = source_location;
+      this.sourceMouseState = global_sourceMouseState;
+      this.sourcePosition = getMousePositionInAnnotationCoordinates(this.sourceMouseState, annotationLayer);
+      this.sourcePosition = source_location;
+      // Restore state of polygon tool
+      //@ts-ignore
+      this.zCoordinate = getZCoordinate(this.sourcePosition);
+      let annotation = this.getInitialAnnotation(this.sourceMouseState, annotationLayer);
+      //@ts-ignore
+      const reference = annotationLayer.source.add(annotation, /*commit=*/ false, global_parentRef);
+      this.layer.selectAnnotation(annotationLayer, reference.id, true);
+      //@ts-ignore
+      console.log("annotationLayer restore:");
+      //@ts-ignore
+      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        console.log(key, value);
+      });
+      //console.log("reference restore:")
+      //console.log(reference);
+      //console.log(reference.value);
+      //console.log(annotationLayer);
+      //console.log("childAnnotationIds restore1:");
+      //@ts-ignore
+      reference.value!.childAnnotationIds = global_childAnnotationIds;
+      //@ts-ignore
+      reference.value!.childAnnotationIds.pop();
+      //@ts-ignore
+      for(let i in reference.value.childAnnotationIds) {
+        //@ts-ignore
+        console.log(reference.value.childAnnotationIds[i]);
+      }
+      //@ts-ignore
+      global_mouseState.unsnappedPosition = last_location;
+      
+      //@ts-ignore
+      this.childTool.trigger(global_mouseState, reference);
+
+      const disposer = () => {
+        reference.dispose();
+      };
+      this.inProgressAnnotation = {
+        //@ts-ignore
+        annotationLayer,
+        reference,
+        disposer,
+      };
+
+      console.log("childAnnotationIds restore:");
+      //@ts-ignore
+      for(let i in this.inProgressAnnotation.reference.value.childAnnotationIds) {
+        //@ts-ignore
+        console.log(this.inProgressAnnotation.reference.value.childAnnotationIds[i]);
+      }
+      //@ts-ignore
+      global_childAnnotationIds = this.inProgressAnnotation.reference.value.childAnnotationIds;
+    }
+    console.log("source location");
+    console.log(source_location![0]);
+    console.log(source_location![1]);
+    console.log(source_location![2]);
+    this.sourcePosition = source_location;
+    inProgressAnnotation = false;
+    const state = this.inProgressAnnotation;
     if(annotationLayer === undefined || state === undefined || mode === PolygonToolMode.EDIT) {
       return false;
     }
+    console.log("annotationLayer restore2:");
+    //@ts-ignore
+    annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+      //@ts-ignore
+      if(value.type == 1) {
+        //@ts-ignore
+        console.log(key, value.pointA[0]);
+        //@ts-ignore
+        console.log(key, value.pointB[0]);
+      }
+    });
 
     if(this.completeLastLine()) {
+      console.log("annotationLayer restore3:");
+      //@ts-ignore
+      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        if(value.type == 1) {
+          //@ts-ignore
+          console.log(key, value.pointA[0]);
+          //@ts-ignore
+          console.log(key, value.pointB[0]);
+        }
+      });
       annotationLayer.source.commit(this.inProgressAnnotation!.reference);
       this.layer.selectAnnotation(annotationLayer, this.inProgressAnnotation!.reference.id, true);
       this.inProgressAnnotation!.disposer();
+      inProgressAnnotation = false;
       this.inProgressAnnotation = undefined;
       this.sourcePosition = undefined;
+      global_childAnnotationIds = [];
+      console.log("annotationLayer restore4:");
+      //@ts-ignore
+      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        if(value.type == 1) {
+          //@ts-ignore
+          console.log(key, value.pointA[0]);
+          //@ts-ignore
+          console.log(key, value.pointB[0]);
+        }
+      });
+      console.log(annotationLayer);
       return true;
     }
 
@@ -1805,6 +2051,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     if(annotation.childAnnotationIds.length < 3) return false; //min 3 sides in polygon
 
     if (childState.reference !== undefined && childState.reference.value !== undefined) {
+      console.log(this.sourcePosition);
       const newAnnotation = <Annotation>{...childState.reference.value, pointB: this.sourcePosition};
       annotationLayer.source.update(childState.reference, newAnnotation);
       this.layer.selectAnnotation(annotationLayer, childState.reference.id, true);
@@ -2073,7 +2320,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
           //@ts-ignore
           session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
         }
-        console.log(key, value);
       });
     }
 
@@ -2165,11 +2411,23 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     const {annotationLayer, mode} = this;
     const {session} = this;
 
+    if(urlParams.multiUserMode) {
+      //@ts-ignore
+      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        if(value.type == 5) {
+          //@ts-ignore
+          session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
+        }
+      });
+    }
+
     if (annotationLayer === undefined || session.value === undefined || mode !== VolumeToolMode.DRAW) {
       return false;
     }
     if (!session.value.reference.value) return false;
 
+    global_parentRef = session.value.reference;
     if(this.childTool && this.childTool.complete()) {
       //this.layer.selectAnnotation(annotationLayer, session.value.reference.id, true);
       return true;
