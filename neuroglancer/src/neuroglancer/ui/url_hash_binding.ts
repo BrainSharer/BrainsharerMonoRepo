@@ -19,9 +19,7 @@ import { CredentialsManager } from 'neuroglancer/credentials_provider';
 import { StatusMessage } from 'neuroglancer/status';
 import { WatchableValue } from 'neuroglancer/trackable_value';
 import { RefCounted } from 'neuroglancer/util/disposable';
-import { responseJson } from 'neuroglancer/util/http_request';
-import { urlSafeParse, verifyObject } from 'neuroglancer/util/json';
-import { cancellableFetchSpecialOk, parseSpecialUrl } from 'neuroglancer/util/special_protocol_request';
+import { verifyObject } from 'neuroglancer/util/json';
 import { getCachedJson, Trackable } from 'neuroglancer/util/trackable';
 import { urlParams, stateAPI, StateAPI } from 'neuroglancer/services/state_loader';
 import { State } from 'neuroglancer/services/state';
@@ -49,6 +47,7 @@ export class UrlHashBinding extends RefCounted {
      * Most recently parsed or set state string.
      */
     private prevUrlString: string | undefined;
+    private fireFirebase: boolean = true;
 
     /**
      * Most recent error parsing URL hash.
@@ -101,7 +100,9 @@ export class UrlHashBinding extends RefCounted {
             const urlData = JSON.parse(urlString);
             const { prevUrlString } = this;
             const sameUrl = prevUrlString === urlString;
-            if ((!sameUrl) && (this.stateData)) {
+            this.fireFirebase = fetchFirebaseState(this.stateID);
+            console.log('setUrlHash after this.fireFirebase='+this.fireFirebase);    
+            if ( (!sameUrl) && (this.stateData) && (this.fireFirebase) ) {
                 updateUser(this.stateID, this.user.user_id, this.user.username);
                 this.stateData.neuroglancer_state = urlData;
                 this.updateStateData(this.stateData);
@@ -152,46 +153,7 @@ export class UrlHashBinding extends RefCounted {
                     this.stateData.neuroglancer_state = stateObject;
                 });
             }
-        } else { // this part of the else is the old code when all data was in the url
-            try {
-                let s = location.href.replace(/^[^#]+/, '');
-                if (s === '' || s === '#' || s === '#!') {
-                    s = '#!{}';
-                }
-                // Handle remote JSON state
-                if (s.match(/^#!([a-z][a-z\d+-.]*):\/\//)) {
-                    const url = s.substring(2);
-                    const { url: parsedUrl, credentialsProvider } = parseSpecialUrl(url, this.credentialsManager);
-                    StatusMessage.forPromise(
-                        cancellableFetchSpecialOk(credentialsProvider, parsedUrl, {}, responseJson)
-                            .then(json => {
-                                verifyObject(json);
-                                this.root.reset();
-                                this.root.restoreState(json);
-                            }),
-                        { initialMessage: `Loading state from ${url}`, errorPrefix: `Error loading state:` });
-                } else if (s.startsWith('#!+')) {
-                    s = s.slice(3);
-                    // Firefox always %-encodes the URL even if it is not typed that way.
-                    s = decodeURIComponent(s);
-                    const state = urlSafeParse(s);
-                    verifyObject(state);
-                    this.root.restoreState(state);
-                } else if (s.startsWith('#!')) {
-                    s = s.slice(2);
-                    s = decodeURIComponent(s);
-                    const state = urlSafeParse(s);
-                    this.root.reset();
-                    verifyObject(state);
-                    this.root.restoreState(state);
-                } else {
-                    throw new Error(`URL hash is expected to be of the form "#!{...}" or "#!+{...}".`);
-                }
-                this.parseError.value = undefined;
-            } catch (parseError) {
-                this.parseError.value = parseError;
-            }
-        }
+        }    
     }
 
     private setStateRoot() {
@@ -200,11 +162,13 @@ export class UrlHashBinding extends RefCounted {
         verifyObject(jsonStateUrl);
         this.root.restoreState(jsonStateUrl);
         this.prevUrlString = JSON.stringify(jsonStateUrl);
+        console.log('setStateRoot this.fireBase');
         this.updateStateData(this.stateData);
         updateUser(this.stateID, this.user.user_id, this.user.username);
         this.checkAndSetStateFromFirebase();
-        this.updateToolStateFromFirebase();
+        this.updateToolStateFromFirebase();        
     }
+
 
     private updateToolStateFromFirebase() {
         const stateRefCellSession = ref(database, `/test_annotations_tool/test/${this.stateID}`);
@@ -277,4 +241,28 @@ export class UrlHashBinding extends RefCounted {
     }
 
 
+}
+
+export function fetchFirebaseState(stateID: string | null): boolean {
+    let status:boolean = true;
+    const statusRef = ref(database, `/neuroglancer/${stateID}/readonly`);
+    onValue(statusRef, (snapshot: { val: () => boolean; }) => {
+        status = snapshot.val();
+        console.log('FetchFirebaseState ID='+ stateID + ' snaphost.val='+snapshot.val());
+    });
+
+    return status;
+}
+
+export function toggleFirebaseState(stateID: string | null, status: boolean) {
+    const updates: any = {};
+    updates[`/neuroglancer/${stateID}/readonly`] = status;
+    update(ref(database), updates)
+        .then(() => {
+            console.log('Toggling ' + stateID + ' readonly status to='+status);
+        })
+        .catch((error) => {
+            console.log('Error in toggling firebase state.');
+            console.error(error);
+        });
 }

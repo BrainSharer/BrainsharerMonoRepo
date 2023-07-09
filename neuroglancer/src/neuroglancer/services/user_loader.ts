@@ -164,7 +164,7 @@ export function updateUser(stateID: string | null, userID: number, username: str
     updates['/users/' + stateID + '/' + userID] = activeUser;
     update(ref(database), updates)
         .then(() => {
-            console.log('Updating user data was OK');
+            // console.log('Updating user data was OK');
         })
         .catch((error) => {
             console.log('error in updateUser');

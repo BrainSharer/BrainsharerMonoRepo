@@ -75,10 +75,10 @@ import { SaveAnnotationWidget } from '../widget/save_annotation';
 import { CellSessionDialog } from './cell_session';
 import { ComSessionDialog } from './com_session';
 import { makeVisibilityButton } from '../widget/visibility_button';
-import { Viewer } from '../viewer';
 import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_annotation';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import { urlParams } from 'neuroglancer/services/state_loader';
+// import { toggleFirebaseState } from 'neuroglancer/ui/url_hash_binding';
 
 export interface LandmarkListJSON {
   land_marks: Array<string>,
@@ -2064,7 +2064,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   trigger(mouseState: MouseSelectionState) {
     const {annotationLayer, mode} = this;
     const {session} = this;
-
+    
     if(urlParams.multiUserMode) {
       //@ts-ignore
       annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
@@ -2076,10 +2076,11 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
         console.log(key, value);
       });
     }
+    
 
     if(session.value === undefined && urlParams.multiUserMode) {
       let color = "#ffff00";
-      let description = "10N_L";
+      let description = "AP";
       const ref = this.createNewVolumeAnn(description, color);
       if (ref === undefined || !ref.value) {
         StatusMessage.showTemporaryMessage("Failed to create new volume");
@@ -2091,6 +2092,8 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
 
     if (annotationLayer === undefined || mode !== VolumeToolMode.DRAW || session.value === undefined || this.childTool === undefined) {
       // Not yet ready.
+      console.log('annotationLayer='+annotationLayer);
+      console.log('session.value='+session.value);
       return;
     }
     if (!session.value.reference.value) return;
@@ -2106,6 +2109,11 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @returns 
    */
   createNewVolumeAnn(description: string|undefined, color: string|undefined) : AnnotationReference | undefined {
+    console.log('createNewVolumeAnn');
+    // update firebase here????
+    // const stateID = urlParams.stateID;
+    // toggleFirebaseState(stateID, false);
+
     const {annotationLayer} = this;
     if (annotationLayer === undefined) return undefined;
     //@ts-ignore
@@ -2168,10 +2176,12 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     if (annotationLayer === undefined || session.value === undefined || mode !== VolumeToolMode.DRAW) {
       return false;
     }
-    if (!session.value.reference.value) return false;
+    if (!session.value.reference.value) {
+      return false;
+    }
 
     if(this.childTool && this.childTool.complete()) {
-      //this.layer.selectAnnotation(annotationLayer, session.value.reference.id, true);
+      // I tried putting the toggle firebase switch here but it didn't work well.
       return true;
     }
 
