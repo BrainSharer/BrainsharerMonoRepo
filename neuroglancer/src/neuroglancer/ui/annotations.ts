@@ -78,7 +78,7 @@ import { makeVisibilityButton } from '../widget/visibility_button';
 import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_annotation';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import { urlParams } from 'neuroglancer/services/state_loader';
-// import { toggleFirebaseState } from 'neuroglancer/ui/url_hash_binding';
+import { toggleFirebaseState } from 'neuroglancer/ui/url_hash_binding';
 
 export interface LandmarkListJSON {
   land_marks: Array<string>,
@@ -2111,9 +2111,9 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   createNewVolumeAnn(description: string|undefined, color: string|undefined) : AnnotationReference | undefined {
     console.log('createNewVolumeAnn');
     // update firebase here????
-    // const stateID = urlParams.stateID;
-    // toggleFirebaseState(stateID, false);
-
+    if (urlParams.multiUserMode) {
+      toggleFirebaseState(urlParams.stateID, false);
+    }
     const {annotationLayer} = this;
     if (annotationLayer === undefined) return undefined;
     //@ts-ignore
@@ -2181,7 +2181,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     }
 
     if(this.childTool && this.childTool.complete()) {
-      // I tried putting the toggle firebase switch here but it didn't work well.
+      // This is when the user right clicks and closes and polygons.
+      if (urlParams.multiUserMode) {
+        toggleFirebaseState(urlParams.stateID, true);
+      }
       return true;
     }
 

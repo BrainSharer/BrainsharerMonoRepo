@@ -90,6 +90,7 @@ export class UrlHashBinding extends RefCounted {
      * 2023-04-24 I put in a check to make sure this.stateData is not undefined.
      */
     private setUrlHash() {
+        this.multiUserMode = fetchFirebaseState(this.stateID);
         if (this.stateID && this.multiUserMode) {
             if (this.user.user_id == 0) {
                 StatusMessage.showTemporaryMessage('You have not logged in yet. Changes will not be pushed to the cloud. Please log in and refresh the page to use multi-user mode.');
@@ -100,8 +101,6 @@ export class UrlHashBinding extends RefCounted {
             const urlData = JSON.parse(urlString);
             const { prevUrlString } = this;
             const sameUrl = prevUrlString === urlString;
-            this.fireFirebase = fetchFirebaseState(this.stateID);
-            console.log('setUrlHash after this.fireFirebase='+this.fireFirebase);    
             if ( (!sameUrl) && (this.stateData) && (this.fireFirebase) ) {
                 updateUser(this.stateID, this.user.user_id, this.user.username);
                 this.stateData.neuroglancer_state = urlData;
@@ -119,7 +118,6 @@ export class UrlHashBinding extends RefCounted {
      * This is called upon initial load of the page.
      * This is called from src/main_python.ts
      */
-
     public updateFromUrlHash() {
         if (this.stateID) {
             const { stateID } = this;
