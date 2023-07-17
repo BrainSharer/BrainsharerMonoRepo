@@ -371,13 +371,21 @@ class StructureComAdmin(admin.ModelAdmin):
     These are points are entered by an anatomist and are solely for the center of mass (COM) for a brain region (structure)
     """
 
-    list_display = ('animal', 'annotator', 'created', 'show_com', 'source')
+    list_display = ('animal', 'annotator', 'created', 'annotation_session', 'source')
     ordering = ('annotation_session__animal__prep_id', 'annotation_session__annotator__username',
                 'annotation_session__brain_region__abbreviation', 'source')
     search_fields = ('annotation_session__animal__prep_id', 'annotation_session__annotator__username',
                      'annotation_session__brain_region__abbreviation', 'source')
 
-    def get_queryset(self, request):
+    def has_change_permission(self, request, obj=None):
+        """Returns false as it is just a report."""
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        """Returns false as this data is just a report """
+        return False
+
+    def get_querysetXXX(self, request):
         qs = super(StructureComAdmin, self).get_queryset(request).all()
         prep_id_annotator_combo = []
         ids = []
@@ -392,6 +400,7 @@ class StructureComAdmin(admin.ModelAdmin):
             request).filter(pk__in=ids)
         return qs
 
+    # This is useless
     def show_com(self, obj):
         """Shows the HTML for the link to the graph of data."""
         return format_html(
@@ -399,6 +408,7 @@ class StructureComAdmin(admin.ModelAdmin):
             reverse('admin:structurecom-data', args=[obj.pk])
         )
 
+    # This is useless
     def get_urls(self):
         """Shows the HTML of the links to go to the graph, and table data."""
         urls = super().get_urls()
@@ -408,6 +418,7 @@ class StructureComAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    # This is useless
     def view_coms(self, request, id, *args, **kwargs):
         """Provides the HTML link to the table data"""
         com = StructureCom.objects.get(pk=id)
