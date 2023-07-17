@@ -90,6 +90,11 @@ import { LegacyTool } from './tool';
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         let color = (this.colorInput)? this.colorInput.value : undefined;
         let description = (this.landmarkDropdown)? this.landmarkDropdown.options[this.landmarkDropdown.selectedIndex].value : undefined;
+        if (description === '') {
+          StatusMessage.showTemporaryMessage("Please select a description from the landmark");
+          return;
+        }
+  
         const ref = volumeTool.createNewVolumeAnn(description, color);
         if (ref === undefined || !ref.value) {
           StatusMessage.showTemporaryMessage("Failed to create new volume");
