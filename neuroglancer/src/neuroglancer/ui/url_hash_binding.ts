@@ -34,6 +34,11 @@ import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, 
  * @file Implements a binding between a Trackable value and the URL hash state.
  */
 
+let restoreing_volumetool: boolean = false;
+
+export function updateRestoreingVolumetool() {
+  restoreing_volumetool = true;
+}
 
 export interface UrlHashBindingOptions {
   defaultFragment?: string;
@@ -100,7 +105,8 @@ export class UrlHashBinding extends RefCounted {
             const urlString = JSON.stringify(cacheState.value)
             const urlData = JSON.parse(urlString);
             const { prevUrlString } = this;
-            const sameUrl = prevUrlString === urlString;
+            const sameUrl = prevUrlString === urlString || restoreing_volumetool;
+            restoreing_volumetool = false;
             if ((!sameUrl) && (this.stateData)) {
                 updateUser(this.stateID, this.user.user_id, this.user.username);
                 this.stateData.neuroglancer_state = urlData;

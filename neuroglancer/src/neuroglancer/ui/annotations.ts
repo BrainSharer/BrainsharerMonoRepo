@@ -80,6 +80,8 @@ import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_an
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import { urlParams } from 'neuroglancer/services/state_loader';
 
+import { updateRestoreingVolumetool } from 'neuroglancer/ui/url_hash_binding';
+
 export interface LandmarkListJSON {
   land_marks: Array<string>,
 }
@@ -2120,6 +2122,7 @@ export interface CellSession {
   category: string|undefined;
 }
 
+let has_volume_tool: boolean = false;
 /**
  * This class is used to create the Volume annotation tool.
  */
@@ -2160,7 +2163,38 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
       iconDiv.style.backgroundColor = '';
       this.icon.value = undefined;
     });
+
+    console.log("this.annotationLayer in constructor");
+    console.log(this.annotationLayer);
+    if(urlParams.multiUserMode) {
+      //@ts-ignore
+      if(!this.annotationLayer || !this.annotationLayer.source || !this.annotationLayer.source.annotationMap) {
+        return
+      }
+      //@ts-ignore
+      this.annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
+        //@ts-ignore
+        if(value.type == 5) {
+          //@ts-ignore
+          this.session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
+        }
+      });
+    }
+
+    if(this.session.value === undefined && urlParams.multiUserMode) {
+      let color = "#ffff00";
+      let description = "10N_L";
+      const ref = this.createNewVolumeAnn(description, color);
+      if (ref === undefined || !ref.value) {
+        StatusMessage.showTemporaryMessage("Failed to create new volume");
+        if (ref) ref.dispose();
+      } else {
+        this.session.value = <VolumeSession>{reference: ref};
+      }
+    }
+
   }
+
   /** Sets the icon color of the volume tool based on the type of mode */
   setIconColor() {
     const iconDiv = this.icon.value;
@@ -3985,6 +4019,10 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
       state.source.registerDisposer(state.source.changed.add(() => {
         annotationSavedState.value = false;
       }));
+      if(has_volume_tool) {
+        updateRestoreingVolumetool();
+        this.tool.restoreState("annotateVolume");
+      }
     }
 
     selectAnnotation(
