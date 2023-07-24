@@ -94,6 +94,7 @@ class GetCOM(AnnotationBase, views.APIView):
         self.set_annotator_from_id(annotator_id)
         try:
             rows = StructureCom.objects.filter(annotation_session__animal=self.animal)\
+                .filter(annotation_session__active=True)\
                 .filter(source=source).filter(annotation_session__annotator=self.annotator)
         except:
             print('bad query')
