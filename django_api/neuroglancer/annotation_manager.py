@@ -35,13 +35,12 @@ the dropdown menu. Once the user clicks 'Go', these events take place:
 from django.http import Http404
 import numpy as np
 from statistics import mode
-from neuroglancer.models import AnnotationSession, BrainRegion, \
+from neuroglancer.models import AnnotationSession, BrainRegion, DEBUG, \
     PolygonSequence, StructureCom, PolygonSequence, MarkedCell, get_region_from_abbreviation
 from neuroglancer.atlas import get_scales
 from neuroglancer.models import CellType, UNMARKED
 from neuroglancer.annotation_layer import AnnotationLayer, Annotation
 from neuroglancer.annotation_base import AnnotationBase
-DEBUG = True # setting this to true will provide more logging BUT, it will not send jobs to the background process!
 from timeit import default_timer as timer
 
 class AnnotationManager(AnnotationBase):

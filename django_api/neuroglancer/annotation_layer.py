@@ -2,8 +2,7 @@ import string
 import random
 import numpy as np
 from django.http.response import Http404
-from neuroglancer.models import UNMARKED
-DEBUG = True
+from neuroglancer.models import UNMARKED, DEBUG
 from timeit import default_timer as timer
 
 default_annotation_layer = dict(

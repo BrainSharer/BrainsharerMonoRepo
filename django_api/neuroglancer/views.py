@@ -155,7 +155,8 @@ class GetComList(views.APIView):
         This will get the layers of COMs for the dropdown menu
         """
         data = []
-        coms = StructureCom.objects.order_by('annotation_session__animal__prep_id', 
+        coms = StructureCom.objects.filter(annotation_session__active=True)\
+            .order_by('annotation_session__animal__prep_id', 
             'annotation_session__annotator__username')\
             .values('annotation_session__animal__prep_id', 'annotation_session__annotator__username', 
             'annotation_session__annotator__id', 'source')\

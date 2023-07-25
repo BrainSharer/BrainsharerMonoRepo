@@ -18,6 +18,7 @@ POINT_ID = 52
 LINE_ID = 53
 POLYGON_ID = 54
 UNMARKED = 'UNMARKED'
+DEBUG = False
 
 class NeuroglancerState(models.Model):
     """Model corresponding to the neuroglancer json states stored in the neuroglancer_state table.
@@ -243,7 +244,11 @@ class BrainRegion(AtlasModel):
         return f'{self.description} {self.abbreviation}'
     
 def get_region_from_abbreviation(abbreviation):
-    return BrainRegion.objects.filter(abbreviation=abbreviation).first()
+    if abbreviation is None or abbreviation == '':
+        abbreviation = 'polygon'
+    brainRegion = BrainRegion.objects.filter(abbreviation=abbreviation).first()
+    return brainRegion
+
     
 class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
