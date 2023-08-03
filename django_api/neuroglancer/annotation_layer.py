@@ -49,8 +49,8 @@ class AnnotationLayer:
                             'line': self.parse_line,
         }
         start_time = timer()
-        for annotationi in self.annotations:
-            annotations.append(function_mapping[annotationi['type']](annotationi))
+        for annotation in self.annotations:
+            annotations.append(function_mapping[annotation['type']](annotation))
         if DEBUG:
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)

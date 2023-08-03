@@ -92,22 +92,22 @@ class AnnotationManager(AnnotationBase):
         if self.animal is None or self.annotator is None:
             raise Http404
         marked_cells = []
-        for annotationi in self.current_layer.annotations:
+        for annotation in self.current_layer.annotations:
             # marked cells are treated differently than com, polygon and volume
-            if annotationi.is_cell():
-                marked_cells.append(annotationi)
-            if annotationi.is_com():
-                brain_region = get_region_from_abbreviation(annotationi.get_description())
+            if annotation.is_cell():
+                marked_cells.append(annotation)
+            if annotation.is_com():
+                brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='STRUCTURE_COM')
-                self.add_com(annotationi, session)
-            if annotationi.is_polygon():
+                self.add_com(annotation, session)
+            if annotation.is_polygon():
                 brain_region = get_region_from_abbreviation('polygon')
                 session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-                self.add_polygons(annotationi, session)
-            if annotationi.is_volume():
-                brain_region = get_region_from_abbreviation(annotationi.get_description())
+                self.add_polygons(annotation, session)
+            if annotation.is_volume():
+                brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-                self.add_volumes(annotationi, session)
+                self.add_volumes(annotation, session)
 
 
         if len(marked_cells) > 0:
@@ -128,9 +128,9 @@ class AnnotationManager(AnnotationBase):
                 else:
                     source = UNMARKED
                 
-                for annotationi in cells:
+                for cell in cells:
                     cell_type_object = CellType.objects.filter(cell_type=cell_type).first()
-                    marked_cell = self.create_marked_cell(annotationi, session, cell_type_object, source)
+                    marked_cell = self.create_marked_cell(cell, session, cell_type_object, source)
                     batch.append(marked_cell)
                     
             MarkedCell.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
@@ -143,7 +143,7 @@ class AnnotationManager(AnnotationBase):
 
 
 
-    def is_structure_com(self, annotationi: Annotation):
+    def is_structure_com(self, annotation: Annotation):
         """Determines if a point annotation is a structure COM.
         A point annotation is a COM if the description corresponds to a structure 
         existing in the database.
@@ -152,26 +152,26 @@ class AnnotationManager(AnnotationBase):
         :return boolean: True or False
         """
 
-        assert annotationi.is_point()
-        description = annotationi.get_description()
+        assert annotation.is_point()
+        description = annotation.get_description()
         if description is not None:
             description = str(description).replace('\n', '').strip()
             return bool(BrainRegion.objects.filter(abbreviation=description).first())
         else:
             return False
 
-    def add_com(self, annotationi: Annotation, annotation_session: AnnotationSession):
+    def add_com(self, annotation: Annotation, annotation_session: AnnotationSession):
         """Helper method to add a COM to the bulk manager.
 
         :param annotationi: A COM annotation
         :param annotation_session: session object
         """
 
-        x, y, z = np.floor(annotationi.coord) * (self.scales).astype(np.float64)
+        x, y, z = np.floor(annotation.coord) * (self.scales).astype(np.float64)
         com = StructureCom(annotation_session=annotation_session, source='MANUAL', x=x, y=y, z=z)
         com.save()
 
-    def create_marked_cell(self, annotationi: Annotation, annotation_session: AnnotationSession, 
+    def create_marked_cell(self, annotation: Annotation, annotation_session: AnnotationSession, 
         cell_type, source) -> MarkedCell:
         """Helper method to create a MarkedCell object.
 
@@ -182,11 +182,11 @@ class AnnotationManager(AnnotationBase):
         :return: MarkedCell object
         """
 
-        x, y, z = np.floor(annotationi.coord) * (self.scales).astype(np.float64)
+        x, y, z = np.floor(annotation.coord) * (self.scales).astype(np.float64)
         return MarkedCell(annotation_session=annotation_session,
                           source=source, x=x, y=y, z=z, cell_type=cell_type)
 
-    def add_polygons(self, annotationi: Annotation, annotation_session: AnnotationSession):
+    def add_polygons(self, annotation: Annotation, annotation_session: AnnotationSession):
         """Helper method to add a polygon to the bulk manager.
 
         :param annotationi: A polygon annotation
@@ -194,17 +194,17 @@ class AnnotationManager(AnnotationBase):
         """
 
         z = mode([int(np.floor(pointi.coord_start[2]) * float(self.z_scale))
-                 for pointi in annotationi.childs])
-        ordering = 1
+                 for pointi in annotation.childs])
+        point_order = 1
         batch = []
-        for pointi in annotationi.childs:
-            xa, ya, _ = pointi.coord_start * (self.scales).astype(np.float64)
-            polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=ordering, polygon_index=1)
+        for point in annotation.childs:
+            xa, ya, _ = point.coord_start * (self.scales).astype(np.float64)
+            polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=z)
             batch.append(polygon_sequence)
-            ordering += 1
+            point_order += 1
         PolygonSequence.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
 
-    def add_volumes(self, annotationi: Annotation, annotation_session: AnnotationSession):
+    def add_volumes(self, annotation: Annotation, annotation_session: AnnotationSession):
         """Helper method to add a volume to the bulk manager.
 
         :param annotationi: A COM annotation
@@ -213,22 +213,21 @@ class AnnotationManager(AnnotationBase):
         start_time = timer()
 
         batch = []
-        polygon_index = 1
-        for polygoni in annotationi.childs:
-            ordering = 1
+        for polygon in annotation.childs:
+            point_order = 1
             z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale))
-                     for coord in polygoni.childs])
-            for childi in polygoni.childs:
-                xa, ya, _ = childi.coord_start * (self.scales).astype(np.float64)
-                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=ordering, polygon_index=polygon_index)
-                ordering += 1
+                     for coord in polygon.childs])
+            for child in polygon.childs:
+                xa, ya, _ = child.coord_start * (self.scales).astype(np.float64)
+                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=int(z))
+                point_order += 1
                 batch.append(polygon_sequence)
-            polygon_index += 1
+                
         PolygonSequence.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
         if DEBUG:
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)
-            print(f'Inserting {len(batch)} points to {annotationi.get_description()} took {total_elapsed_time} seconds.')
+            print(f'Inserting {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
 
     def get_session(self, brain_region, annotation_type):
         """Gets either the existing session or creates a new one.

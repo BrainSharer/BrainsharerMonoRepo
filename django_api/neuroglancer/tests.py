@@ -228,8 +228,8 @@ class TestAnnotations(TestSetUp):
                 layer_name = layer['name']
                 break
 
-        print(f'Found {dcount} rows with session ID={session_id}')
-        return f"http://localhost:8000/save_annotations/{state_id}/{layer_name}", session_id, dcount
+        url = f"http://localhost:8000/save_annotations/{state_id}/{layer_name}"
+        return url, session_id, dcount
 
 
     def test_get_big_marked_cell(self):
@@ -281,11 +281,11 @@ class TestAnnotations(TestSetUp):
         """
         model='StructureCom'
         url, session_id , dcount = self.create_url(annotation_model=model)
-        predelete = self.check_row_count(model, session_id=session_id)
+        pre = self.check_row_count(model, session_id=session_id)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        postsave = self.check_row_count(model, session_id=session_id)
-        self.assertEqual(predelete, postsave)
+        post = self.check_row_count(model, session_id=session_id)
+        self.assertEqual(pre, post)
 
     def test_save_volume(self):
         """Test saving annotations.        

@@ -4,6 +4,7 @@ is the 'V' in the MVC framework for the Neuroglancer app
 portion of the portal.
 """
 
+from collections import defaultdict
 from subprocess import check_output
 import os
 from time import sleep
@@ -61,28 +62,14 @@ class GetVolume(AnnotationBase, views.APIView):
     def get(self, request, session_id, format=None):
         try:
             session = AnnotationSession.objects.get(pk=session_id)
-            rows = PolygonSequence.objects.filter(annotation_session__pk=session_id)
+            rows = PolygonSequence.objects.filter(annotation_session__pk=session_id).order_by('z','point_order')
         except:
             print(f'Bad query in GetVolume::get with session ID={session_id}')
             return Response('error')
         apply_scales_to_annotation_rows(rows, session.animal.prep_id)
-        polygon_data = self.create_polygon_and_volume_uuids(rows)
-        polygons = create_polygons(
-            polygon_data, description=session.brain_region.abbreviation)
+        polygons = create_polygons(rows, description=session.brain_region.abbreviation)
         serializer = PolygonSerializer(polygons, many=True)
         return Response(serializer.data)
-
-    def create_polygon_and_volume_uuids(self, rows):
-        polygon_index_to_id = {}
-        volume_id = random_string()
-        polygon_data = []
-        for i in rows:
-            if not i.polygon_index in polygon_index_to_id:
-                polygon_index_to_id[i.polygon_index] = random_string()
-            i.polygon_id = polygon_index_to_id[i.polygon_index]
-            i.volume_id = volume_id
-            polygon_data.append(i)
-        return polygon_data
 
 
 class GetCOM(AnnotationBase, views.APIView):
@@ -354,9 +341,9 @@ class SaveAnnotation(views.APIView):
         state_json = neuroglancerState.neuroglancer_state
         layers = state_json['layers']
         found = False
-        for layeri in layers:
-            if layeri['type'] == 'annotation' and layeri['name'] == annotation_layer_name:
-                upsert_annotations(layeri, neuroglancer_state_id)                    
+        for layer in layers:
+            if layer['type'] == 'annotation' and layer['name'] == annotation_layer_name:
+                upsert_annotations(layer, neuroglancer_state_id)                    
                 found = True
 
         if found:

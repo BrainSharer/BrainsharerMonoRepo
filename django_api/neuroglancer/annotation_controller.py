@@ -16,22 +16,38 @@ def next_item(odic, key):
     return result 
 
 
-def create_polygons(polygon_points, description=None) -> list:
+def create_polygons(rows, description=None) -> list:
     """
     Takes all the polygon x,y,z data and turns them into
     Neuroglancer polygons
-    :param polygons: dictionary of polygon: x,y,z values
+    :param rows: list of object PolygonSequence
     
     """
-
-    polygons, volumes = parse_polygon_points(polygon_points)
+    polygon_index_to_id = {}
+    volumes = {}
     annotation_layer_json = []
-    for polygon_id, polygon_points in polygons.items(): 
-        annotation_layer_json += create_polygon_json(polygon_id, polygon_points)
-    i = 0
+    volume_id = random_string()
+
+    for row in rows:
+        if row.polygon_index not in polygon_index_to_id:
+            polygon_index_to_id[row.polygon_index] = random_string()
+
+        polygon_id = polygon_index_to_id[row.polygon_index]
+        if volume_id not in volumes:
+            volumes[volume_id] = {}
+        if polygon_id not in volumes[volume_id]:
+            volumes[volume_id][polygon_id] = []
+        volumes[volume_id][polygon_id].append(row)
+
+    for volume_id, polygons_in_volume in volumes.items():      
+        for polygon_id, polygon_points in polygons_in_volume.items():   
+            volumes[volume_id][polygon_id] = sort_polygon_points_and_get_coordinates(polygon_points)
+
     for volume_id, polygons in volumes.items():
-        annotation_layer_json += create_volume_json(volume_id, polygons, description = description)
+        annotation_layer_json += create_volume_json(volume_id, polygons, description = description) # does not use polygon_index
+    
     return annotation_layer_json
+
 
 
 def create_volume_json(volume_id, polygons, description = None):
@@ -70,19 +86,19 @@ def parse_polygon_points(polygon_points):
 
     polygons = {}
     volumes = {}
-    for pointi in polygon_points:
-        polygon_id = pointi.polygon_id
-        if pointi.volume_id is not None:
-            volume_id = pointi.volume_id
+    for point in polygon_points:
+        polygon_id = point.polygon_id
+        if point.volume_id is not None:
+            volume_id = point.volume_id
             if not volume_id in volumes:
                 volumes[volume_id] = {}
             if not polygon_id in volumes[volume_id]:
                 volumes[volume_id][polygon_id] = []
-            volumes[volume_id][polygon_id].append(pointi)
+            volumes[volume_id][polygon_id].append(point)
         else:
             if not polygon_id in polygons:
                 polygons[polygon_id] = []
-            polygons[polygon_id].append(pointi)
+            polygons[polygon_id].append(point)
     for polygon_id, polygon_points in polygons.items(): 
         polygons[polygon_id] = sort_polygon_points_and_get_coordinates(polygon_points)
     for volume_id, polygons_in_vloume in volumes.items():      
@@ -142,12 +158,12 @@ def create_polygon_json(polygon_id, polygon_points,parent_id = None):
     npoints = len(polygon_points)
     parent_annotation, child_ids = create_parent_annotation_json(npoints, polygon_id, polygon_points[0], _type='polygon',parent_id=parent_id)
     polygon_json.append(parent_annotation)
-    for pointi in range(npoints - 1):
+    for point in range(npoints - 1):
         line = {}
-        line["pointA"] = polygon_points[pointi]
-        line["pointB"] = polygon_points[pointi + 1]
+        line["pointA"] = polygon_points[point]
+        line["pointB"] = polygon_points[point + 1]
         line["type"] = "line"
-        line["id"] = child_ids[pointi]
+        line["id"] = child_ids[point]
         line["parentAnnotationId"] = polygon_id
         line["props"] = [hexcolor]
         polygon_json.append(line)

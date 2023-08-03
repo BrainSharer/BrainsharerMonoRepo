@@ -9,7 +9,7 @@ from neuroglancer.models import NeuroglancerState
 from neuroglancer.annotation_manager import AnnotationManager, DEBUG
 from timeit import default_timer as timer
 
-def upsert_annotations(layeri, neuroglancer_state_id):
+def upsert_annotations(layer, neuroglancer_state_id):
     """Same as the background_archive_and_insert_annotations method except
     it does not use supervisord and does not go into a background process.
     This will take a while to run for the user.
@@ -21,7 +21,7 @@ def upsert_annotations(layeri, neuroglancer_state_id):
     neuroglancerState = NeuroglancerState.objects.get(pk=neuroglancer_state_id)
     manager = AnnotationManager(neuroglancerState)
     start_time = timer()
-    manager.set_current_layer(layeri) # This takes a LONG time for polygons/volumes!
+    manager.set_current_layer(layer) # This takes a LONG time for polygons/volumes!
     if DEBUG:
         end_time = timer()
         total_elapsed_time = round((end_time - start_time),2)

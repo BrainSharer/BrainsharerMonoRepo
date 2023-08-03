@@ -407,7 +407,8 @@ class PolygonSequence(AnnotationAbstract):
         db_table = 'polygon_sequences'
         verbose_name = 'Polygon sequence'
         verbose_name_plural = 'Polygon sequences'
-        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'polygon_index', 'point_order'], name='unique polygon')]        
+#        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'polygon_index', 'point_order'], name='unique polygon')]        
+        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'point_order'], name='unique polygon')]        
 
     def __str__(self):
         return u'{} {}'.format(self.annotation_session, self.source)
