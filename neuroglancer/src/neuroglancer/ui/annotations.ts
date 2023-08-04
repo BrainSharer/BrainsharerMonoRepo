@@ -1624,7 +1624,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
         this.zCoordinate = getZCoordinate(this.sourcePosition);
         let annotation = this.getInitialAnnotation(this.sourceMouseState, annotationLayer);
         //@ts-ignore
-        const reference = annotationLayer.source.add(annotation, /*commit=*/ false, parentRef);
+        const reference = annotationLayer.source.add(annotation, /*commit=*/ false, parentRef, undefined, polygon_id, true);
         this.layer.selectAnnotation(annotationLayer, reference.id, true);
         //@ts-ignore
         let save_mouse_state = mouseState.unsnappedPosition;
@@ -1633,11 +1633,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
         reference.value!.childAnnotationIds = global_childAnnotationIds;
         //@ts-ignore
         reference.value!.childAnnotationIds.pop();
-        //@ts-ignore
-        for(let i in reference.value.childAnnotationIds) {
-          //@ts-ignore
-          console.log(reference.value.childAnnotationIds[i]);
-        }
         this.childTool.trigger(mouseState, reference);
 
         const disposer = () => {
@@ -1655,7 +1650,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
         global_childAnnotationIds = this.inProgressAnnotation.reference.value.childAnnotationIds;
       }
       if (this.inProgressAnnotation === undefined) {
-        console.log("Starting new annoation from scratch");
         if (parentRef) {
           const point = getMousePositionInAnnotationCoordinates(mouseState, annotationLayer);
           if (point === undefined) return;
@@ -1793,21 +1787,9 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
       const reference = annotationLayer.source.add(annotation, /*commit=*/ false, global_parentRef);
       this.layer.selectAnnotation(annotationLayer, reference.id, true);
       //@ts-ignore
-      console.log("annotationLayer restore:");
-      //@ts-ignore
-      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
-        //@ts-ignore
-        console.log(key, value);
-      });
-      //@ts-ignore
       reference.value!.childAnnotationIds = global_childAnnotationIds;
       //@ts-ignore
       reference.value!.childAnnotationIds.pop();
-      //@ts-ignore
-      for(let i in reference.value.childAnnotationIds) {
-        //@ts-ignore
-        console.log(reference.value.childAnnotationIds[i]);
-      }
       //@ts-ignore
       global_mouseState.unsnappedPosition = last_location;
       
@@ -1842,6 +1824,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
       this.inProgressAnnotation = undefined;
       this.sourcePosition = undefined;
       global_childAnnotationIds = [];
+      polygon_id = undefined;
       return true;
     }
 
@@ -1929,7 +1912,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     if(annotation.childAnnotationIds.length < 3) return false; //min 3 sides in polygon
 
     if (childState.reference !== undefined && childState.reference.value !== undefined) {
-      console.log(this.sourcePosition);
       const newAnnotation = <Annotation>{...childState.reference.value, pointB: this.sourcePosition};
       annotationLayer.source.update(childState.reference, newAnnotation);
       this.layer.selectAnnotation(annotationLayer, childState.reference.id, true);
@@ -2123,6 +2105,17 @@ export interface CellSession {
 }
 
 let has_volume_tool: boolean = false;
+
+export function updateHasVolumeTool() {
+  has_volume_tool = true;
+}
+
+let volume_ref_id: string|undefined = undefined;
+
+export function updateVolumeRef(ref_id: string) {
+  volume_ref_id = ref_id;
+}
+
 /**
  * This class is used to create the Volume annotation tool.
  */
@@ -2140,7 +2133,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
 
   constructor(public layer: UserLayerWithAnnotations, options: any, session: VolumeSession|undefined = undefined,
      mode: VolumeToolMode = VolumeToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
-     iconDiv: HTMLElement|undefined = undefined) {
+     iconDiv: HTMLElement|undefined = undefined, create_new_referance: boolean = true) {
+    if(create_new_referance) {
+
+    }
     super(layer, options);
     this.mode = mode;
     const func = this.displayVolumeSession.bind(this);
@@ -2164,32 +2160,17 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
       this.icon.value = undefined;
     });
 
-    console.log("this.annotationLayer in constructor");
-    console.log(this.annotationLayer);
-    if(urlParams.multiUserMode) {
-      //@ts-ignore
+    if(this.session.value === undefined && urlParams.multiUserMode) {
+      // @ts-ignore
       if(!this.annotationLayer || !this.annotationLayer.source || !this.annotationLayer.source.annotationMap) {
         return
       }
-      //@ts-ignore
-      this.annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
-        //@ts-ignore
-        if(value.type == 5) {
-          //@ts-ignore
-          this.session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
-        }
-      });
-    }
 
-    if(this.session.value === undefined && urlParams.multiUserMode) {
-      let color = "#ffff00";
-      let description = "10N_L";
-      const ref = this.createNewVolumeAnn(description, color);
-      if (ref === undefined || !ref.value) {
-        StatusMessage.showTemporaryMessage("Failed to create new volume");
-        if (ref) ref.dispose();
-      } else {
-        this.session.value = <VolumeSession>{reference: ref};
+      //@ts-ignore
+      let volume_annotation = this.annotationLayer.source.annotationMap.get(volume_ref_id);
+
+      if(volume_annotation) {
+        this.session.value = <VolumeSession>{reference: this.annotationLayer.source.getReference(volume_ref_id!)};
       }
     }
 
@@ -2222,29 +2203,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     const {annotationLayer, mode} = this;
     const {session} = this;
 
-    if(urlParams.multiUserMode) {
-      //@ts-ignore
-      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
-        //@ts-ignore
-        if(value.type == 5) {
-          //@ts-ignore
-          session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
-        }
-      });
-    }
-
-    if(session.value === undefined && urlParams.multiUserMode) {
-      let color = "#ffff00";
-      let description = "10N_L";
-      const ref = this.createNewVolumeAnn(description, color);
-      if (ref === undefined || !ref.value) {
-        StatusMessage.showTemporaryMessage("Failed to create new volume");
-        if (ref) ref.dispose();
-      } else {
-        this.session.value = <VolumeSession>{reference: ref};
-      }
-    }
-
     if (annotationLayer === undefined || mode !== VolumeToolMode.DRAW || session.value === undefined || this.childTool === undefined) {
       // Not yet ready.
       return;
@@ -2261,7 +2219,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @param color 
    * @returns 
    */
-  createNewVolumeAnn(description: string|undefined, color: string|undefined) : AnnotationReference | undefined {
+  createNewVolumeAnn(description: string|undefined, color: string|undefined, id: string|undefined = undefined) : AnnotationReference | undefined {
     const {annotationLayer} = this;
     if (annotationLayer === undefined) return undefined;
     //@ts-ignore
@@ -2276,7 +2234,14 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
         }
       }
     }
-    const reference = annotationLayer.source.add(<Annotation>collection, true);
+    // if(id) collection.id = id;
+    const reference = annotationLayer.source.add(<Annotation>collection, true, undefined, undefined, id);
+    if(reference) {
+      console.log("reference has value");
+    }
+    else {
+      console.log("reference does not has value");
+    }
     this.layer.selectAnnotation(annotationLayer, reference.id, true);
 
     return reference;

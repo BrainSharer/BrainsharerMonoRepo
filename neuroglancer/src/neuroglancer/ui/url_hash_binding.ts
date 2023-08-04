@@ -232,6 +232,18 @@ export class UrlHashBinding extends RefCounted {
         onValue(stateRefComMode, (snapshot) => {
             updateGlobalComMode(snapshot.val());
         });
+
+        /*
+        const stateRefComSession = ref(database, `/test_annotations_tool/volume_session/${this.stateID}`);
+        onValue(stateRefComSession, (snapshot) => {
+            updateGlobalComSession(snapshot.val());
+        });
+
+        const stateRefComMode = ref(database, `/test_annotations_tool/com_mode/${this.stateID}`);
+        onValue(stateRefComMode, (snapshot) => {
+            updateGlobalComMode(snapshot.val());
+        });
+        */
     }
 
     /**

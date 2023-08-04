@@ -24,7 +24,7 @@ import { makeLayer, PersistentViewerSelectionState } from '../layer';
 import { Segmentation } from '../services/state';
 import { StateLoader } from '../services/state_loader';
 import { StatusMessage } from '../status';
-import { AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, VolumeToolMode } from './annotations';
+import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, VolumeToolMode, updateHasVolumeTool } from './annotations';
 import { PolygonOptionsDialog } from './polygon_options';
 import { LegacyTool } from './tool';
  
@@ -86,7 +86,7 @@ import { LegacyTool } from './tool';
       button.textContent = 'Start new volume';
       button.addEventListener('click', () => {
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
-          undefined, VolumeToolMode.DRAW, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
+          undefined, VolumeToolMode.DRAW, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton, false);
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         let color = (this.colorInput)? this.colorInput.value : undefined;
         let description = (this.landmarkDropdown)? this.landmarkDropdown.options[this.landmarkDropdown.selectedIndex].value : undefined;
@@ -95,13 +95,27 @@ import { LegacyTool } from './tool';
           return;
         }
   
+        //@ts-ignore
+        if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
+          return
+        }
         const ref = volumeTool.createNewVolumeAnn(description, color);
+        //@ts-ignore
+        if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
+          return
+        }
+        updateHasVolumeTool();
         if (ref === undefined || !ref.value) {
           StatusMessage.showTemporaryMessage("Failed to create new volume");
           this.annotationLayerView.layer.tool.value = undefined;
           if (ref) ref.dispose();
         } else {
           volumeTool.session.value = <VolumeSession>{reference: ref};
+          //@ts-ignore
+          if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
+            return
+          }
+          updateVolumeRef(ref.id);
         }
         this.dispose();
       });
@@ -190,7 +204,6 @@ import { LegacyTool } from './tool';
         }
 
         const ref = selectedAnnotationLayer.source.getReference(selectedAnnotationId);
-        console.log(ref.value, AnnotationType.VOLUME);
         if (!ref.value || ref.value.type !== AnnotationType.VOLUME) {
           StatusMessage.showTemporaryMessage("Please select and pin a volume annotation in current layer to start editing");
           if (ref) ref.dispose();

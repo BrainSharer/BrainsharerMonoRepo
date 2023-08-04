@@ -791,8 +791,15 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
     restoreState: (annotation: Volume, obj: any, rank: number) => {
       annotation.source = verifyObjectProperty(
           obj, 'source', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-      annotation.childAnnotationIds = verifyObjectProperty(
-          obj, 'childAnnotationIds', verifyStringArray);
+
+      if(!obj.hasOwnProperty('childAnnotationIds')) {
+        annotation.childAnnotationIds = [];
+      }
+      else {
+        annotation.childAnnotationIds = verifyObjectProperty(
+            obj, 'childAnnotationIds', verifyStringArray);
+      }
+
       annotation.childrenVisible = false;
     },
     serializedBytes: rank => rank * 4,
@@ -982,13 +989,22 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return true;
   }
 
-  add(ann: Annotation, commit: boolean = true, parentRef?: AnnotationReference, index?: number): AnnotationReference {
+  add(ann: Annotation, commit: boolean = true, parentRef?: AnnotationReference, index?: number, id: string|undefined = undefined, is_poly: boolean = false): AnnotationReference {
     this.ensureUpdated();
     // Fixes bug: https://github.com/ActiveBrainAtlas2/activebrainatlasadmin/issues/130
     const annotation: Annotation = this.roundZCoordinateBasedOnAnnotation(ann);
+    if(is_poly) {
+      console.log("polygon id in add: " + annotation.id);
+      console.log("passes id in add: " + id);
+    }
     if (!annotation.id) {
-      annotation.id = makeAnnotationId();
+      if(id) annotation.id = id;
+      else {
+        console.log("creating annotation id");
+        annotation.id = makeAnnotationId();
+      }
     } else if (this.annotationMap.has(annotation.id)) {
+      console.log("annootation id already exists");
       throw new Error(`Annotation id already exists: ${JSON.stringify(annotation.id)}.`);
     }
     if(parentRef && isTypeCollection(parentRef.value!)) {
@@ -1021,7 +1037,20 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     if (!commit) {
       this.pending.add(annotation.id);
     }
-    return this.getReference(annotation.id);
+    let reference = this.getReference(annotation.id);
+    if(reference.value) {
+      console.log("reference has value in index");
+    }
+    else {
+      console.log("reference does not has value in index");
+      if(id) {
+        reference.value = this.annotationMap.get(id) || null;
+        let existing = this.references.get(id);
+        if(existing) this.references.set(id, existing);
+        console.log(this.annotationMap);
+      }
+    }
+    return reference;
   }
 
   /**
