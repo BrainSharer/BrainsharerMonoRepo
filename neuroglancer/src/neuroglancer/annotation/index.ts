@@ -755,8 +755,15 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
     restoreState: (annotation: Polygon, obj: any, rank: number) => {
       annotation.source = verifyObjectProperty(
           obj, 'source', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-      annotation.childAnnotationIds = verifyObjectProperty(
-          obj, 'childAnnotationIds', verifyStringArray);
+
+      if(!obj.hasOwnProperty('childAnnotationIds')) {
+        annotation.childAnnotationIds = [];
+      }
+      else {
+        annotation.childAnnotationIds = verifyObjectProperty(
+            obj, 'childAnnotationIds', verifyStringArray);
+      }
+
       annotation.childrenVisible = false;
     },
     serializedBytes: rank => rank * 4,
