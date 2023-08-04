@@ -5,6 +5,7 @@ from django.db.models import Count
 from django.apps import apps
 import requests
 import random
+
 PIPELINE_ROOT = Path('./').absolute()
 sys.path.append(PIPELINE_ROOT.as_posix())
 
@@ -14,6 +15,7 @@ import django
 django.setup()
 
 from neuroglancer.models import NeuroglancerState, MarkedCell, StructureCom, PolygonSequence
+from neuroglancer.tasks import upsert_annotations
 
 """
 select mc.FK_session_id, as2.FK_state_id, count(*) as c
@@ -74,19 +76,34 @@ def save_annotations(url: str) -> dict:
     return resp.json()
 
 
+def parse_annotations(neuroglancer_state_id: int, annotation_layer_name: str):
+    neuroglancerState = NeuroglancerState.objects.get(pk=neuroglancer_state_id)
+    state_json = neuroglancerState.neuroglancer_state
+    layers = state_json['layers']
+    for layer in layers:
+        if layer['type'] == 'annotation' and layer['name'] == annotation_layer_name:
+            upsert_annotations(layer, neuroglancer_state_id)                    
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Work on Animal')
+    parser.add_argument('--id', help='Enter ID', required=False, type=int, default=0)
     parser.add_argument('--model', help='Enter MarkedCell|StructureCom|PolygonSequence', required=False, type=str, default='MarkedCell')
+    parser.add_argument('--layername', help='Enter layer name', required=False, type=str)
+    
 
     args = parser.parse_args()
     model = args.model
+    id = args.id
+    annotation_layer_name = args.layername
+    """
     url, session_id, dcount = create_url(model)
     print(url)
     delete_random_rows(model, session_id, dcount)
     data = save_annotations(url)
     print(data)
     check_deletion(model, session_id)
-
+    """
+    parse_annotations(id, annotation_layer_name)
 
 
