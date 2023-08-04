@@ -1,5 +1,5 @@
-brainsharer/local_settings.py
-
+django_api/brainsharer/local_settings.py
+django_api/brainsharer/settings.py
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
