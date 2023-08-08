@@ -70,7 +70,7 @@ import {RPC} from 'neuroglancer/worker_rpc';
 import {StateLoader} from 'neuroglancer/services/state_loader';
 import {UserLoader} from 'neuroglancer/services/user_loader';
 import {UrlHashBinding} from 'neuroglancer/ui/url_hash_binding';
-import { CellToolMode, ComToolMode, MultiStepAnnotationTool, PlaceCellTool, PlaceComTool, PlacePolygonTool, PlaceVolumeTool, VolumeToolMode } from './ui/annotations';
+import { ToolMode, MultiStepAnnotationTool, PlaceCellTool, PlaceComTool, PlacePolygonTool, PlaceVolumeTool } from './ui/annotations';
 import { PolygonOptionsDialog } from './ui/polygon_options';
 import { AnnotationUserLayer } from './annotation/user_layer';
 import { AnnotationStateLoader } from './services/annotation_state_loader';
@@ -826,35 +826,35 @@ export class Viewer extends RefCounted implements ViewerState {
 
       if (userLayer.tool.value instanceof PlaceVolumeTool) {
         const volumeTool = <PlaceVolumeTool>userLayer.tool.value;
-        if (volumeTool.mode !== VolumeToolMode.DRAW) {
+        if (volumeTool.mode !== ToolMode.DRAW) {
           userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            VolumeToolMode.DRAW, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
+            ToolMode.DRAW, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            VolumeToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
+            ToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
         }
       }
       else if (userLayer.tool.value instanceof PlaceComTool) {
         const comTool = <PlaceComTool>userLayer.tool.value;
-        if (comTool.mode !== ComToolMode.DRAW) {
+        if (comTool.mode !== ToolMode.DRAW) {
           userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ComToolMode.DRAW, comTool.sessionWidgetDiv, comTool.icon.value);
+            ToolMode.DRAW, comTool.sessionWidgetDiv, comTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ComToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
+            ToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
         }
       }
       else if (userLayer.tool.value instanceof PlaceCellTool) {
         const cellTool = <PlaceCellTool>userLayer.tool.value;
-        if (cellTool.mode !== CellToolMode.DRAW) {
+        if (cellTool.mode !== ToolMode.DRAW) {
           userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            CellToolMode.DRAW, cellTool.sessionWidgetDiv, cellTool.icon.value);
+            ToolMode.DRAW, cellTool.sessionWidgetDiv, cellTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            CellToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
+            ToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
         }
       }
     });
@@ -876,33 +876,33 @@ export class Viewer extends RefCounted implements ViewerState {
 
       if (userLayer.tool.value instanceof PlaceVolumeTool) {
         const volumeTool = <PlaceVolumeTool>userLayer.tool.value;
-        if (volumeTool.mode !== VolumeToolMode.EDIT) {
+        if (volumeTool.mode !== ToolMode.EDIT) {
           userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            VolumeToolMode.EDIT, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
+            ToolMode.EDIT, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            VolumeToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
+            ToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
         }
       } else if (userLayer.tool.value instanceof PlaceComTool) {
         const comTool = <PlaceComTool>userLayer.tool.value;
-        if (comTool.mode !== ComToolMode.EDIT) {
+        if (comTool.mode !== ToolMode.EDIT) {
           userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ComToolMode.EDIT, comTool.sessionWidgetDiv, comTool.icon.value);
+            ToolMode.EDIT, comTool.sessionWidgetDiv, comTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ComToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
+            ToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
         }
       } else if (userLayer.tool.value instanceof PlaceCellTool) {
         const cellTool = <PlaceCellTool>userLayer.tool.value;
-        if (cellTool.mode !== CellToolMode.EDIT) {
+        if (cellTool.mode !== ToolMode.EDIT) {
           userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            CellToolMode.EDIT, cellTool.sessionWidgetDiv, cellTool.icon.value);
+            ToolMode.EDIT, cellTool.sessionWidgetDiv, cellTool.icon.value);
         }
         else {
           userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            CellToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
+            ToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
         }
       }
     });

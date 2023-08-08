@@ -24,7 +24,7 @@ import { makeLayer, PersistentViewerSelectionState } from '../layer';
 import { Segmentation } from '../services/state';
 import { StateLoader } from '../services/state_loader';
 import { StatusMessage } from '../status';
-import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, VolumeToolMode, updateHasVolumeTool } from './annotations';
+import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, ToolMode, updateHasVolumeTool } from './annotations';
 import { PolygonOptionsDialog } from './polygon_options';
 import { LegacyTool } from './tool';
  
@@ -86,7 +86,7 @@ import { LegacyTool } from './tool';
       button.textContent = 'Start new volume';
       button.addEventListener('click', () => {
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
-          undefined, VolumeToolMode.DRAW, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton, false);
+          undefined, ToolMode.DRAW, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton, false);
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         let color = (this.colorInput)? this.colorInput.value : undefined;
         let description = (this.landmarkDropdown)? this.landmarkDropdown.options[this.landmarkDropdown.selectedIndex].value : undefined;
@@ -211,7 +211,7 @@ import { LegacyTool } from './tool';
         }
 
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
-          undefined, VolumeToolMode.EDIT, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
+          undefined, ToolMode.EDIT, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         volumeTool.session.value = <VolumeSession>{reference: ref};
 

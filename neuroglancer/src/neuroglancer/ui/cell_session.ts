@@ -19,7 +19,7 @@
  */
 import { Overlay } from 'neuroglancer/overlay';
 import { AnnotationType } from '../annotation';
-import { AnnotationLayerView, getLandmarkList, PlaceCellTool, CellSession, CellToolMode, getCategoryList } from './annotations';
+import { AnnotationLayerView, getLandmarkList, PlaceCellTool, CellSession, ToolMode, getCategoryList } from './annotations';
 import { StatusMessage } from '../status';
  
 import './cell_session.css';
@@ -97,7 +97,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         }
 
         this.annotationLayerView.layer.tool.value = new PlaceCellTool(this.annotationLayerView.layer, {}, 
-          undefined, CellToolMode.DRAW, this.annotationLayerView.cellSession, this.annotationLayerView.cellButton);
+          undefined, ToolMode.DRAW, this.annotationLayerView.cellSession, this.annotationLayerView.cellButton);
         const cellTool = <PlaceCellTool>this.annotationLayerView.layer.tool.value;
 
         const cell_session = <CellSession>{label: description, color: color, category: category};
@@ -106,7 +106,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         if(urlParams.multiUserMode) {
           const updates: any = {};
           updates[`/test_annotations_tool/test/${urlParams.stateID}`] = cell_session;
-          updates[`/test_annotations_tool/mode/${urlParams.stateID}`] = CellToolMode.DRAW;
+          updates[`/test_annotations_tool/mode/${urlParams.stateID}`] = ToolMode.DRAW;
           update(ref(database), updates)
               .then(() => {
                   console.log('Succefully Published Cell Session State to Firebase');
@@ -181,13 +181,13 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       button.textContent = 'Edit cell';
       button.addEventListener('click', () => {
         this.annotationLayerView.layer.tool.value = new PlaceCellTool(this.annotationLayerView.layer, {}, 
-          undefined, CellToolMode.EDIT, this.annotationLayerView.cellSession, this.annotationLayerView.cellButton);
+          undefined, ToolMode.EDIT, this.annotationLayerView.cellSession, this.annotationLayerView.cellButton);
         const cellTool = <PlaceCellTool>this.annotationLayerView.layer.tool.value;
         cellTool.session.value = <CellSession>{label: undefined, color: undefined};
 
         if(urlParams.multiUserMode) {
           const updates: any = {};
-          updates[`/test_annotations_tool/mode/${urlParams.stateID}`] = CellToolMode.EDIT;
+          updates[`/test_annotations_tool/mode/${urlParams.stateID}`] = ToolMode.EDIT;
           update(ref(database), updates)
               .then(() => {
                   console.log('Succefully Published Cell Session State to Firebase');
