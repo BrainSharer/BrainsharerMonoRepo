@@ -1442,6 +1442,7 @@ abstract class TwoStepAnnotationTool extends PlaceAnnotationTool {
       if (this.inProgressAnnotation === undefined) {
         const initAnn = this.getInitialAnnotation(mouseState, annotationLayer);
         if (parentRef) {
+          // console.log(parentRef.value!.properties);
           initAnn.description = parentRef.value!.description;
           initAnn.properties = Object.assign([], parentRef.value!.properties);
         }
@@ -1617,14 +1618,12 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     if (mouseState.updateUnconditionally()) {
       if(inProgressAnnotation && urlParams.multiUserMode && this.inProgressAnnotation === undefined) {
         this.sourceMouseState = <MouseSelectionState>{...global_sourceMouseState};
-        
         this.sourcePosition = getMousePositionInAnnotationCoordinates(this.sourceMouseState, annotationLayer);
         // Restore state of polygon tool
         //@ts-ignore
         this.zCoordinate = getZCoordinate(this.sourcePosition);
-        let annotation = this.getInitialAnnotation(this.sourceMouseState, annotationLayer);
         //@ts-ignore
-        const reference = annotationLayer.source.add(annotation, /*commit=*/ false, parentRef, undefined, polygon_id, true);
+        let reference = annotationLayer.source.getReference(polygon_id);
         this.layer.selectAnnotation(annotationLayer, reference.id, true);
         //@ts-ignore
         let save_mouse_state = mouseState.unsnappedPosition;
@@ -1782,9 +1781,8 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
       // Restore state of polygon tool
       //@ts-ignore
       this.zCoordinate = getZCoordinate(this.sourcePosition);
-      let annotation = this.getInitialAnnotation(this.sourceMouseState, annotationLayer);
       //@ts-ignore
-      const reference = annotationLayer.source.add(annotation, /*commit=*/ false, global_parentRef);
+      let reference = annotationLayer.source.getReference(polygon_id);
       this.layer.selectAnnotation(annotationLayer, reference.id, true);
       //@ts-ignore
       reference.value!.childAnnotationIds = global_childAnnotationIds;
@@ -2219,7 +2217,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @param color 
    * @returns 
    */
-  createNewVolumeAnn(description: string|undefined, color: string|undefined, id: string|undefined = undefined) : AnnotationReference | undefined {
+  createNewVolumeAnn(description: string|undefined, color: string|undefined) : AnnotationReference | undefined {
     const {annotationLayer} = this;
     if (annotationLayer === undefined) return undefined;
     //@ts-ignore
@@ -2235,13 +2233,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
       }
     }
     // if(id) collection.id = id;
-    const reference = annotationLayer.source.add(<Annotation>collection, true, undefined, undefined, id);
-    if(reference) {
-      console.log("reference has value");
-    }
-    else {
-      console.log("reference does not has value");
-    }
+    const reference = annotationLayer.source.add(<Annotation>collection, true, undefined, undefined);
     this.layer.selectAnnotation(annotationLayer, reference.id, true);
 
     return reference;
@@ -2285,17 +2277,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   complete(): boolean {
     const {annotationLayer, mode} = this;
     const {session} = this;
-
-    if(urlParams.multiUserMode) {
-      //@ts-ignore
-      annotationLayer.source.annotationMap.forEach((value: object, key: string) => {
-        //@ts-ignore
-        if(value.type == 5) {
-          //@ts-ignore
-          session.value = <VolumeSession>{reference: annotationLayer.source.getReference(key)};
-        }
-      });
-    }
 
     if (annotationLayer === undefined || session.value === undefined || mode !== VolumeToolMode.DRAW) {
       return false;

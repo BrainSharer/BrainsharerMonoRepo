@@ -989,20 +989,12 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return true;
   }
 
-  add(ann: Annotation, commit: boolean = true, parentRef?: AnnotationReference, index?: number, id: string|undefined = undefined, is_poly: boolean = false): AnnotationReference {
+  add(ann: Annotation, commit: boolean = true, parentRef?: AnnotationReference, index?: number): AnnotationReference {
     this.ensureUpdated();
     // Fixes bug: https://github.com/ActiveBrainAtlas2/activebrainatlasadmin/issues/130
     const annotation: Annotation = this.roundZCoordinateBasedOnAnnotation(ann);
-    if(is_poly) {
-      console.log("polygon id in add: " + annotation.id);
-      console.log("passes id in add: " + id);
-    }
     if (!annotation.id) {
-      if(id) annotation.id = id;
-      else {
-        console.log("creating annotation id");
-        annotation.id = makeAnnotationId();
-      }
+      annotation.id = makeAnnotationId();
     } else if (this.annotationMap.has(annotation.id)) {
       console.log("annootation id already exists");
       throw new Error(`Annotation id already exists: ${JSON.stringify(annotation.id)}.`);
@@ -1038,18 +1030,6 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
       this.pending.add(annotation.id);
     }
     let reference = this.getReference(annotation.id);
-    if(reference.value) {
-      console.log("reference has value in index");
-    }
-    else {
-      console.log("reference does not has value in index");
-      if(id) {
-        reference.value = this.annotationMap.get(id) || null;
-        let existing = this.references.get(id);
-        if(existing) this.references.set(id, existing);
-        console.log(this.annotationMap);
-      }
-    }
     return reference;
   }
 
@@ -1488,7 +1468,7 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     const result: any[] = [];
     const {pending} = this;
     for (const annotation of this) {
-      if (pending.has(annotation.id)) {
+      if (pending.has(annotation.id) && annotation.type != 4) {
         // Don't serialize uncommitted annotations.
         continue;
       }
