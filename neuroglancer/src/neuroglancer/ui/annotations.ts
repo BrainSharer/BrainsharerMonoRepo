@@ -1585,7 +1585,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     this.active = true;
     this.childTool = new PlaceLineTool(layer, {...options, parent: this});
     this.bindingsRef = new RefCounted();
-    if (mode === ToolMode.DRAW) {
+    if (this.mode === ToolMode.DRAW) {
       //@ts-ignore
       setPolygonDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
     } else {
@@ -1731,6 +1731,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
       this.active = _value;
       if (this.active) {
         const {mode} = this;
+
         if (this.bindingsRef) {
           this.bindingsRef.dispose();
           this.bindingsRef = undefined;
@@ -2090,6 +2091,12 @@ export function updateVolumeRef(ref_id: string) {
   volume_ref_id = ref_id;
 }
 
+let volume_tool_mode: ToolMode = ToolMode.NOOP;
+
+export function updateGlobalVolumeMode(mode: ToolMode) {
+  volume_tool_mode = mode;
+}
+
 /**
  * This class is used to create the Volume annotation tool.
  */
@@ -2116,15 +2123,11 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     this.session.value = session;
     this.active = true;
 
-    if(restore_from_firebase) {
-      // mode = 
+    if(restore_from_firebase && urlParams.multiUserMode) {
+      this.mode = volume_tool_mode;
     }
 
-    if (mode != ToolMode.NOOP) {
-      this.childTool = new PlacePolygonTool(layer, {...options, parent: this}, mode);
-    } else {
-      this.childTool = undefined;
-    }
+    this.childTool = this.mode == ToolMode.NOOP ? undefined : new PlacePolygonTool(layer, {...options, parent: this}, this.mode);
 
     this.icon.changed.add(this.setIconColor.bind(this));
     this.icon.value = iconDiv;
@@ -2175,6 +2178,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @returns void
    */
   trigger(mouseState: MouseSelectionState) {
+    console.log("volume tool trigger called");
     const {annotationLayer, mode} = this;
     const {session} = this;
 
@@ -3943,6 +3947,7 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
         annotationSavedState.value = false;
       }));
       if(has_volume_tool) {
+        console.log(this);
         updateRestoreingVolumetool();
         this.tool.restoreState("annotateVolume");
       }

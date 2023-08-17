@@ -24,9 +24,12 @@ import { makeLayer, PersistentViewerSelectionState } from '../layer';
 import { Segmentation } from '../services/state';
 import { StateLoader } from '../services/state_loader';
 import { StatusMessage } from '../status';
-import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, ToolMode, updateHasVolumeTool } from './annotations';
+import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, ToolMode, updateHasVolumeTool, updateGlobalVolumeMode } from './annotations';
 import { PolygonOptionsDialog } from './polygon_options';
 import { LegacyTool } from './tool';
+import { ref, update } from "firebase/database";
+import { database } from 'neuroglancer/services/firebase';
+import { urlParams } from 'neuroglancer/services/state_loader';
  
  import './volume_session.css';
   /**
@@ -99,24 +102,40 @@ import { LegacyTool } from './tool';
         if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
           return
         }
-        const ref = volumeTool.createNewVolumeAnn(description, color);
+        const reference = volumeTool.createNewVolumeAnn(description, color);
         //@ts-ignore
         if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
           return
         }
         updateHasVolumeTool();
-        if (ref === undefined || !ref.value) {
+
+        updateGlobalVolumeMode(ToolMode.DRAW);
+
+        if (reference === undefined || !reference.value) {
           StatusMessage.showTemporaryMessage("Failed to create new volume");
           this.annotationLayerView.layer.tool.value = undefined;
-          if (ref) ref.dispose();
+          if (reference) reference.dispose();
         } else {
-          volumeTool.session.value = <VolumeSession>{reference: ref};
+          volumeTool.session.value = <VolumeSession>{reference: reference};
           //@ts-ignore
           if(!volumeTool.annotationLayer || !volumeTool.annotationLayer.source || !volumeTool.annotationLayer.source.annotationMap) {
             return
           }
-          updateVolumeRef(ref.id);
+          updateVolumeRef(reference.id);
         }
+
+        if(urlParams.multiUserMode) {
+          const updates: any = {};
+          updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.DRAW;
+          update(ref(database), updates)
+              .then(() => {
+                  console.log('Succefully Published Volume Mode State to Firebase');
+              })
+              .catch((error) => {
+                  console.error(error);
+              });
+        }
+
         this.dispose();
       });
       button.classList.add('volume-session-btn');
@@ -203,17 +222,31 @@ import { LegacyTool } from './tool';
           return;
         }
 
-        const ref = selectedAnnotationLayer.source.getReference(selectedAnnotationId);
-        if (!ref.value || ref.value.type !== AnnotationType.VOLUME) {
+        const reference = selectedAnnotationLayer.source.getReference(selectedAnnotationId);
+        if (!reference.value || reference.value.type !== AnnotationType.VOLUME) {
           StatusMessage.showTemporaryMessage("Please select and pin a volume annotation in current layer to start editing");
-          if (ref) ref.dispose();
+          if (reference) reference.dispose();
           return;
         }
 
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
           undefined, ToolMode.EDIT, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
+        updateGlobalVolumeMode(ToolMode.EDIT);
+
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
-        volumeTool.session.value = <VolumeSession>{reference: ref};
+        volumeTool.session.value = <VolumeSession>{reference: reference};
+
+        if(urlParams.multiUserMode) {
+          const updates: any = {};
+          updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.EDIT;
+          update(ref(database), updates)
+              .then(() => {
+                  console.log('Succefully Published Cell Session State to Firebase');
+              })
+              .catch((error) => {
+                  console.error(error);
+              });
+        }
 
         this.dispose();
       });
@@ -349,10 +382,10 @@ import { LegacyTool } from './tool';
           return;
         }
 
-        const ref = selectedAnnotationLayer.source.getReference(selectedAnnotationId);
-        if (!ref.value || ref.value.type !== AnnotationType.VOLUME) {
+        const reference = selectedAnnotationLayer.source.getReference(selectedAnnotationId);
+        if (!reference.value || reference.value.type !== AnnotationType.VOLUME) {
           StatusMessage.showTemporaryMessage("Please select and pin a volume annotation in current layer to segment");
-          if (ref) ref.dispose();
+          if (reference) reference.dispose();
           return;
         }
         //@ts-ignore
@@ -363,7 +396,7 @@ import { LegacyTool } from './tool';
           'source': res.url, 'tab': 'segments', 'segments': ["1"]});
           manager.add(segmentationLayer);
         }
-        stateLoader.segmentVolume(ref.id, successCallback);
+        stateLoader.segmentVolume(reference.id, successCallback);
 
         // const resTemp : Segmentation = {
         //   url: 'testURL',
