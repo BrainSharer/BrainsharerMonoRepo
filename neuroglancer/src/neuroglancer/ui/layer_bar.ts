@@ -32,6 +32,7 @@ import {makeCloseButton} from 'neuroglancer/widget/close_button';
 import {makeDeleteButton} from 'neuroglancer/widget/delete_button';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {PositionWidget} from 'neuroglancer/widget/position_widget';
+import { clearVolumeToolState } from 'neuroglancer/ui/annotations';
 
 export const defaultAnnotationPropertiesSchema = [
   {
@@ -109,6 +110,7 @@ class LayerWidget extends RefCounted {
     const deleteConfirmText = `Are you sure you want to delete the annotation layer ?\nAnnotation layer name: ${this.layer.name}`;
     deleteElement.addEventListener('click', (event: MouseEvent) => {
       if(confirm(deleteConfirmText)) {
+        clearVolumeToolState();
         deleteLayer(this.layer);
       }
       event.stopPropagation();

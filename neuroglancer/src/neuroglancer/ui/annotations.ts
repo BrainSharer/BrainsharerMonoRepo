@@ -1536,7 +1536,7 @@ abstract class PlaceCollectionAnnotationTool extends MultiStepAnnotationTool {
         return colorInNum;
       }),
       childAnnotationIds: [],
-      childrenVisible: false,
+      childrenVisible: true,
     };
   }
   /**
@@ -1566,6 +1566,12 @@ let polygon_id;
 let global_mouseState;
 //@ts-ignore
 let global_parentRef;
+
+export function clearVolumeToolState() {
+  inProgressAnnotation = false;
+  global_childAnnotationIds = [];
+  polygon_id = undefined;
+}
 
 /**
  * This class is used to draw polygon annotations.
@@ -2223,6 +2229,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * Disposes the annotation tool.
    */
   dispose() {
+    console.log("running volume tool disposer");
     if (this.childTool) {
       this.childTool.dispose();
     }

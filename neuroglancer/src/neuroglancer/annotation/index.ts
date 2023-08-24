@@ -800,7 +800,7 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
             obj, 'childAnnotationIds', verifyStringArray);
       }
 
-      annotation.childrenVisible = false;
+      annotation.childrenVisible = true;
     },
     serializedBytes: rank => rank * 4,
     serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, annotation: Volume) => {
