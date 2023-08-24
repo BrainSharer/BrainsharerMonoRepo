@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Router, CanActivate } from '@angular/router';
+import { CanActivate } from '@angular/router';
 
 import { User } from 'src/app/_models/user';
 import { AuthService } from './auth.service';
@@ -21,8 +21,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private authService: AuthService,
     private cookieService: CookieService,
-    private notificationService: NotificationService, 
-    private router: Router) { }
+    private notificationService: NotificationService) { }
 
     /**
      * The name of the token cookie is named: 'access'
@@ -30,22 +29,20 @@ export class AuthGuard implements CanActivate {
      */
   canActivate(): boolean {
     let status: boolean = false;
-    const access = this.cookieService.get('access');
+    let access = this.cookieService.get('access');
     const user_id = this.cookieService.get('id');
     const username = this.cookieService.get('username');
     const first_name = this.cookieService.get('first_name');
     const last_name = this.cookieService.get('last_name');
     const email = this.cookieService.get('email');
-    if (user_id) {
+    if (access) {
+      this.authService.refreshToken();
       this.user = {'id': +user_id, 'username': username, 'first_name': first_name, 'last_name': last_name, 'email': email, 'password':'', 'password2': ''};
       this.authService.user = this.user;
-    } 
-    if (access) {
       status = true;
     } else {
-      // not logged in so redirect to login page with the return url
+      // not logged in so display warning message
       this.notificationService.showError('Error', 'You do not have access to that page.');
-      this.router.navigate(['/account/login']);
       status = false;
     }
     return status;

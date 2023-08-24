@@ -212,8 +212,10 @@ def google_get_user_info(*, access_token: str) -> Dict[str, Any]:
     return response.json()
 
 def set_cookie_with_token(response, name, token):
-    max_age = 365*24*60*60
-    expires = datetime.datetime.strftime(datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age), "%a, %d-%b-%Y %H:%M:%S GMT")
+    max_age = settings.ACCESS_TOKEN_LIFETIME_MINUTES
+    #expires = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(minutes=max_age), "%a, %d-%b-%Y %H:%M:%S GMT")
+    expires = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(minutes=max_age), "%a, %d-%b-%Y %H:%M:%S")
+    print(f'\tSet cookie={name} with token expires = {expires}')
     params = {
         'expires': expires,
         'max_age': max_age,

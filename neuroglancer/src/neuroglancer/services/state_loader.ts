@@ -19,7 +19,7 @@ import { AppSettings } from 'neuroglancer/services/service';
 import { User } from 'neuroglancer/services/user_loader';
 import { Segmentation, State } from 'neuroglancer/services/state';
 
-import { getCookie } from 'typescript-cookie';
+import { getCookie, setCookie } from 'typescript-cookie';
 
 
 /**
@@ -62,6 +62,33 @@ export function getUrlParams() {
     };
     return locationVariables;
 }
+
+// Refreshes the JWT token, to extend the time the user is logged in
+export async function refreshToken(): Promise<void> {
+    const url = AppSettings.REFRESH_TOKEN;
+    const refresh = getCookie('refresh');
+    if (refresh) {
+        const json_body = {
+            refresh: refresh
+        };
+
+        const response = await fetchOk(url, {
+            method: 'POST',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(json_body, null, 0),
+
+        });
+        const json = await response.json();
+        const access = json.access;
+        console.log('this should be the refreshed access token');
+        console.log(access);
+        setCookie('access', access);
+    }
+}
+
 
 /**
  * Define the state completion cell
@@ -153,6 +180,8 @@ export class StateAPI {
     constructor(private stateUrl: string) { }
 
     public async getUser(): Promise<User> {
+        console.log('in getUser');
+        refreshToken();
         let userjson = {'user_id': 0, 'username': ''};
         let user_id = getCookie('id') ?? 0;
         this.access = getCookie('access');

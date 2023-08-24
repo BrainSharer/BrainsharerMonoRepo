@@ -1,6 +1,3 @@
-"""
-"""
-
 import os
 import datetime
 from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIENT_SECRET, \
@@ -9,6 +6,8 @@ from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIE
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 ALLOWED_HOSTS = ['*']
+ACCESS_TOKEN_LIFETIME_MINUTES = 200 # 365*24*60 = minutes in a year
+
 
 # Application definition
 
@@ -35,17 +34,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_plotly_dash.middleware.BaseMiddleware',
-    'django_plotly_dash.middleware.ExternalRedirectionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'authentication.cookiemiddleware.CookieMiddleware'
 ]
 
@@ -101,7 +98,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(hours=100),
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=ACCESS_TOKEN_LIFETIME_MINUTES),
     'ROTATE_REFRESH_TOKENS': True,
 }
 
@@ -123,32 +120,6 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# dash/plotly stuff
-X_FRAME_OPTIONS = 'SAMEORIGIN'
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379),],
-        },
-    },
-}
-
-PLOTLY_COMPONENTS = [
-    'dash_core_components',
-    'dash_html_components',
-    'dash_bootstrap_components',
-    'dash_renderer',
-    'dpd_components',
-    'dpd_static_support',
-]
-
-##### django extensions graph models
-GRAPH_MODELS = {
-  'app_labels': ["brain", "neuroglancer",],
-  'group_models': True,
-}
-
 BASE_BACKEND_URL = 'http://localhost:8000'
 BASE_FRONTEND_URL = 'http://localhost:4200'
 CORS_ALLOW_CREDENTIALS = True
@@ -167,7 +138,8 @@ LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
 MEDIA_URL = '/share/'
 NG_URL = "http://localhost:8080"
-#SILENCED_SYSTEM_CHECKS = ['mysql.E001']
+SESSION_COOKIE_AGE = 60 * ACCESS_TOKEN_LIFETIME_MINUTES
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SITE_ID = 2
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'assets'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')

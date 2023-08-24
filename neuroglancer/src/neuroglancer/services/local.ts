@@ -4,6 +4,7 @@ export const AppSettings = {
         GOOGLE_LOGIN: 'http://localhost:8000/accounts/google/login/?next=',
         LOCAL_LOGIN: 'http://localhost:8000/brainsharer/admin/login/?next=',
         ADMIN_PORTAL: 'https://localhost:8000/admin/',
+        REFRESH_TOKEN: 'http://localhost:8000/api-token-refresh/',
         DISPLAY_FETCH: true,
         DISPLAY_GOOGLE: false
 };
