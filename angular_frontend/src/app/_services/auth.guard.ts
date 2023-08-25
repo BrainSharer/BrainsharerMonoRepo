@@ -1,22 +1,12 @@
 import { Injectable } from '@angular/core';
 import { CanActivate } from '@angular/router';
 
-import { User } from 'src/app/_models/user';
 import { AuthService } from './auth.service';
 import { NotificationService } from 'src/app/_services/notification';
 import { CookieService } from 'ngx-cookie-service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private user: User = {
-    id:0, 
-    username:'',
-    first_name:'',
-    last_name:'',
-    email:'',
-    password:'',
-    password2:''};
-
 
   constructor(
     private authService: AuthService,
@@ -29,16 +19,12 @@ export class AuthGuard implements CanActivate {
      */
   canActivate(): boolean {
     let status: boolean = false;
-    let access = this.cookieService.get('access');
-    const user_id = this.cookieService.get('id');
-    const username = this.cookieService.get('username');
-    const first_name = this.cookieService.get('first_name');
-    const last_name = this.cookieService.get('last_name');
-    const email = this.cookieService.get('email');
-    if (access) {
+    const refresh = this.cookieService.get('refresh');
+    if (refresh) {
       this.authService.refreshToken();
-      this.user = {'id': +user_id, 'username': username, 'first_name': first_name, 'last_name': last_name, 'email': email, 'password':'', 'password2': ''};
-      this.authService.user = this.user;
+    }
+    const access = this.cookieService.get('access');
+    if (access) {
       status = true;
     } else {
       // not logged in so display warning message

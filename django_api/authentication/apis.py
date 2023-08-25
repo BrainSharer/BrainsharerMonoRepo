@@ -88,12 +88,9 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
     def get(self, request, *args, **kwargs):
         input_serializer = self.InputSerializer(data=request.GET)
         input_serializer.is_valid(raise_exception=True)
-
         validated_data = input_serializer.validated_data
-
         code = validated_data.get('code')
         error = validated_data.get('error')
-
         login_url = f'{settings.BASE_FRONTEND_URL}'
 
         if error or not code:
@@ -103,7 +100,6 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
         api_uri = reverse('authentication:login-with-google')
         redirect_uri = f'{domain}{api_uri}'
         access_token = google_get_access_token(code=code, redirect_uri=redirect_uri)
-
         user_data = google_get_user_info(access_token=access_token)
 
         profile_data = {
@@ -112,7 +108,6 @@ class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
             'first_name': user_data.get('given_name', ''),
             'last_name': user_data.get('family_name', ''),
         }
-
         # We use get-or-create logic here for the sake of the example.
         user, _ = user_get_or_create(**profile_data)
         response = redirect(settings.BASE_FRONTEND_URL)

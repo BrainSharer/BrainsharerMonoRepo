@@ -8,31 +8,12 @@ from rest_framework import generics, viewsets
 from rest_framework import permissions
 from rest_framework.response import Response
 from authentication.forms import LocalSignUpForm
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from authentication.models import Lab, User
-from authentication.serializers import LabSerializer, RegisterSerializer, \
+from authentication.serializers import LabSerializer, MyTokenObtainPairSerializer, RegisterSerializer, \
     UserSerializer, ValidateUserSerializer
 
-"""
-def account_login(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request.POST)
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authentication(username=username,password=password)
-        if user:
-            if user.is_active:
-                login(request,user)
-                return redirect(reverse('your_success_url'))
-        else:
-            messages.error(request,'username or password not correct')
-            return redirect(reverse('your_login_url'))
-        
-                
-    else:
-        form = AuthenticationForm()
-    return render(request,'your_template_name.html',{'form':form})
-"""
 
 class LabViewSet(viewsets.ModelViewSet):
     """
@@ -68,6 +49,7 @@ class UserView(generics.CreateAPIView):
 
     def get(self, request, username):
         user = {'id':0}
+        username = str(username).replace('"','').strip()
         try:
            queryset = User.objects.filter(username=username)
         except User.DoesNotExist:
@@ -108,14 +90,10 @@ class LocalSignUpView(generic.CreateView):
 
 def logout_view(request):
     logout(request)
-
     response = HttpResponseRedirect(settings.LOGOUT_REDIRECT_URL)    
-
     response.delete_cookie("access")
-    response.delete_cookie("id")
-    response.delete_cookie("username")
-    response.delete_cookie("first_name")
-    response.delete_cookie("last_name")
-    response.delete_cookie("email")
     response.delete_cookie("refresh")
     return response
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer

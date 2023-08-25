@@ -6,7 +6,7 @@ from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIE
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEBUG = True
 ALLOWED_HOSTS = ['*']
-ACCESS_TOKEN_LIFETIME_MINUTES = 200 # 365*24*60 = minutes in a year
+ACCESS_TOKEN_LIFETIME_MINUTES = 10080 # 7*24*60 = 10080 minutes in a week
 
 
 # Application definition
@@ -99,6 +99,7 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=ACCESS_TOKEN_LIFETIME_MINUTES),
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(minutes=ACCESS_TOKEN_LIFETIME_MINUTES),
     'ROTATE_REFRESH_TOKENS': True,
 }
 
@@ -138,8 +139,8 @@ LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
 MEDIA_URL = '/share/'
 NG_URL = "http://localhost:8080"
-SESSION_COOKIE_AGE = 60 * ACCESS_TOKEN_LIFETIME_MINUTES
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+#SESSION_COOKIE_AGE = 60 * ACCESS_TOKEN_LIFETIME_MINUTES
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SITE_ID = 2
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'assets'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')

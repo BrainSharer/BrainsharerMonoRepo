@@ -88,15 +88,11 @@ def user_get_or_create(*, email: str, **extra_data) -> Tuple[User, bool]:
 
 
 def jwt_login(*, response: HttpResponse, user: User, request: HttpRequest) -> HttpResponse:
-    token = get_tokens_for_user(user)
-    
-    set_cookie_with_token(response, 'id', user.id)
-    set_cookie_with_token(response, 'username', user.username)
-    set_cookie_with_token(response, 'first_name', user.first_name)
-    set_cookie_with_token(response, 'last_name', user.last_name)
-    set_cookie_with_token(response, 'email', user.email)
+    token = get_tokens_for_user(user)    
     set_cookie_with_token(response, 'access', token['access'])
     set_cookie_with_token(response, 'refresh', token['refresh'])
+    set_cookie_with_token(response, 'id', user.id)
+    set_cookie_with_token(response, 'username', user.username)
     user_record_login(user=user)
     user.backend = 'allauth.account.auth_backends.AuthenticationBackend'
     login(request, user)
@@ -212,16 +208,19 @@ def google_get_user_info(*, access_token: str) -> Dict[str, Any]:
     return response.json()
 
 def set_cookie_with_token(response, name, token):
-    max_age = settings.ACCESS_TOKEN_LIFETIME_MINUTES
-    #expires = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(minutes=max_age), "%a, %d-%b-%Y %H:%M:%S GMT")
-    expires = datetime.datetime.strftime(datetime.datetime.now() + datetime.timedelta(minutes=max_age), "%a, %d-%b-%Y %H:%M:%S")
-    print(f'\tSet cookie={name} with token expires = {expires}')
+    name = str(name).replace('"','').strip()
+    expires = get_expiry()
+    print(f'\tSet cookie={name} with value={token} expires = {expires}')
     params = {
         'expires': expires,
-        'max_age': max_age,
         'path': '/',
         'secure': False,
         'httponly': False
     }
 
     response.set_cookie(name, token, **params)
+
+def get_expiry():
+    expiry = datetime.datetime.utcnow()
+    expiry += datetime.timedelta(minutes=settings.ACCESS_TOKEN_LIFETIME_MINUTES)
+    return expiry.strftime('%a, %d-%b-%Y %T GMT')

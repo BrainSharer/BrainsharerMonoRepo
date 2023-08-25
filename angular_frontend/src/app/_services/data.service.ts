@@ -19,7 +19,7 @@ import { Lab } from '../_models/lab';
 
 export const VALIDATE = 'validate'
 
-const httpValidateOptions = {
+export const httpValidateOptions = {
     headers: new HttpHeaders({
         validate: VALIDATE
     })

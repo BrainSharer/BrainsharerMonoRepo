@@ -59,7 +59,12 @@ export class HeaderComponent {
         window.location.href = environment.API_URL + '/local/login/';
     }
 
+    /**
+     * The first method removes cookies and localstorage
+     * The 2nd method logs you out of Django and redirects
+     */
     public clickLocalLogout() {
+        this.authService.logout();
         window.location.href = environment.API_URL + '/local/logout/';
     }
 

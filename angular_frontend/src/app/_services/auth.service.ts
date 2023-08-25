@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, throwError } from 'rxjs';
-import { Router } from '@angular/router';
 import { map, catchError } from 'rxjs/operators';
 import { CookieService } from 'ngx-cookie-service';
 
 import { NotificationService } from './notification';
 import { environment } from '../../environments/environment';
 import { User } from '../_models/user';
+import { httpValidateOptions } from 'src/app/_services/data.service';
 
 const httpOptions = {
   headers: new HttpHeaders({ 'Content-Type': 'application/json' })
@@ -34,7 +34,6 @@ export class AuthService {
 
   constructor(
     private cookieService: CookieService,
-    private router: Router,
     private httpClient: HttpClient,
     private notificationService: NotificationService) {
     this.authStatusListener();
@@ -42,19 +41,11 @@ export class AuthService {
 
   private authStatusListener(): void {
     const access = this.cookieService.get('access');
-    if (this.user.id === 0) {
-      const user_id = this.cookieService.get('id');
-      const username = this.cookieService.get('username');
-      const first_name = this.cookieService.get('first_name');
-      const last_name = this.cookieService.get('last_name');
-      const email = this.cookieService.get('email');
-      if (user_id) {
-        this.user = {'id': +user_id, 'username': username, 'first_name': first_name, 'last_name': last_name, 'email': email, 'password':'', 'password2': ''};
-      }       
-      if (access) {
-        this.sessionActive = new BehaviorSubject<boolean>(true);
-      }       
-    } 
+    console.log(access);
+    if (access) {
+      this.sessionActive = new BehaviorSubject<boolean>(true);
+      this.updateUserDataFromStorage();
+    }       
   }
 
     /**
@@ -74,7 +65,7 @@ export class AuthService {
         map(data => {
         if (data && data['access']) {
           this.sessionActive.next(true);
-          this.updateData(data);
+          this.updateCookies(data);
           this.updateUser(username);
         } else {
           console.log("No data returned from login.")
@@ -101,11 +92,13 @@ export class AuthService {
       .subscribe({
         next: (user: User) => {
           this.user = user;
-          this.cookieService.set('id', this.user.id.toString());
-          this.cookieService.set('username', this.user.username);
-          this.cookieService.set('first_name', this.user.first_name);
-          this.cookieService.set('last_name', this.user.last_name);
-          this.cookieService.set('email', this.user.email);
+          console.log('updateUser');
+          console.log(this.user);
+          this.cookieService.set('id', this.user.id.toString(), 7);
+          this.cookieService.set('username', this.user.username, 7);
+          localStorage.setItem('first_name', this.user.first_name);
+          localStorage.setItem('last_name', this.user.last_name);
+          localStorage.setItem('email', this.user.email);
         },
         error: (msg: Error) => {
           this.notificationService.showError(msg.message, 'Error fetching user.');
@@ -113,13 +106,43 @@ export class AuthService {
       });
   }
 
-  private getCurrentUser(username: string): any {
-    return this.httpClient.get<User>(this.API_URL + '/user/' + username);
+
+  /**
+   * id and username are cookies
+   * first_name, last_name and email are in localstorage.
+   */
+  private updateUserDataFromStorage(): void {
+    console.log('updateUserDataFromStorage');
+    let last_name = localStorage.getItem('last_name');
+    // need username to get the current user REST call
+    const username = this.cookieService.get('username');
+
+    if ((username) && (last_name === null)) {
+      this.updateUser(username);
+      last_name = localStorage.getItem('last_name')
+    }
+
+    let email = localStorage.getItem('email');
+    let first_name = localStorage.getItem('first_name');
+    const id = this.cookieService.get('id');
+    if (id) { this.user.id = +id;}
+    if (username) { this.user.username = username; }
+    if (first_name) { this.user.first_name = first_name; }
+    if (last_name) { this.user.last_name = last_name; }
+    if (email) { this.user.email = email; }
   }
 
-  private updateData(token: any): void {
-    this.cookieService.set('access', token['access']);
-    this.cookieService.set('refresh', token['refresh']);
+
+  private getCurrentUser(username: string): any {
+    return this.httpClient.get<User>(this.API_URL + '/user/' + username, httpValidateOptions);
+  }
+
+  private updateCookies(token: any): void {
+    if (this.user && this.user.id) {
+      this.cookieService.set('id', this.user.id.toString(), 7);
+    }
+    this.cookieService.set('access', token['access'], 7);
+    this.cookieService.set('refresh', token['refresh'], 7);
   }
 
   // Refreshes the JWT token, to extend the time the user is logged in
@@ -128,7 +151,9 @@ export class AuthService {
     this.httpClient.post(this.API_URL + '/api-token-refresh/', { refresh: refresh }, httpOptions)
       .subscribe({
         next: (token: any) => {
-          this.cookieService.set('access', token['access']);
+          this.cookieService.set('access', token['access'], 7);
+          this.cookieService.set('refresh', token['refresh'], 7);
+          this.updateUser(this.user.username);
         },
         error: (err: any) => {
           this.errors = err['error'];
@@ -141,69 +166,15 @@ export class AuthService {
     return !!this.cookieService.get('access');
   }
 
-
   public logout(): void {
-    this.cookieService.delete('id')
-    this.cookieService.delete('username')
     this.cookieService.delete('access')
     this.cookieService.delete('refresh')
+    this.cookieService.delete('id');
+    this.cookieService.delete('username');
+    localStorage.removeItem('first_name');
+    localStorage.removeItem('last_name');
+    localStorage.removeItem('email');    
     this.sessionActive = new BehaviorSubject<boolean>(false);
-    this.notificationService.showWarning('You have been logged out', 'Success');
-    this.router.navigate(['/']);
-    // const redirecturl = 'http://localhost:8000/admin/logout/';
-    // window.location.href = redirecturl;
-    // window.open(redirecturl);
-
   }
-
-
-  /*
-  public getExpiration() {
-    return moment(this.token_expires);
-  }
-
-  public get isTokenActive() {
-    return moment().isBefore(this.getExpiration());
-  }
-
-  public userAvailableXXXXXXXXXXX(): Observable<boolean> {
-    let data = this.cookieService.get('user');
-    data = data.replace(/\\054/g, ',');
-    this.user = JSON.parse(data);
-    if (this.user.id > 0) {
-      this.sessionActive.next(true);
-      sessionStorage.setItem('user', JSON.stringify(data));
-    }
-    return this.sessionActive;
-  }
-
-  public getDjangoUser(): any {
-    return this.httpClient.get<User>(this.API_URL + '/session');
-  }
-
-  public getSessionUser(): User | null {
-    const user = JSON.parse(sessionStorage.getItem('user') || '{}')
-    return user;
-  }
-
-  public checkLoginStatus(): Observable<boolean> {
-    if (this.user.id === 0) {
-      console.log('checkLoginStatus: user is NOT defined, fetching from cookie');
-      let data = this.cookieService.get('user');
-      if (data) {
-        data = data.replace(/\\054/g, ',');
-        this.user = JSON.parse(data);
-        console.log('checkLoginStatus:this.user=' + this.user);
-        sessionStorage.setItem('user', JSON.stringify(this.user));
-        this.sessionActive = new BehaviorSubject<boolean>(true);
-      } else {
-        console.log('checkLoginStatus:No cookie')
-      }
-    }
-    return this.sessionActive.asObservable();
-  }
-
-  */
-
 
 }

@@ -67,6 +67,7 @@ export function getUrlParams() {
 export async function refreshToken(): Promise<void> {
     const url = AppSettings.REFRESH_TOKEN;
     const refresh = getCookie('refresh');
+
     if (refresh) {
         const json_body = {
             refresh: refresh
@@ -82,10 +83,10 @@ export async function refreshToken(): Promise<void> {
 
         });
         const json = await response.json();
-        const access = json.access;
-        console.log('this should be the refreshed access token');
-        console.log(access);
-        setCookie('access', access);
+        setCookie('access', json.access, { expires: 7 });
+        setCookie('refresh', json.refresh, { expires: 7 });
+    } else {
+        StatusMessage.showTemporaryMessage('There was no refresh cookie to verify the login. Try logging out and then log back in.');
     }
 }
 
@@ -179,6 +180,10 @@ export class StateAPI {
 
     constructor(private stateUrl: string) { }
 
+    /**
+     * username and id are both cookies
+     * @returns json of user
+     */
     public async getUser(): Promise<User> {
         console.log('in getUser');
         refreshToken();
@@ -312,7 +317,6 @@ export class StateAPI {
      */
     public async segmentVolume(stateID: number | string, volumeId: string): Promise<Segmentation> {
         const url = `${this.stateUrl.substring(0, this.stateUrl.lastIndexOf('/'))}/contour_to_segmentation/${stateID}/${volumeId}`;
-
         const response = await fetchOk(url, {
             method: 'GET',
             credentials: 'omit',
@@ -377,7 +381,7 @@ export class StateLoader extends RefCounted {
         this.stateAPI.getUser().then(user => {
             this.user = user;
 
-            if (this.user.user_id !== 0) {
+            if ((this.user.user_id !== 0) && (this.stateAPI.access)) {
                 this.input = new StateAutocomplete(viewer);
                 this.input.disableCompletions();
                 this.input.element.classList.add('state-loader-input');
@@ -453,10 +457,12 @@ export class StateLoader extends RefCounted {
 
     /**
      * This method is used when the user clicks the 'Save' button. 
+     * The access cookie is verified and reset.
      * This is the U in the CRUD operations.
      * @returns the state object
      */
     private saveState() {
+        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);
@@ -487,10 +493,12 @@ export class StateLoader extends RefCounted {
     }
     /**
      * This is used when the user clicks the 'New' button. 
+     * The access cookie is verified and reset.
      * This is the C in the CRUD operations.
      * @returns returns a JSON object of state
      */
     private newState() {
+        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`Error: the comment cannot be empty.`);
@@ -516,6 +524,7 @@ export class StateLoader extends RefCounted {
     }
 
     /**
+     * The access cookie is verified and reset.
      * This method is used for the segmentation volume. It calls the saveState method
      * after preparing the segment volume for saving.
      * @param volumeId ID of the volume
@@ -523,6 +532,7 @@ export class StateLoader extends RefCounted {
      * @returns Nothing if there is no comments.
      */
     public segmentVolume(volumeId: string, successCallback: (_ :Segmentation) => void): void {
+        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);

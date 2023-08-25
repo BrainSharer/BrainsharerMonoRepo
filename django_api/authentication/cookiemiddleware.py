@@ -25,12 +25,9 @@ class CookieMiddleware:
         elif not request.user.is_authenticated and request.COOKIES.get('access'):
             print(f"\tUser is NOT authenticated so deleting cookies!!!")
             response.delete_cookie("access")
+            response.delete_cookie("refresh")
             response.delete_cookie("id")
             response.delete_cookie("username")
-            response.delete_cookie("first_name")
-            response.delete_cookie("last_name")
-            response.delete_cookie("email")
-            response.delete_cookie("refresh")
 
 
 
