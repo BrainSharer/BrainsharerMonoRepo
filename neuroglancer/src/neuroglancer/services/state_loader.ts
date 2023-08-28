@@ -185,7 +185,6 @@ export class StateAPI {
      * @returns json of user
      */
     public async getUser(): Promise<User> {
-        console.log('in getUser');
         refreshToken();
         let userjson = {'user_id': 0, 'username': ''};
         let user_id = getCookie('id') ?? 0;
