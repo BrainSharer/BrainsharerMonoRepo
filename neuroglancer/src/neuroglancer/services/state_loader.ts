@@ -83,8 +83,8 @@ export async function refreshToken(): Promise<void> {
 
         });
         const json = await response.json();
-        setCookie('access', json.access, { expires: 7 });
-        setCookie('refresh', json.refresh, { expires: 7 });
+        setCookie('access', json.access, { expires: 7, path: '/' });
+        setCookie('refresh', json.refresh, { expires: 7, path: '/'  });
     } else {
         StatusMessage.showTemporaryMessage('There was no refresh cookie to verify the login. Try logging out and then log back in.');
     }

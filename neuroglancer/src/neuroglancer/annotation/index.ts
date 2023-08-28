@@ -29,7 +29,7 @@ import {parseDataTypeValue} from 'neuroglancer/util/lerp';
 import {getRandomHexString} from 'neuroglancer/util/random';
 import {NullarySignal, Signal} from 'neuroglancer/util/signal';
 import {Uint64} from 'neuroglancer/util/uint64';
-import { StatusMessage } from '../status';
+// import { StatusMessage } from '../status';
 
 export type AnnotationId = string;
 
