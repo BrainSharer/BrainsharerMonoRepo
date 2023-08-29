@@ -3966,7 +3966,7 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
       state.source.registerDisposer(state.source.changed.add(() => {
         annotationSavedState.value = false;
       }));
-      if(has_volume_tool) {
+      if(has_volume_tool && urlParams.multiUserMode) {
         console.log(this);
         updateRestoreingVolumetool();
         this.tool.restoreState("annotateVolume");
