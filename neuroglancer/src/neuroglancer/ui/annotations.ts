@@ -2530,6 +2530,7 @@ export class PlaceCellTool extends PlaceAnnotationTool {
      mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
+    has_volume_tool= false;
     const func = this.displayCellSession.bind(this);
     this.sessionWidgetDiv = sessionDiv;
     this.session.changed.add(() => func());
@@ -2824,6 +2825,7 @@ export class PlaceComTool extends PlaceAnnotationTool {
      mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
+    has_volume_tool= false;
     const func = this.displayComSession.bind(this);
     this.sessionWidgetDiv = sessionDiv;
     this.session.changed.add(() => func());
