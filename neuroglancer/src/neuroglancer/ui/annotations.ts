@@ -3218,13 +3218,13 @@ registerLegacyTool(
     (layer, options) => undefined);
 registerLegacyTool(
     ANNOTATE_VOLUME_TOOL_ID,
-    (layer, options) => new PlaceVolumeTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.DRAW, undefined, undefined, true));
+    (layer, options) => urlParams.multiUserMode ? new PlaceVolumeTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.DRAW, undefined, undefined, true) : undefined);
 registerLegacyTool(
     ANNOTATE_CELL_TOOL_ID,
-    (layer, options) => new PlaceCellTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true));
+    (layer, options) => urlParams.multiUserMode ? new PlaceCellTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true) : undefined);
 registerLegacyTool(
     ANNOTATE_COM_TOOL_ID,
-    (layer, options) => new PlaceComTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true));
+    (layer, options) => urlParams.multiUserMode ? new PlaceComTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true) : undefined);
 
 const newRelatedSegmentKeyMap = EventActionMap.fromObject({
   'enter': {action: 'commit'},
