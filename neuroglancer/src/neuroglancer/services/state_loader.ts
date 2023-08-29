@@ -64,6 +64,7 @@ export function getUrlParams() {
 }
 
 // Refreshes the JWT token, to extend the time the user is logged in
+// deprecated, this is a pain in the butt!
 export async function refreshToken(): Promise<void> {
     const url = AppSettings.REFRESH_TOKEN;
     const refresh = getCookie('refresh');
@@ -176,8 +177,6 @@ export class StateAutocomplete extends AutocompleteTextInput {
  */
 export class StateAPI {
 
-    access: string | undefined;
-
     constructor(private stateUrl: string) { }
 
     /**
@@ -185,10 +184,8 @@ export class StateAPI {
      * @returns json of user
      */
     public async getUser(): Promise<User> {
-        refreshToken();
         let userjson = {'user_id': 0, 'username': ''};
         let user_id = getCookie('id') ?? 0;
-        this.access = getCookie('access');
         let username = getCookie('username') ?? '';
         if ((user_id !== undefined) && (username !== undefined)) {
             userjson = {'user_id': +user_id, 'username': username};
@@ -250,7 +247,6 @@ export class StateAPI {
             credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.access}`,
             },
             body: JSON.stringify(json_body, null, 0),
         });
@@ -291,7 +287,6 @@ export class StateAPI {
             credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.access}`,
             },
             body: JSON.stringify(json_body, null, 0),
         });
@@ -321,7 +316,6 @@ export class StateAPI {
             credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.access}`,
             },
         });
         const json = await response.json();
@@ -338,7 +332,6 @@ export class StateAPI {
             credentials: 'omit',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.access}`,
             },
         });
         return await response.json();
@@ -380,7 +373,7 @@ export class StateLoader extends RefCounted {
         this.stateAPI.getUser().then(user => {
             this.user = user;
 
-            if ((this.user.user_id !== 0) && (this.stateAPI.access)) {
+            if (this.user.user_id !== 0) {
                 this.input = new StateAutocomplete(viewer);
                 this.input.disableCompletions();
                 this.input.element.classList.add('state-loader-input');
@@ -456,12 +449,10 @@ export class StateLoader extends RefCounted {
 
     /**
      * This method is used when the user clicks the 'Save' button. 
-     * The access cookie is verified and reset.
      * This is the U in the CRUD operations.
      * @returns the state object
      */
     private saveState() {
-        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);
@@ -492,12 +483,10 @@ export class StateLoader extends RefCounted {
     }
     /**
      * This is used when the user clicks the 'New' button. 
-     * The access cookie is verified and reset.
      * This is the C in the CRUD operations.
      * @returns returns a JSON object of state
      */
     private newState() {
-        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`Error: the comment cannot be empty.`);
@@ -523,7 +512,6 @@ export class StateLoader extends RefCounted {
     }
 
     /**
-     * The access cookie is verified and reset.
      * This method is used for the segmentation volume. It calls the saveState method
      * after preparing the segment volume for saving.
      * @param volumeId ID of the volume
@@ -531,7 +519,6 @@ export class StateLoader extends RefCounted {
      * @returns Nothing if there is no comments.
      */
     public segmentVolume(volumeId: string, successCallback: (_ :Segmentation) => void): void {
-        refreshToken();
         const comments = this.input.value;
         if (comments.length === 0) {
             StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);
