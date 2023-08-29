@@ -400,7 +400,7 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
     It was more convienent to do them there than here.
     """
 
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
     pagination_class = LimitOffsetPagination
     serializer_class = NeuroglancerNoStateSerializer
 
@@ -435,7 +435,7 @@ class NeuroglancerGroupAvailableData(views.APIView):
     """
     queryset = NeuroglancerView.objects.all()
     serializer_class = NeuroglancerGroupViewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         """

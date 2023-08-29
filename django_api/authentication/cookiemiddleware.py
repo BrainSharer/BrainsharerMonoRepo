@@ -18,16 +18,25 @@ class CookieMiddleware:
         """
 
         response = self.get_response(request)
+        access = request.COOKIES.get('id')
+        if access is not None:
+            access = True
+        else :
+            access = False
 
-        if request.user.is_authenticated and not request.COOKIES.get('access'):
-            print('\tUser is authenticated but NO access cookie')
+        isAuthenticated = request.user.is_authenticated
+
+        if isAuthenticated and not access:
+            print(f'User IS authenticated access cookie={str(access)}')
             response = jwt_login(response=response, user=request.user, request=request)
-        elif not request.user.is_authenticated and request.COOKIES.get('access'):
-            print(f"\tUser is NOT authenticated so deleting cookies!!!")
-            response.delete_cookie("access")
-            response.delete_cookie("refresh")
-            response.delete_cookie("id")
-            response.delete_cookie("username")
+        elif not isAuthenticated and access:
+            print('access cookie is available, so deleting')
+            response.delete_cookie('id')
+            response.delete_cookie('username')
+        else:
+            pass
+        
+        print(f'isAuthenticated={str(isAuthenticated)} and access={str(access)}')
 
 
 

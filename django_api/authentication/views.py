@@ -23,7 +23,7 @@ class LabViewSet(viewsets.ModelViewSet):
     """
     queryset = Lab.objects.all()
     serializer_class = LabSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
 
 
 class RegisterView(generics.CreateAPIView):
@@ -45,9 +45,10 @@ class RegisterView(generics.CreateAPIView):
 class UserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, username):
+        print('UserView does this get called??')
         user = {'id':0}
         username = str(username).replace('"','').strip()
         try:
@@ -71,6 +72,7 @@ class ValidateUserView(generics.ListAPIView):
         Optionally restricts the returned purchases to a given user,
         by filtering against a `username` query parameter in the URL.
         """
+        print('ValidateUserView does this get called??')
         queryset = User.objects.all()
         username = self.request.query_params.get('username')
         if username is not None:

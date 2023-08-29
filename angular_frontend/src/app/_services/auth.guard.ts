@@ -9,8 +9,8 @@ import { CookieService } from 'ngx-cookie-service';
 export class AuthGuard implements CanActivate {
 
   constructor(
-    private authService: AuthService,
     private cookieService: CookieService,
+    private authService: AuthService,
     private notificationService: NotificationService) { }
 
     /**
@@ -19,12 +19,8 @@ export class AuthGuard implements CanActivate {
      */
   canActivate(): boolean {
     let status: boolean = false;
-    const refresh = this.cookieService.get('refresh');
-    if (refresh) {
-      this.authService.refreshToken();
-    }
-    const access = this.cookieService.get('access');
-    if (access) {
+    const id = this.cookieService.get('id');
+    if (id) {
       status = true;
     } else {
       // not logged in so display warning message
