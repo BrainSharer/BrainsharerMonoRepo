@@ -1394,12 +1394,18 @@ export class PlacePointTool extends PlaceAnnotationTool {
   }
 }
 
+let last_mouse_update = new Float32Array(3);
+let restore_mouse_state = false;
+
 function getMousePositionInAnnotationCoordinates(
     mouseState: MouseSelectionState, annotationLayer: AnnotationLayerState): Float32Array|
     undefined {
   const chunkTransform = annotationLayer.chunkTransform.value;
   if (chunkTransform.error !== undefined) return undefined;
   const chunkPosition = new Float32Array(chunkTransform.modelTransform.unpaddedRank);
+  if(restore_mouse_state) {
+    mouseState.unsnappedPosition = last_mouse_update;
+  }
   if (!getChunkPositionFromCombinedGlobalLocalPositions(
           chunkPosition, mouseState.unsnappedPosition, annotationLayer.localPosition.value,
           chunkTransform.layerRank, chunkTransform.combinedGlobalLocalToChunkTransform)) {
@@ -1427,7 +1433,10 @@ abstract class TwoStepAnnotationTool extends PlaceAnnotationTool {
     }
     if (mouseState.updateUnconditionally() || true) {
       // mouseState.unsnappedPosition = last_location;
-      const updatePointB = () => {
+      const updatePointB = (update_multisuer_state: boolean = true) => {
+        if(update_multisuer_state) {
+          last_mouse_update = mouseState.unsnappedPosition;
+        }
         const state = this.inProgressAnnotation!;
         const reference = state.reference;
         const newAnnotation =
@@ -1459,8 +1468,12 @@ abstract class TwoStepAnnotationTool extends PlaceAnnotationTool {
           reference,
           disposer,
         };
+        if(urlParams.multiUserMode) {
+          restore_mouse_state = true;
+          updatePointB(false);
+          restore_mouse_state = false;
+        }
       } else {
-        updatePointB();
         this.inProgressAnnotation.annotationLayer.source.commit(
             this.inProgressAnnotation.reference);
         this.inProgressAnnotation.disposer();
