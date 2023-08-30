@@ -24,7 +24,7 @@ import {packColor, parseRGBAColorSpecification, parseRGBColorSpecification, seri
 import {DataType} from 'neuroglancer/util/data_type';
 import {Borrowed, RefCounted} from 'neuroglancer/util/disposable';
 import {Endianness, ENDIANNESS} from 'neuroglancer/util/endian';
-import {expectArray, parseArray, parseFixedLengthArray, verifyEnumString, verifyFiniteFloat, verifyFiniteNonNegativeFloat, verifyFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyString, verifyStringArray} from 'neuroglancer/util/json';
+import {verifyBoolean, expectArray, parseArray, parseFixedLengthArray, verifyEnumString, verifyFiniteFloat, verifyFiniteNonNegativeFloat, verifyFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyString, verifyStringArray} from 'neuroglancer/util/json';
 import {parseDataTypeValue} from 'neuroglancer/util/lerp';
 import {getRandomHexString} from 'neuroglancer/util/random';
 import {NullarySignal, Signal} from 'neuroglancer/util/signal';
@@ -750,6 +750,7 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
       return {
         source: Array.from(annotation.source),
         childAnnotationIds: annotation.childAnnotationIds,
+        childrenVisible: annotation.childrenVisible,
       }
     },
     restoreState: (annotation: Polygon, obj: any, rank: number) => {
@@ -765,6 +766,7 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
       }
 
       annotation.childrenVisible = false;
+
     },
     serializedBytes: rank => rank * 4,
     serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, annotation: Polygon) => {
@@ -786,6 +788,7 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
       return {
         source: Array.from(annotation.source),
         childAnnotationIds: annotation.childAnnotationIds,
+        childrenVisible: annotation.childrenVisible,
       }
     },
     restoreState: (annotation: Volume, obj: any, rank: number) => {
@@ -801,6 +804,13 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
       }
 
       annotation.childrenVisible = true;
+
+      if(obj.hasOwnProperty('childrenVisible')) {
+        let value = verifyObjectProperty(
+            obj, 'childrenVisible', verifyBoolean);
+        console.log("polygon property", value);
+        annotation.childrenVisible = value;
+      }
     },
     serializedBytes: rank => rank * 4,
     serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, annotation: Volume) => {
