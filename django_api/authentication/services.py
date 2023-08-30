@@ -88,8 +88,8 @@ def user_get_or_create(*, email: str, **extra_data) -> Tuple[User, bool]:
 
 
 def jwt_login(*, response: HttpResponse, user: User, request: HttpRequest) -> HttpResponse:
-    # token = get_tokens_for_user(user)    
-    # set_cookie_with_token(response, 'access', token['access'])    
+    token = get_tokens_for_user(user)    
+    set_cookie_with_token(response, 'access', token['access'])    
     set_cookie_with_token(response, 'id', user.id)
     set_cookie_with_token(response, 'username', user.username)
     user_record_login(user=user)

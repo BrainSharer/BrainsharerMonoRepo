@@ -22,11 +22,13 @@ export class AuthService {
   private authStatusListener(): void {
     const id = this.cookieService.get('id');
     const username = this.cookieService.get('username');
-    if ((id) && (username)) {
+    const access = this.cookieService.get('access')
+    if ((id) && (username) && (access)) {
       console.log('ID=' + id + ' username=' + username);
       this.sessionActive = new BehaviorSubject<boolean>(true);
       this.user.id = +id;
       this.user.username = username;
+      localStorage.setItem('access', access);
     } else {
       console.log('we are in auth listener with no id and/or username');
     }
@@ -47,6 +49,8 @@ export class AuthService {
   public logout(): void {
     this.cookieService.delete('id');
     this.cookieService.delete('username');
+    this.cookieService.delete('access')
+    localStorage.removeItem('access')
     this.sessionActive = new BehaviorSubject<boolean>(false);
   }
 

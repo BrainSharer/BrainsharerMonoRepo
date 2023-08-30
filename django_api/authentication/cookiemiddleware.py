@@ -33,6 +33,7 @@ class CookieMiddleware:
             print('access cookie is available, so deleting')
             response.delete_cookie('id')
             response.delete_cookie('username')
+            response.delete_cookie('access')
         else:
             pass
         
