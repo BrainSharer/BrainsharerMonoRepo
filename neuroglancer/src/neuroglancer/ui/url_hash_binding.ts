@@ -271,6 +271,9 @@ export class UrlHashBinding extends RefCounted {
     }
 
     private updateStateData(stateData: State) {
+        if(urlParams.viewOnly) {
+            return;
+        }
         const updates: any = {};
         updates['/neuroglancer/' + this.stateID] = stateData;
         update(ref(database), updates)

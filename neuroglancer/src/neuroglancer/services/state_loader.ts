@@ -59,6 +59,7 @@ export function getUrlParams() {
     const locationVariables = {
         'stateID': id,
         'multiUserMode': id !== null && href.searchParams.get('multi') === '1',
+        'viewOnly': id !== null && href.searchParams.get('view_only') === '1',
     };
     return locationVariables;
 }
