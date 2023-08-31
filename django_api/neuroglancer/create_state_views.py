@@ -119,13 +119,12 @@ class NeuroglancerJSONStateManager():
 
     def prepare_bottom_attributes(self):
         self.state['gpuMemoryLimit'] = 4000000000
-        self.state['systemMemoryLimit'] = 8000000000
+        self.state['systemMemoryLimit'] = 4000000000
         self.state['layout'] = '4panel'
             
             
     def create_layer(self, data):
         layer_name = data['layer_name']
-        print('create_layer layer_name=', layer_name)
         url = data['url']
         layer = {}
         max_range = data['max_range']
@@ -180,11 +179,11 @@ class NeuroglancerJSONStateManager():
         
         return layer
             
-    def create_neuroglancer_model(self, titles):
+    def create_neuroglancer_model(self, title):
 
         owner = User.objects.first()
 
         neuroglancer_state = NeuroglancerState.objects.create(owner=owner, neuroglancer_state=self.state,
             created=datetime.now(), updated=datetime.now(), user_date="999999", 
-            comments=' '.join(titles), readonly=True)
+            comments=title, readonly=True)
         return neuroglancer_state.id

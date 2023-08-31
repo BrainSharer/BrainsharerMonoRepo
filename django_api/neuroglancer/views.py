@@ -468,5 +468,6 @@ def create_state(request):
         stateManager.prepare_bottom_attributes()
         for k,v in stateManager.state.items():
             print(k,v)
-        state_id = stateManager.create_neuroglancer_model(titles)
+        title = titles[0] # hard code to 1st title
+        state_id = stateManager.create_neuroglancer_model(title)
         return JsonResponse(state_id, safe=False)
