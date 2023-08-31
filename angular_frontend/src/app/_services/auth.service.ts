@@ -23,7 +23,7 @@ export class AuthService {
     const id = this.cookieService.get('id');
     const username = this.cookieService.get('username');
     const access = this.cookieService.get('access')
-    if ((id) && (username) && (access)) {
+    if ((id) && (username)) {
       console.log('ID=' + id + ' username=' + username);
       this.sessionActive = new BehaviorSubject<boolean>(true);
       this.user.id = +id;

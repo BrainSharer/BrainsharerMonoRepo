@@ -3,10 +3,10 @@ import { makeIcon } from 'neuroglancer/widget/icon';
 import { registerEventListener } from 'neuroglancer/util/disposable';
 import { database, dbRef, userDataRef } from 'neuroglancer/services/firebase';
 import { child, get, off, ref, update, } from "firebase/database";
-
-import { urlParams, stateAPI, StateAPI } from 'neuroglancer/services/state_loader';
+import { fetchOk } from 'neuroglancer/util/http_request';
+import { urlParams } from 'neuroglancer/services/state_loader';
 import { StatusMessage } from 'neuroglancer/status';
-
+import { getCookie, setCookie } from 'typescript-cookie';
 import { AppSettings } from 'neuroglancer/services/service';
 
 
@@ -27,11 +27,9 @@ export class UserLoader {
     private localLoginButton: HTMLElement;
     private logoutButton: HTMLElement;
     private users: string[];
-    private stateAPI: StateAPI;
     private user: User;
 
     constructor() {
-        this.stateAPI = stateAPI;
         this.element.classList.add('user-loader');
 
         if (urlParams.stateID) {
@@ -52,7 +50,7 @@ export class UserLoader {
                 this.logout(stateID);
             });
 
-            this.stateAPI.getUser().then(jsonUser => {
+            getUser().then(jsonUser => {
                 this.user = jsonUser;
                 if (this.user.user_id === 0) {
                     StatusMessage.showTemporaryMessage('You are not logged in.');
@@ -151,6 +149,21 @@ export class UserLoader {
     }
 }
 
+/**
+ * username and id are both cookies
+ * @returns json of user
+ */
+export async function getUser(): Promise<User> {
+    let userjson = { 'user_id': 0, 'username': '' };
+    let user_id = getCookie('id') ?? 0;
+    let username = getCookie('username') ?? '';
+    if ((user_id !== undefined) && (username !== undefined)) {
+        userjson = { 'user_id': +user_id, 'username': username };
+    }
+    return userjson;
+}
+
+
 /** I made this a function in case we need it in another part
 of the program
  */
@@ -171,3 +184,32 @@ export function updateUser(stateID: string | null, userID: number, username: str
             console.error(error);
         });
 }
+
+// Refreshes the JWT token, to extend the time the user is logged in
+// deprecated, this is a pain in the butt!
+export async function refreshToken(): Promise<void> {
+    const url = AppSettings.REFRESH_TOKEN;
+    const refresh = getCookie('refresh');
+
+    if (refresh) {
+        const json_body = {
+            refresh: refresh
+        };
+
+        const response = await fetchOk(url, {
+            method: 'POST',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(json_body, null, 0),
+
+        });
+        const json = await response.json();
+        setCookie('access', json.access, { expires: 7, path: '/' });
+        setCookie('refresh', json.refresh, { expires: 7, path: '/'  });
+    } else {
+        StatusMessage.showTemporaryMessage('There was no refresh cookie to verify the login. Try logging out and then log back in.');
+    }
+}
+

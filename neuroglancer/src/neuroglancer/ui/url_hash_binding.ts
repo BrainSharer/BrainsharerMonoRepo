@@ -27,7 +27,7 @@ import { urlParams, stateAPI, StateAPI } from 'neuroglancer/services/state_loade
 import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
-import { User, updateUser } from 'neuroglancer/services/user_loader';
+import { User, updateUser, getUser } from 'neuroglancer/services/user_loader';
 import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode } from 'neuroglancer/ui/annotations';
 
 /**
@@ -76,7 +76,7 @@ export class UrlHashBinding extends RefCounted {
         super();
         const {updateDelayMilliseconds = 200} = options;
         this.stateAPI = stateAPI;
-        stateAPI.getUser().then(jsonUser => {
+        getUser().then(jsonUser => {
             this.user = jsonUser;
             this.stateID = urlParams.stateID;
             this.multiUserMode = urlParams.multiUserMode;

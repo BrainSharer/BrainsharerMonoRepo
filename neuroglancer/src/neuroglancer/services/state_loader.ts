@@ -16,10 +16,8 @@ import { StatusMessage } from 'neuroglancer/status';
 import { makeIcon } from 'neuroglancer/widget/icon';
 import { getCachedJson } from 'neuroglancer/util/trackable';
 import { AppSettings } from 'neuroglancer/services/service';
-import { User } from 'neuroglancer/services/user_loader';
+import { User, getUser } from 'neuroglancer/services/user_loader';
 import { Segmentation, State } from 'neuroglancer/services/state';
-
-import { getCookie, setCookie } from 'typescript-cookie';
 
 
 /**
@@ -64,34 +62,10 @@ export function getUrlParams() {
     return locationVariables;
 }
 
-// Refreshes the JWT token, to extend the time the user is logged in
-// deprecated, this is a pain in the butt!
-export async function refreshToken(): Promise<void> {
-    const url = AppSettings.REFRESH_TOKEN;
-    const refresh = getCookie('refresh');
-
-    if (refresh) {
-        const json_body = {
-            refresh: refresh
-        };
-
-        const response = await fetchOk(url, {
-            method: 'POST',
-            credentials: 'omit',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(json_body, null, 0),
-
-        });
-        const json = await response.json();
-        setCookie('access', json.access, { expires: 7, path: '/' });
-        setCookie('refresh', json.refresh, { expires: 7, path: '/'  });
-    } else {
-        StatusMessage.showTemporaryMessage('There was no refresh cookie to verify the login. Try logging out and then log back in.');
-    }
+export function getIsPublic() {
+    let status: boolean = true;
+    return status;
 }
-
 
 /**
  * Define the state completion cell
@@ -180,19 +154,6 @@ export class StateAPI {
 
     constructor(private stateUrl: string) { }
 
-    /**
-     * username and id are both cookies
-     * @returns json of user
-     */
-    public async getUser(): Promise<User> {
-        let userjson = {'user_id': 0, 'username': ''};
-        let user_id = getCookie('id') ?? 0;
-        let username = getCookie('username') ?? '';
-        if ((user_id !== undefined) && (username !== undefined)) {
-            userjson = {'user_id': +user_id, 'username': username};
-        }
-        return userjson;
-    }
 
     /**
      * No authentication/authorization is required to get data
@@ -212,7 +173,8 @@ export class StateAPI {
                 comments: json['comments'],
                 user_date: json['user_date'],
                 neuroglancer_state: json['neuroglancer_state'],
-                readonly: json['readonly']
+                readonly: json['readonly'],
+                public: json['public']
             };
         } catch (err) {
             StatusMessage.showTemporaryMessage('The URL is deleted from database. Please check again.');
@@ -222,7 +184,8 @@ export class StateAPI {
                 comments: err,
                 user_date: "0",
                 neuroglancer_state: {},
-                readonly: false
+                readonly: false,
+                public: false
             };
         }
     }
@@ -241,7 +204,8 @@ export class StateAPI {
             comments: state['comments'],
             user_date: state['user_date'],
             neuroglancer_state: state['neuroglancer_state'],
-            readonly: state['readonly']
+            readonly: state['readonly'],
+            public: state['public']
         };
         const response = await fetchOk(url, {
             method: 'POST',
@@ -262,7 +226,8 @@ export class StateAPI {
             comments: json['comments'],
             user_date: json['user_date'],
             neuroglancer_state: json['neuroglancer_state'],
-            readonly: json['readonly']
+            readonly: json['readonly'],
+            public: json['public']
         };
     }
 
@@ -280,7 +245,8 @@ export class StateAPI {
             comments: state['comments'],
             user_date: state['user_date'],
             neuroglancer_state: state['neuroglancer_state'],
-            readonly: state['readonly']
+            readonly: state['readonly'],
+            public: state['public']
         };
 
         const response = await fetchOk(url, {
@@ -299,7 +265,8 @@ export class StateAPI {
             comments: json['comments'],
             user_date: json['user_date'],
             neuroglancer_state: json['neuroglancer_state'],
-            readonly: json['readonly']
+            readonly: json['readonly'],
+            public: json['public']
         };
     }
 
@@ -341,8 +308,6 @@ export class StateAPI {
 
 
 export const stateAPI = new StateAPI(`${AppSettings.API_ENDPOINT}/neuroglancer`);
-
-
 export const urlParams = getUrlParams();
 
 /**
@@ -371,7 +336,7 @@ export class StateLoader extends RefCounted {
          * Try getting the cookies from the Django backend
          * that were actually sent from Django when logging in.
          */
-        this.stateAPI.getUser().then(user => {
+        getUser().then(user => {
             this.user = user;
 
             if (this.user.user_id !== 0) {
@@ -466,6 +431,7 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
+            public: true
         };
 
         const annotationSavedState = this.viewer.annotationsSavedState;
@@ -501,6 +467,7 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
+            public: true
         };
 
         this.stateAPI.newState(state).then((newState) => {
@@ -531,7 +498,8 @@ export class StateLoader extends RefCounted {
             comments: comments,
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
-            readonly: false
+            readonly: false,
+            public: true
         };
 
         this.stateAPI.saveState(this.stateID, state).then(() => {
@@ -573,7 +541,8 @@ export class StateLoader extends RefCounted {
             comments: comments,
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
-            readonly: false
+            readonly: false,
+            public: true
         };
 
         this.stateAPI.saveState(this.stateID, state).then(() => {

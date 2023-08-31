@@ -79,8 +79,8 @@ import { Viewer } from '../viewer';
 import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_annotation';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import { urlParams } from 'neuroglancer/services/state_loader';
-
 import { updateRestoreingVolumetool } from 'neuroglancer/ui/url_hash_binding';
+
 
 export interface LandmarkListJSON {
   land_marks: Array<string>,
