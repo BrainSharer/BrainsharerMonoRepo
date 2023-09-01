@@ -206,15 +206,6 @@ class Slide(AtlasModel):
     4 scenes (pieces of tissue). This is the parent class to the 
     TIFF (SlideCziToTif) class.
     """
-
-    id = models.AutoField(primary_key=True)
-    scan_run = models.ForeignKey(ScanRun, models.CASCADE, db_column='FK_scan_run_id')
-    slide_physical_id = models.IntegerField()
-    slide_status = EnumField(choices=['Bad','Good'], blank=False, null=False)
-    scenes = models.IntegerField(validators=[MinValueValidator(0),MaxValueValidator(6)])
-    insert_before_one = models.IntegerField(blank=False, null=False, default=0,
-                                            verbose_name='Replicate S1',
-                                            validators=[MinValueValidator(0),MaxValueValidator(5)])
     OUTOFFOCUS = 1
     BADTISSUE = 2
     END = 3
@@ -225,6 +216,15 @@ class Slide(AtlasModel):
         (END, 'End'),
         (OK, 'OK'),
     )
+
+    id = models.AutoField(primary_key=True)
+    scan_run = models.ForeignKey(ScanRun, models.CASCADE, db_column='FK_scan_run_id')
+    slide_physical_id = models.IntegerField()
+    slide_status = EnumField(choices=['Bad','Good'], blank=False, null=False)
+    scenes = models.IntegerField(validators=[MinValueValidator(0),MaxValueValidator(6)])
+    insert_before_one = models.IntegerField(blank=False, null=False, default=0,
+                                            verbose_name='Replicate S1',
+                                            validators=[MinValueValidator(0),MaxValueValidator(5)])
     scene_qc_1 = models.IntegerField(choices=QC_CHOICES, default=0, verbose_name='Scene 1 QC')
     insert_between_one_two = models.IntegerField(blank=False, null=False, default=0,
                                                  verbose_name='Replicate S2',
@@ -246,6 +246,15 @@ class Slide(AtlasModel):
                                                   verbose_name='Replicate S6',
                                                   validators=[MinValueValidator(0),MaxValueValidator(5)])
     scene_qc_6 = models.IntegerField(choices=QC_CHOICES, default=0, verbose_name='Scene 6 QC')
+    insert_between_six_seven = models.IntegerField(blank=False, null=False, default=0,
+                                                  verbose_name='Replicate S7',
+                                                  validators=[MinValueValidator(0),MaxValueValidator(5)])
+    scene_qc_7 = models.IntegerField(choices=QC_CHOICES, default=0, verbose_name='Scene 7 QC')
+    insert_between_seven_eight = models.IntegerField(blank=False, null=False, default=0,
+                                                  verbose_name='Replicate S8',
+                                                  validators=[MinValueValidator(0),MaxValueValidator(5)])
+
+    scene_qc_8 = models.IntegerField(choices=QC_CHOICES, default=0, verbose_name='Scene 8 QC')
     file_name = models.CharField(max_length=200)
     comments = models.TextField(max_length=2001, blank=True, null=True)
     file_size = models.FloatField(verbose_name='File size (bytes)')

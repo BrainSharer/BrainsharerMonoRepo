@@ -137,13 +137,15 @@ def save_slide_model(self, request, obj, form, change):
     :param form: The form object.
     :param change: unused variable, shows if the form has changed.
     """
-    scene_numbers = [1, 2, 3, 4, 5, 6]
+    scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
     qc_1 = form.cleaned_data.get('scene_qc_1')
     qc_2 = form.cleaned_data.get('scene_qc_2')
     qc_3 = form.cleaned_data.get('scene_qc_3')
     qc_4 = form.cleaned_data.get('scene_qc_4')
     qc_5 = form.cleaned_data.get('scene_qc_5')
     qc_6 = form.cleaned_data.get('scene_qc_6')
+    qc_7 = form.cleaned_data.get('scene_qc_7')
+    qc_8 = form.cleaned_data.get('scene_qc_8')
 
 
     # do the QC fields
@@ -151,10 +153,9 @@ def save_slide_model(self, request, obj, form, change):
     BADTISSUE = 2
     END = 3
     OK = 0
-    qc_values = [qc_1, qc_2, qc_3, qc_4, qc_5, qc_6]
-    current_qcs = Slide.objects.values_list('scene_qc_1', 'scene_qc_2', 'scene_qc_3',
-                                            'scene_qc_4', 'scene_qc_5',
-                                            'scene_qc_6').get(pk=obj.id)
+    qc_values = [qc_1, qc_2, qc_3, qc_4, qc_5, qc_6, qc_7, qc_8]
+    current_qcs = Slide.objects.values_list('scene_qc_1', 'scene_qc_2', 'scene_qc_3', 'scene_qc_4',
+                                            'scene_qc_5', 'scene_qc_6', 'scene_qc_7', 'scene_qc_8').get(pk=obj.id)
     # this top loop needs to be run before the 2nd loop to make sure the required
     # tifs get set to inactive before finding a nearest neighbour
     for qc_value, current_qc, scene_number in zip(qc_values, current_qcs, scene_numbers):
@@ -169,8 +170,8 @@ def save_slide_model(self, request, obj, form, change):
         if qc_value == END and qc_value != current_qc:
             set_end(obj.id, scene_number)
 
-    form_names = ['insert_before_one', 'insert_between_one_two', 'insert_between_two_three',
-                  'insert_between_three_four', 'insert_between_four_five', 'insert_between_five_six']
+    form_names = ['insert_before_one', 'insert_between_one_two', 'insert_between_two_three','insert_between_three_four',
+                  'insert_between_four_five', 'insert_between_five_six', 'insert_between_six_seven', 'insert_between_seven_eight']
     insert_values = [form.cleaned_data.get(name) for name in form_names]
 
     # moves = sum([value for value in insert_values if value is not None])
@@ -178,9 +179,10 @@ def save_slide_model(self, request, obj, form, change):
     # scenes = range(1, scene_count + 1)
     ## do the inserts
     current_values = Slide.objects.values_list('insert_before_one', 'insert_between_one_two',
-                                               'insert_between_two_three',
-                                               'insert_between_three_four', 'insert_between_four_five',
-                                               'insert_between_five_six').get(pk=obj.id)
+                                               'insert_between_two_three', 'insert_between_three_four', 
+                                               'insert_between_four_five', 'insert_between_five_six',
+                                               'insert_between_six_seven', 'insert_between_seven_eight',
+                                               ).get(pk=obj.id)
 
     for new, current, scene_number in zip(insert_values, current_values, scene_numbers):
         if new is not None and new > current:

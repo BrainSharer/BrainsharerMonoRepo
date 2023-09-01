@@ -359,6 +359,8 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         scene_4_fields = ['insert_between_three_four', 'scene_qc_4']
         scene_5_fields = ['insert_between_four_five', 'scene_qc_5']
         scene_6_fields = ['insert_between_five_six', 'scene_qc_6']
+        scene_7_fields = ['insert_between_six_seven', 'scene_qc_7']
+        scene_8_fields = ['insert_between_seven_eight', 'scene_qc_8']
         if count > 2:
             fields.extend(scene_3_fields)
         if count > 3:
@@ -367,6 +369,10 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
             fields.extend(scene_5_fields)
         if count > 5:
             fields.extend(scene_6_fields)
+        if count > 6:
+            fields.extend(scene_7_fields)
+        if count > 7:
+            fields.extend(scene_8_fields)
 
         last_fields = ['comments', 'processed']
         fields.extend(last_fields)
