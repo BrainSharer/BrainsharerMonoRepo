@@ -227,7 +227,7 @@ class TifInline(admin.TabularInline):
     can_delete = False
     formset = TifInlineFormset
     template = 'tabular_tifs.html'
-
+    
     def section_number(self, obj) -> str:
         animal = obj.slide.scan_run.prep_id
         histology = Histology.objects.get(prep_id=animal)
@@ -387,7 +387,7 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         :param obj: the slide obj
         :return: an integer of the number of scenes
         """
-        scenes = SlideCziToTif.objects.filter(slide__id=obj.id).filter(channel=1).values_list('scene_index').distinct()
+        scenes = SlideCziToTif.objects.filter(slide__id=obj.id).filter(channel=1).values_list('id').distinct()
         count = len(scenes)
         return count
 
