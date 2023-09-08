@@ -209,3 +209,5 @@ select * from brain_region br
 where abbreviation like 'Tz%'
 order by br.abbreviation; 
 
+use brainsharer;
+select count(*) from elastix_transformation et where et.FK_prep_id = 'DK79';
