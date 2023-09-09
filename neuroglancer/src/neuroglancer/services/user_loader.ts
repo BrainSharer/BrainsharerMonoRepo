@@ -170,6 +170,12 @@ export async function getUser(): Promise<User> {
 of the program
  */
 export function updateUser(stateID: string | null, userID: number, username: string) {
+     
+    if ((userID === 0) || (username === '')) {
+        console.log('No user data to update');
+        return;
+    }
+    
     const updates: any = {};
     const activeUser: ActiveUser = {
         name: username,

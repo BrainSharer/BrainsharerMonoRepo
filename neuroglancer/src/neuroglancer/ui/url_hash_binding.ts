@@ -19,9 +19,7 @@ import { CredentialsManager } from 'neuroglancer/credentials_provider';
 import { StatusMessage } from 'neuroglancer/status';
 import { WatchableValue } from 'neuroglancer/trackable_value';
 import { RefCounted } from 'neuroglancer/util/disposable';
-import { responseJson } from 'neuroglancer/util/http_request';
-import { urlSafeParse, verifyObject } from 'neuroglancer/util/json';
-import { cancellableFetchSpecialOk, parseSpecialUrl } from 'neuroglancer/util/special_protocol_request';
+import { verifyObject } from 'neuroglancer/util/json';
 import { getCachedJson, Trackable } from 'neuroglancer/util/trackable';
 import { urlParams, stateAPI, StateAPI } from 'neuroglancer/services/state_loader';
 import { State } from 'neuroglancer/services/state';
@@ -69,6 +67,7 @@ export class UrlHashBinding extends RefCounted {
     private stateID: string | null;
     private user: User;
     private multiUserMode: boolean;
+    private viewOnly: boolean;
 
     constructor(
         public root: Trackable, public credentialsManager: CredentialsManager,
@@ -76,10 +75,11 @@ export class UrlHashBinding extends RefCounted {
         super();
         const {updateDelayMilliseconds = 200} = options;
         this.stateAPI = stateAPI;
+        this.multiUserMode = urlParams.multiUserMode;
+        this.viewOnly = urlParams.viewOnly;
         getUser().then(jsonUser => {
             this.user = jsonUser;
             this.stateID = urlParams.stateID;
-            this.multiUserMode = urlParams.multiUserMode;
             this.registerEventListener(window, 'hashchange', () => this.updateFromUrlHash());
             const throttledSetUrlHash = debounce(() => this.setUrlHash(), updateDelayMilliseconds);
             this.registerDisposer(root.changed.add(throttledSetUrlHash));
@@ -98,8 +98,7 @@ export class UrlHashBinding extends RefCounted {
     private setUrlHash() {
         if (this.stateID && this.multiUserMode) {
             if (this.user.user_id == 0) {
-                StatusMessage.showTemporaryMessage('You have not logged in yet. Changes will not be pushed to the cloud. Please log in and refresh the page to use multi-user mode.');
-                return;
+                this.viewOnly = true;
             }
             const cacheState = getCachedJson(this.root);
             const urlString = JSON.stringify(cacheState.value)
@@ -121,17 +120,16 @@ export class UrlHashBinding extends RefCounted {
      * Fetch the state from ActiveBrainAtlas server according to the GET parameter `id`.
      * The user mode is determined by the GET parameter `multi`:
      * 0 - single user mode; 1 - multi user mode.
+     * If they are in multi user mode and there is no user id, automatically put them in viewOnly mode
      * This is called upon initial load of the page.
      * This is called from src/main_python.ts
      */
-
     public updateFromUrlHash() {
         if (this.stateID) {
             const { stateID } = this;
             if (this.multiUserMode) {
                 if (this.user.user_id === 0) {
-                    StatusMessage.showTemporaryMessage('You have not logged in yet. Please log in and refresh the page to use multi-user mode.');
-                    return;
+                    this.viewOnly = true;
                 }
                 get(child(dbRef, `neuroglancer/${stateID}`)).then((snapshot) => {
                     if (snapshot.exists()) { // get data from firebase
@@ -158,48 +156,12 @@ export class UrlHashBinding extends RefCounted {
                     this.stateData.neuroglancer_state = stateObject;
                 });
             }
-        } else { // this part of the else is the old code when all data was in the url
-            try {
-                let s = location.href.replace(/^[^#]+/, '');
-                if (s === '' || s === '#' || s === '#!') {
-                    s = '#!{}';
-                }
-                // Handle remote JSON state
-                if (s.match(/^#!([a-z][a-z\d+-.]*):\/\//)) {
-                    const url = s.substring(2);
-                    const { url: parsedUrl, credentialsProvider } = parseSpecialUrl(url, this.credentialsManager);
-                    StatusMessage.forPromise(
-                        cancellableFetchSpecialOk(credentialsProvider, parsedUrl, {}, responseJson)
-                            .then(json => {
-                                verifyObject(json);
-                                this.root.reset();
-                                this.root.restoreState(json);
-                            }),
-                        { initialMessage: `Loading state from ${url}`, errorPrefix: `Error loading state:` });
-                } else if (s.startsWith('#!+')) {
-                    s = s.slice(3);
-                    // Firefox always %-encodes the URL even if it is not typed that way.
-                    s = decodeURIComponent(s);
-                    const state = urlSafeParse(s);
-                    verifyObject(state);
-                    this.root.restoreState(state);
-                } else if (s.startsWith('#!')) {
-                    s = s.slice(2);
-                    s = decodeURIComponent(s);
-                    const state = urlSafeParse(s);
-                    this.root.reset();
-                    verifyObject(state);
-                    this.root.restoreState(state);
-                } else {
-                    throw new Error(`URL hash is expected to be of the form "#!{...}" or "#!+{...}".`);
-                }
-                this.parseError.value = undefined;
-            } catch (parseError) {
-                this.parseError.value = parseError;
-            }
-        }
+        } 
     }
 
+    /**
+     * Helper function used only in updateFromUrlHash
+     */
     private setStateRoot() {
         const jsonStateUrl = this.stateData.neuroglancer_state;
         this.root.reset();
@@ -270,8 +232,14 @@ export class UrlHashBinding extends RefCounted {
         });
     }
 
+    /**
+     * Only update if they are in multi user mode and are logged in
+     * @param stateData: json state
+     * @returns nothing
+     */
     private updateStateData(stateData: State) {
-        if(urlParams.viewOnly) {
+        if(this.viewOnly) {
+            console.log('updateStateData viewOnly mode, not updating');
             return;
         }
         const updates: any = {};
