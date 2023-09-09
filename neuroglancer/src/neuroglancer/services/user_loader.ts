@@ -151,13 +151,15 @@ export class UserLoader {
 
 /**
  * username and id are both cookies
+ * If the user_id (id) cookie exists, use it, otherwise set to 0
+ * If the username cookie exists, use it, otherwise set to an empty string
  * @returns json of user
  */
 export async function getUser(): Promise<User> {
     let userjson = { 'user_id': 0, 'username': '' };
     let user_id = getCookie('id') ?? 0;
     let username = getCookie('username') ?? '';
-    if ((user_id !== undefined) && (username !== undefined)) {
+    if ((user_id !== 0) && (username !== '')) {
         userjson = { 'user_id': +user_id, 'username': username };
     }
     return userjson;

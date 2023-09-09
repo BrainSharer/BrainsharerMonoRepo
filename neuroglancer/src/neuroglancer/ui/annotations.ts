@@ -79,7 +79,7 @@ import { Viewer } from '../viewer';
 import {FetchTracingAnnotationWidget} from 'neuroglancer/widget/fetch_tracing_annotation';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import { urlParams } from 'neuroglancer/services/state_loader';
-import { updateRestoreingVolumetool } from 'neuroglancer/ui/url_hash_binding';
+import { updateRestoringVolumetool } from 'neuroglancer/ui/url_hash_binding';
 
 
 export interface LandmarkListJSON {
@@ -3983,7 +3983,7 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
       }));
       if(has_volume_tool && urlParams.multiUserMode) {
         console.log(this);
-        updateRestoreingVolumetool();
+        updateRestoringVolumetool();
         this.tool.restoreState("annotateVolume");
       }
     }
