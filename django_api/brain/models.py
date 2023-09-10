@@ -272,14 +272,20 @@ class SlideCziToTif(AtlasModel):
     """This is the child class of the Slide class. This model describes the 
     metadata associated with a TIFF file, or another way to think of it, 
     it describes one piece of brain tissue on a slide.
+    The max number of scenes per slide used to be 6. That was an arbitrary number
+    where the usual number is 4. I set it to 100 which is another larger arbitrary number.
+    Horizontal sectioning has up to 8, so I just set it to a really large number.
     """
     
     id = models.AutoField(primary_key=True)
     slide = models.ForeignKey(Slide, models.CASCADE, db_column='FK_slide_id')
     file_name = models.CharField(max_length=200, null=False)
     scene_number = models.IntegerField(blank=False, null=False, default=1,
-                                                    verbose_name='Scene',
-                                                    validators=[MinValueValidator(1),MaxValueValidator(6)])
+                                                    verbose_name='Scene Ordering',
+                                                    validators=[MinValueValidator(1),MaxValueValidator(100)])
+    occurrences = models.IntegerField(blank=False, null=False, default=1,
+                                                    verbose_name='Occurences',
+                                                    validators=[MinValueValidator(0),MaxValueValidator(10)])
     scene_index = models.IntegerField()
     channel = models.IntegerField()
     width = models.IntegerField(verbose_name='Width (pixels)')

@@ -1,4 +1,4 @@
-from authentication.services import jwt_login
+from authentication.services import jwt_login, refresh_access_cookies
 
 
 class CookieMiddleware:
@@ -27,18 +27,15 @@ class CookieMiddleware:
         isAuthenticated = request.user.is_authenticated
 
         if isAuthenticated and not access:
-            print(f'User IS authenticated access cookie={str(access)}')
             response = jwt_login(response=response, user=request.user, request=request)
+        elif isAuthenticated and access:
+            refresh_access_cookies(response=response, user=request.user)
         elif not isAuthenticated and access:
-            print('access cookie is available, so deleting')
             response.delete_cookie('id')
             response.delete_cookie('username')
             response.delete_cookie('access')
         else:
             pass
         
-        print(f'isAuthenticated={str(isAuthenticated)} and access={str(access)}')
-
-
 
         return response

@@ -218,15 +218,16 @@ class TifInline(admin.TabularInline):
             laid out on the page.
     """
     model = SlideCziToTif
-    fields = ('file_name','scene_number', 'scene_index', 'section_number', 'channel', 
+    fields = ('file_name','occurrences', 'scene_number', 'scene_index', 'section_number', 'channel', 
         'scene_image', 'section_image')
-    readonly_fields = ['file_name', 'scene_number', 'section_number', 'channel', 
+    readonly_fields = ['file_name', 'section_number', 'channel', 
         'scene_index', 'scene_image', 'section_image']
     ordering = ['-active', 'scene_number', 'scene_index']
     extra = 0
     can_delete = False
     formset = TifInlineFormset
-    template = 'tabular_tifs.html'
+    template = 'admin/brain/tabular_tifs.html'
+
     
     def section_number(self, obj) -> str:
         animal = obj.slide.scan_run.prep_id
@@ -335,7 +336,8 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         :ExportCsvMixin: The class with standard features and CSV 
             exporter method.
     """
-    change_form_template = 'slide_change_form.html'   
+    change_form_template = 'admin/brain/slide_change_form.html'
+       
     list_display = ('prep_id', 'file_name', 'slide_status', 'scene_qc_1', 'scene_qc_2', 'scene_qc_3', 'scene_qc_4', 'scene_count')
     search_fields = ['scan_run__prep__prep_id', 'file_name']
     ordering = ['file_name', 'created']
@@ -387,7 +389,7 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         :param obj: the slide obj
         :return: an integer of the number of scenes
         """
-        scenes = SlideCziToTif.objects.filter(slide__id=obj.id).filter(channel=1).values_list('id').distinct()
+        scenes = SlideCziToTif.objects.filter(slide__id=obj.id).filter(channel=1).filter(active=True).values_list('id').distinct()
         count = len(scenes)
         return count
 
@@ -538,10 +540,11 @@ class SectionAdmin(AtlasAdminModel, ExportCsvMixin):
         """Description of get_queryset - the query starts out with an 
         empty qeuryset 'prep_id=XXXX' so the initial page is empty 
         and the user is forced to select one and only one animal. 
-        The order is descided upon whether the brain was section 
+        The order is decided upon whether the brain was section 
         from left to right, or right to left. This comes
         from the histology table: side_sectioned_first
-        
+        and then slide physical ID and scene number
+
         :param request: http request
         :param obj: section obj
         :return: the queryset ordered correctly

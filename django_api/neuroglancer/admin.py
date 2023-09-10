@@ -213,7 +213,7 @@ class PointsAdmin(admin.ModelAdmin):
             title=neuroglancerState.comments,
             chart=plot_div
         )
-        return TemplateResponse(request, "points_graph.html", context)
+        return TemplateResponse(request, "admin/neuroglancer/points_graph.html", context)
 
     def view_points_data(self, request, id, *args, **kwargs):
         """Provides the HTML link to the table data"""
@@ -233,7 +233,7 @@ class PointsAdmin(admin.ModelAdmin):
             display=display,
             opts=NeuroglancerState._meta,
         )
-        return TemplateResponse(request, "points_table.html", context)
+        return TemplateResponse(request, "admin/neuroglancer/points_table.html", context)
 
     def has_delete_permission(self, request, obj=None):
         """Returns false as the data is readonly"""
@@ -317,7 +317,7 @@ class MarkedCellWorkflowAdmin(admin.ModelAdmin):
     list_filter = ('cell_type', 'annotation_session__created', 'annotation_session__updated')
     search_fields = ['annotation_session__animal__prep_id', 'annotation_session__annotator__username']
 
-    change_list_template = 'markedcell_change_list.html'
+    change_list_template = 'admin/neuroglancer/markedcell_change_list.html'
 
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context=extra_context)
@@ -384,74 +384,6 @@ class StructureComAdmin(admin.ModelAdmin):
     def has_add_permission(self, request, obj=None):
         """Returns false as this data is just a report """
         return False
-
-    def get_querysetXXX(self, request):
-        qs = super(StructureComAdmin, self).get_queryset(request).all()
-        prep_id_annotator_combo = []
-        ids = []
-        for i in qs:
-            prep_id = i.annotation_session.animal.prep_id
-            annotator = i.annotation_session.annotator.first_name
-            combo = '_'.join([prep_id, annotator])
-            if not combo in prep_id_annotator_combo:
-                prep_id_annotator_combo.append(combo)
-                ids.append(i.id)
-        qs = super(StructureComAdmin, self).get_queryset(
-            request).filter(pk__in=ids)
-        return qs
-
-    # This is useless
-    def show_com(self, obj):
-        """Shows the HTML for the link to the graph of data."""
-        return format_html(
-            '<a href="{}">Data</a>',
-            reverse('admin:structurecom-data', args=[obj.pk])
-        )
-
-    # This is useless
-    def get_urls(self):
-        """Shows the HTML of the links to go to the graph, and table data."""
-        urls = super().get_urls()
-        custom_urls = [
-            path('structurecom-data/<id>', self.view_coms,
-                 name='structurecom-data'),
-        ]
-        return custom_urls + urls
-
-    # This is useless
-    def view_coms(self, request, id, *args, **kwargs):
-        """Provides the HTML link to the table data"""
-        com = StructureCom.objects.get(pk=id)
-        coms = StructureCom.objects.filter(
-            annotation_session__animal__prep_id=com.animal, annotation_session__annotator__username=com.annotator)
-        title = f"Structure Com Animal ID: {com.animal} \
-            Annotator: {com.annotator}"
-        scanrun = ScanRun.objects.filter(prep_id=com.animal).first()
-        df = {}
-        xy_resolution = Decimal(scanrun.resolution)
-        z_resolution = Decimal(scanrun.zresolution)
-
-        df['x'] = [int(i.x/xy_resolution) for i in coms]
-        df['y'] = [int(i.y/xy_resolution) for i in coms]
-        df['z'] = [int(i.z/z_resolution) for i in coms]
-        df['source'] = [i.source for i in coms]
-        df = pd.DataFrame(df)
-        result = 'No data'
-        display = False
-        if df is not None and len(df) > 0:
-            display = True
-            df = df.sort_values(by=['source', 'z', 'x', 'y'])
-            result = df.to_html(
-                index=False, classes='table table-striped table-bordered', table_id='tab')
-        context = dict(
-            self.admin_site.each_context(request),
-            title=title,
-            chart=result,
-            display=display,
-            opts=NeuroglancerState._meta,
-        )
-        return TemplateResponse(request, "points_table.html", context)
-
 
 
 @admin.action(description='Delete Data related to the Selected Session')
@@ -583,4 +515,4 @@ class AnnotationSessionAdmin(AtlasAdminModel):
             display=display,
             opts=NeuroglancerState._meta,
         )
-        return TemplateResponse(request, "points_table.html", context)
+        return TemplateResponse(request, "admin/neuroglancer/points_table.html", context)

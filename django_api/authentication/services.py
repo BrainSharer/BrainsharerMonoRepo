@@ -98,6 +98,13 @@ def jwt_login(*, response: HttpResponse, user: User, request: HttpRequest) -> Ht
 
     return response
 
+
+def refresh_access_cookies(response: HttpResponse, user: User) -> None:
+    token = get_tokens_for_user(user)    
+    set_cookie_with_token(response, 'access', token['access'])    
+    set_cookie_with_token(response, 'id', user.id)
+    set_cookie_with_token(response, 'username', user.username)
+
 ##### Github stuff
 def github_get_access_token(*, code: str, redirect_uri: str) -> str:
     """
@@ -209,7 +216,6 @@ def google_get_user_info(*, access_token: str) -> Dict[str, Any]:
 def set_cookie_with_token(response, name, token):
     name = str(name).replace('"','').strip()
     expires = get_expiry()
-    print(f'\tSet cookie={name} with value={token} expires = {expires}')
     params = {
         'expires': expires,
         'path': '/',

@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from authentication.models import User, Lab
-from django.utils.translation import ugettext_lazy as _
+
+from django.utils.translation import gettext_lazy as _
+
 
 
 
