@@ -198,7 +198,7 @@
 
 #djDebug #djDebugToolbarHandle {
     position: fixed;
-    transform: rotate(-90deg);
+    transform: translateY(-100%) rotate(-90deg);
     transform-origin: right bottom;
     background-color: #fff;
     border: 1px solid #111;
@@ -591,6 +591,13 @@
 #djDebug .djdt-stack pre.djdt-locals {
     margin: 0 27px 27px 27px;
 }
+#djDebug .djdt-raw {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    margin-top: 0.8em;
+    padding: 5px;
+    white-space: pre-wrap;
+}
 
 #djDebug .djdt-width-20 {
     width: 20%;
@@ -607,6 +614,18 @@
 #djDebug .djdt-highlighted {
     background-color: lightgrey;
 }
+@keyframes djdt-flash-new {
+    from {
+        background-color: green;
+    }
+    to {
+        background-color: inherit;
+    }
+}
+#djDebug .flash-new {
+    animation: djdt-flash-new 1s;
+}
+
 .djdt-hidden {
     display: none;
 }

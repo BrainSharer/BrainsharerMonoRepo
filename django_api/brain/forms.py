@@ -93,7 +93,7 @@ def find_closest_neighbor(slide, scene_number):
 
 
 def set_scene_active_inactive(slide, scene_number, active):
-    """ Helper method to set a scene as active.
+    """ Helper method to set a scene as active or inactive.
 
     :param slide: An integer for the primary key of the slide.
     :param scene_number: An integer used to find the nearest neighbor.
@@ -143,7 +143,9 @@ def save_slide_model(self, request, obj, form, change):
     :param form: The form object.
     :param change: unused variable, shows if the form has changed.
     """
-    scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    """
+    taking out QC on slides as the user can activate/inactive them in the TIF inline form
     qc_1 = form.cleaned_data.get('scene_qc_1')
     qc_2 = form.cleaned_data.get('scene_qc_2')
     qc_3 = form.cleaned_data.get('scene_qc_3')
@@ -175,7 +177,9 @@ def save_slide_model(self, request, obj, form, change):
     for qc_value, current_qc, scene_number in zip(qc_values, current_qcs, scene_numbers):
         if qc_value == END and qc_value != current_qc:
             set_end(obj, scene_number)
-
+    """
+    # scene numbers is wrong, need the indexes from the tifs
+    scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
     form_names = ['insert_before_one', 'insert_between_one_two', 'insert_between_two_three','insert_between_three_four',
                   'insert_between_four_five', 'insert_between_five_six', 'insert_between_six_seven', 'insert_between_seven_eight']
     insert_values = [form.cleaned_data.get(name) for name in form_names]
@@ -198,9 +202,7 @@ def save_slide_model(self, request, obj, form, change):
             difference = current - new
             remove_scene(obj, difference, scene_number)
 
-    #scene_reorder(obj)
-
-
+    scene_reorder(obj)
     obj.scenes = SlideCziToTif.objects.filter(slide=obj).filter(channel=1).filter(active=True).count()
 
 class TifInlineFormset(forms.models.BaseInlineFormSet):
@@ -222,18 +224,15 @@ class TifInlineFormset(forms.models.BaseInlineFormSet):
         obj = super(TifInlineFormset, self).save_existing(form, instance, commit=True)
         channel_count = get_slide_channels(obj.slide) + 1
         other_channels = [i for i in range(2,channel_count)]
-        orderings = list(SlideCziToTif.objects.filter(slide=obj.slide).filter(active=True).filter(channel=1).order_by('scene_index').values_list('scene_number', flat=True))
-        print('orderings')
-        print(orderings)
+        # list of tuples where the 1st element in tuple is scene number and 2nd element is active
+        orderings = list(SlideCziToTif.objects.filter(slide=obj.slide).filter(channel=1).order_by('scene_index').values_list('scene_number', 'active'))
+
         for channel in other_channels:
-            tifs = SlideCziToTif.objects.filter(slide=obj.slide).filter(channel=channel).order_by('scene_number')
+            tifs = SlideCziToTif.objects.filter(slide=obj.slide).filter(channel=channel).order_by('scene_index')
             for i, tif in enumerate(tifs):
-                tif.scene_number = orderings[i]
+                tif.scene_number = orderings[i][0]
+                tif.active = orderings[i][1]
                 tif.save()
-
-        # 
+        
         #scene_reorder(obj.slide)
-        #if commit:
-        #    obj.save()
         return obj
-

@@ -283,9 +283,6 @@ class SlideCziToTif(AtlasModel):
     scene_number = models.IntegerField(blank=False, null=False, default=1,
                                                     verbose_name='Scene Ordering',
                                                     validators=[MinValueValidator(1),MaxValueValidator(100)])
-    occurrences = models.IntegerField(blank=False, null=False, default=1,
-                                                    verbose_name='Occurences',
-                                                    validators=[MinValueValidator(0),MaxValueValidator(10)])
     scene_index = models.IntegerField()
     channel = models.IntegerField()
     width = models.IntegerField(verbose_name='Width (pixels)')

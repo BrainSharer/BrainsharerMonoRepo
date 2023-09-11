@@ -218,7 +218,7 @@ class TifInline(admin.TabularInline):
             laid out on the page.
     """
     model = SlideCziToTif
-    fields = ('file_name','occurrences', 'scene_number', 'scene_index', 'section_number', 'channel', 
+    fields = ('file_name','scene_number', 'active', 'scene_index', 'section_number', 'channel', 
         'scene_image', 'section_image')
     readonly_fields = ['file_name', 'section_number', 'channel', 
         'scene_index', 'scene_image', 'section_image']
@@ -304,7 +304,8 @@ class TifInline(admin.TabularInline):
         :return: a query set
         """
         qs = super(TifInline, self).get_queryset(request)
-        return qs.filter(active=1).filter(channel=1)
+        results = qs.filter(channel=1)
+        return results
 
     def has_add_permission(self, request, obj=None):
         """TIFF files cannot be added 
@@ -338,7 +339,7 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
     """
     change_form_template = 'admin/brain/slide_change_form.html'
        
-    list_display = ('prep_id', 'file_name', 'slide_status', 'scene_qc_1', 'scene_qc_2', 'scene_qc_3', 'scene_qc_4', 'scene_count')
+    list_display = ('prep_id', 'file_name', 'slide_status', 'scene_count')
     search_fields = ['scan_run__prep__prep_id', 'file_name']
     ordering = ['file_name', 'created']
     readonly_fields = ['file_name', 'slide_physical_id', 'scan_run', 'processed', 'file_size']
@@ -354,15 +355,24 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         """
         count = self.scene_count(obj)
         fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status',
+                  'insert_before_one', 'insert_between_one_two']
+        scene_3_fields = ['insert_between_two_three']
+        scene_4_fields = ['insert_between_three_four']
+        scene_5_fields = ['insert_between_four_five']
+        scene_6_fields = ['insert_between_five_six']
+        scene_7_fields = ['insert_between_six_seven']
+        scene_8_fields = ['insert_between_seven_eight']
+        """
+        fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status',
                   'insert_before_one', 'scene_qc_1',
                   'insert_between_one_two', 'scene_qc_2']
-
         scene_3_fields = ['insert_between_two_three', 'scene_qc_3']
         scene_4_fields = ['insert_between_three_four', 'scene_qc_4']
         scene_5_fields = ['insert_between_four_five', 'scene_qc_5']
         scene_6_fields = ['insert_between_five_six', 'scene_qc_6']
         scene_7_fields = ['insert_between_six_seven', 'scene_qc_7']
         scene_8_fields = ['insert_between_seven_eight', 'scene_qc_8']
+        """
         if count > 2:
             fields.extend(scene_3_fields)
         if count > 3:
@@ -394,6 +404,16 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         return count
 
     scene_count.short_description = "Active Scenes"
+
+
+    def get_queryset(self, request):
+        """Description of get_queryset - returns the active slides 
+
+        :param request: http request
+        :return: a query set
+        """
+        results = Slide.objects.filter(active=True)
+        return results    
 
     def save_model(self, request, obj, form, change):
         """Description of save_model - overridden method of the save 
