@@ -353,41 +353,31 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         :param obj: the TIFF obj
         :return: HTML of the fields
         """
-        count = self.scene_count(obj)
-        fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status',
-                  'insert_before_one', 'insert_between_one_two']
-        scene_3_fields = ['insert_between_two_three']
-        scene_4_fields = ['insert_between_three_four']
-        scene_5_fields = ['insert_between_four_five']
-        scene_6_fields = ['insert_between_five_six']
-        scene_7_fields = ['insert_between_six_seven']
-        scene_8_fields = ['insert_between_seven_eight']
-        """
-        fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status',
-                  'insert_before_one', 'scene_qc_1',
-                  'insert_between_one_two', 'scene_qc_2']
-        scene_3_fields = ['insert_between_two_three', 'scene_qc_3']
-        scene_4_fields = ['insert_between_three_four', 'scene_qc_4']
-        scene_5_fields = ['insert_between_four_five', 'scene_qc_5']
-        scene_6_fields = ['insert_between_five_six', 'scene_qc_6']
-        scene_7_fields = ['insert_between_six_seven', 'scene_qc_7']
-        scene_8_fields = ['insert_between_seven_eight', 'scene_qc_8']
-        """
-        if count > 2:
-            fields.extend(scene_3_fields)
-        if count > 3:
-            fields.extend(scene_4_fields)
-        if count > 4:
-            fields.extend(scene_5_fields)
-        if count > 5:
-            fields.extend(scene_6_fields)
-        if count > 6:
-            fields.extend(scene_7_fields)
-        if count > 7:
-            fields.extend(scene_8_fields)
+        #count = self.scene_count(obj)
+        scene_indexes = list(SlideCziToTif.objects\
+                            .filter(slide=obj).filter(channel=1).filter(active=True)\
+                            .order_by('-active','scene_number','scene_index').values_list('scene_index', flat=True))
+        scene_indexes = sorted(set(scene_indexes))
 
-        last_fields = ['comments', 'processed']
-        fields.extend(last_fields)
+        print('scene_indexes in admin')
+        print(scene_indexes)
+
+
+        fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status']
+        replication_fields = {
+            0: ['insert_before_one'],
+            1: ['insert_between_one_two'],
+            2: ['insert_between_two_three'],
+            3: ['insert_between_three_four'],
+            4: ['insert_between_four_five'],
+            5: ['insert_between_five_six'],
+            6: ['insert_between_six_seven'],
+            7: ['insert_between_seven_eight']
+        }
+        for scene_index in scene_indexes:
+            fields.extend(replication_fields[scene_index])
+        
+        fields.extend(['comments'])
         return fields
 
     inlines = [TifInline, ]
@@ -463,12 +453,12 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
         """
         if "_reset-slide" in request.POST:
             Slide.objects.filter(id=obj.id)\
-                .update(insert_before_one=0, scene_qc_1=0,
-                insert_between_one_two=0, scene_qc_2=0,
-                insert_between_two_three=0, scene_qc_3=0,
-                insert_between_three_four=0, scene_qc_4=0,
-                insert_between_four_five=0, scene_qc_5=0,
-                insert_between_five_six=0, scene_qc_6=0)
+                .update(insert_before_one=0,
+                insert_between_one_two=0,
+                insert_between_two_three=0,
+                insert_between_three_four=0,
+                insert_between_four_five=0,
+                insert_between_five_six=0)
             SlideCziToTif.objects.filter(slide__id=obj.id).update(active=True)
             existing_file_names = []
             for placeholder in SlideCziToTif.objects.filter(slide__id=obj.id).all():

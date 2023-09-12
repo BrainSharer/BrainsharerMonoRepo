@@ -25,7 +25,7 @@ class AnimalChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return obj.prep_id
 
-def repeat_scene(slide, inserts, scene_number):
+def repeat_scene(slide, inserts, scene_index):
     """ Helper method to duplicate a scene.
 
     :param slide: An integer primary key of the slide.
@@ -33,13 +33,13 @@ def repeat_scene(slide, inserts, scene_number):
     :param scene_number: An integer used to find the nearest neighbor
     """
     tifs = SlideCziToTif.objects.filter(slide=slide).filter(active=True) \
-        .filter(scene_number=scene_number)
+        .filter(scene_index=scene_index)
 
     if not tifs:
-        tifs = find_closest_neighbor(slide, scene_number)
+        tifs = find_closest_neighbor(slide, scene_index)
 
     for _ in range(inserts):
-        create_scene(tifs, scene_number)
+        create_scene(tifs, scene_index)
 
 
 def remove_scene(slide, deletes, scene_number):
@@ -57,21 +57,23 @@ def remove_scene(slide, deletes, scene_number):
             tif.delete()
 
 
-def create_scene(tifs, scene_number):
+def create_scene(tifs, scene_index):
     """ Helper method to create a scene.
 
     :param tifs: A list of TIFFs.
     :param scene_number: An integer used to find the nearest neighbor
     """
+    print('create scene')
     for tif in tifs:
+        print(f'creating new scene at index={scene_index}')
         newtif = tif
         newtif.active = True
         newtif.pk = None
-        newtif.scene_number = scene_number
+        newtif.scene_index = scene_index
         newtif.save()
 
 
-def find_closest_neighbor(slide, scene_number):
+def find_closest_neighbor(slide, scene_index):
     """Helper method to get the nearest scene. Look first at the preceding tifs, 
         if nothing is there, go for the one just after.
 
@@ -82,24 +84,24 @@ def find_closest_neighbor(slide, scene_number):
     channels = get_slide_channels(slide)
 
     below = SlideCziToTif.objects.filter(slide=slide).filter(active=True) \
-                .filter(scene_number__lt=scene_number).order_by('-scene_number')[:channels]
+                .filter(scene_index__lt=scene_index).order_by('-scene_index')[:channels]
     if below.exists():
         tifs = below
     else:
         tifs = SlideCziToTif.objects.filter(slide=slide).filter(active=True) \
-                .filter(scene_number__gt=scene_number).order_by('scene_number')[:channels]
+                .filter(scene_index__gt=scene_index).order_by('scene_index')[:channels]
 
     return tifs
 
 
-def set_scene_active_inactive(slide, scene_number, active):
+def set_scene_active_inactive(slide, scene_index, active):
     """ Helper method to set a scene as active or inactive.
 
     :param slide: An integer for the primary key of the slide.
     :param scene_number: An integer used to find the nearest neighbor.
     :param active: A boolean defining whether to set the scene active or inactive
     """
-    tifs = SlideCziToTif.objects.filter(slide=slide).filter(scene_number=scene_number).order_by('scene_number')
+    tifs = SlideCziToTif.objects.filter(slide=slide).filter(scene_index=scene_index).order_by('scene_index')
     for tif in tifs:
         tif.active = active
         tif.save()
@@ -130,10 +132,10 @@ def scene_reorder(slide):
     flattened = [item for sublist in [[i] * channels for i in range(1, len_tifs)] for item in sublist]
     print('Scene reordering')
     for new_scene, tif in zip(flattened, scenes_tifs):  # iterate over the scenes
-        print(f'channel={tif.channel} scene index={tif.scene_index} old scene number={tif.scene_number}', end="\t")
+        #print(f'channel={tif.channel} scene index={tif.scene_index} old scene number={tif.scene_number}', end="\t")
         tif.scene_number = new_scene
         tif.save()
-        print(f'new scene number={tif.scene_number} new_scene={new_scene}')
+        #print(f'new scene number={tif.scene_number} new_scene={new_scene}')
 
 def save_slide_model(self, request, obj, form, change):
     """This method overrides the slide save method.
@@ -144,63 +146,50 @@ def save_slide_model(self, request, obj, form, change):
     :param change: unused variable, shows if the form has changed.
     """
 
-    """
-    taking out QC on slides as the user can activate/inactive them in the TIF inline form
-    qc_1 = form.cleaned_data.get('scene_qc_1')
-    qc_2 = form.cleaned_data.get('scene_qc_2')
-    qc_3 = form.cleaned_data.get('scene_qc_3')
-    qc_4 = form.cleaned_data.get('scene_qc_4')
-    qc_5 = form.cleaned_data.get('scene_qc_5')
-    qc_6 = form.cleaned_data.get('scene_qc_6')
-    qc_7 = form.cleaned_data.get('scene_qc_7')
-    qc_8 = form.cleaned_data.get('scene_qc_8')
-
-
-    # do the QC fields
-    OUTOFFOCUS = 1
-    BADTISSUE = 2
-    END = 3
-    OK = 0
-    qc_values = [qc_1, qc_2, qc_3, qc_4, qc_5, qc_6, qc_7, qc_8]
-    current_qcs = Slide.objects.values_list('scene_qc_1', 'scene_qc_2', 'scene_qc_3', 'scene_qc_4',
-                                            'scene_qc_5', 'scene_qc_6', 'scene_qc_7', 'scene_qc_8').get(pk=obj.id)
-    # this top loop needs to be run before the 2nd loop to make sure the required
-    # tifs get set to inactive before finding a nearest neighbour
-    for qc_value, current_qc, scene_number in zip(qc_values, current_qcs, scene_numbers):
-        if qc_value in [OUTOFFOCUS, BADTISSUE] and qc_value != current_qc:
-            set_scene_active_inactive(obj, scene_number, False)
-    # tifs get set to active to back out a mistake
-    for qc_value, current_qc, scene_number in zip(qc_values, current_qcs, scene_numbers):
-        if qc_value == OK and qc_value != current_qc:
-            set_scene_active_inactive(obj, scene_number, True)
-
-    for qc_value, current_qc, scene_number in zip(qc_values, current_qcs, scene_numbers):
-        if qc_value == END and qc_value != current_qc:
-            set_end(obj, scene_number)
-    """
     # scene numbers is wrong, need the indexes from the tifs
-    scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+    #scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
+    scene_indexes = list(SlideCziToTif.objects\
+                        .filter(slide=obj).filter(channel=1).filter(active=True)\
+                        .order_by('-active','scene_number','scene_index').values_list('scene_index', flat=True))
+    scene_indexes = sorted(set(scene_indexes))
+    print('scene_indexes in forms')
+    print(type(scene_indexes))
+    print(scene_indexes)
     form_names = ['insert_before_one', 'insert_between_one_two', 'insert_between_two_three','insert_between_three_four',
                   'insert_between_four_five', 'insert_between_five_six', 'insert_between_six_seven', 'insert_between_seven_eight']
-    insert_values = [form.cleaned_data.get(name) for name in form_names]
+    new_values = [form.cleaned_data.get(name) for name in form_names]
+    print('new_values')
+    print(new_values)
 
-    # moves = sum([value for value in insert_values if value is not None])
-    # scene_count = obj.scenes
-    # scenes = range(1, scene_count + 1)
     ## do the inserts
     current_values = Slide.objects.values_list('insert_before_one', 'insert_between_one_two',
                                                'insert_between_two_three', 'insert_between_three_four', 
                                                'insert_between_four_five', 'insert_between_five_six',
                                                'insert_between_six_seven', 'insert_between_seven_eight',
                                                ).get(pk=obj.id)
+    print('current_values')
+    print(current_values)
 
-    for new, current, scene_number in zip(insert_values, current_values, scene_numbers):
+    """
+    for new, current, scene_index in zip(insert_values, current_values, scene_indexes):
+        print(f'new={new} current={current} scene_index={scene_index}')
         if new is not None and new > current:
             difference = new - current
-            repeat_scene(obj, difference, scene_number)
+            repeat_scene(obj, difference, scene_index)
         if new is not None and new < current:
             difference = current - new
-            remove_scene(obj, difference, scene_number)
+            remove_scene(obj, difference, scene_index)
+    """
+    for scene_index in scene_indexes:
+        new = new_values[scene_index]
+        current = current_values[scene_index]
+        print(f'new={new} current={current} scene_index={scene_index}')
+        if new is not None and new > current:
+            difference = new - current
+            repeat_scene(obj, difference, scene_index)
+        if new is not None and new < current:
+            difference = current - new
+            remove_scene(obj, difference, scene_index)
 
     scene_reorder(obj)
     obj.scenes = SlideCziToTif.objects.filter(slide=obj).filter(channel=1).filter(active=True).count()
@@ -234,5 +223,5 @@ class TifInlineFormset(forms.models.BaseInlineFormSet):
                 tif.active = orderings[i][1]
                 tif.save()
         
-        #scene_reorder(obj.slide)
+        scene_reorder(obj.slide)
         return obj
