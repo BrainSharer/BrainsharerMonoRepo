@@ -32,7 +32,8 @@ the dropdown menu. Once the user clicks 'Go', these events take place:
     #. Create a new active session and add it to either marked_cell, polygon_sequence or structureCOM
 """
 
-from django.http import Http404
+#from django.http import Http404
+from rest_framework.exceptions import ValidationError
 import numpy as np
 from statistics import mode
 from neuroglancer.models import AnnotationSession, BrainRegion, DEBUG, \
@@ -90,7 +91,8 @@ class AnnotationManager(AnnotationBase):
         session = None
 
         if self.animal is None or self.annotator is None:
-            raise Http404
+            raise ValidationError("Error, missing animal or user.")
+        
         marked_cells = []
         for annotation in self.current_layer.annotations:
             # marked cells are treated differently than com, polygon and volume
@@ -101,9 +103,10 @@ class AnnotationManager(AnnotationBase):
                 session = self.get_session(brain_region=brain_region, annotation_type='STRUCTURE_COM')
                 self.add_com(annotation, session)
             if annotation.is_polygon():
-                brain_region = get_region_from_abbreviation('polygon')
-                session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-                self.add_polygons(annotation, session)
+                raise ValidationError("Warning, the user should not have gotten to this method.")
+            #    brain_region = get_region_from_abbreviation('polygon')
+            #    session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
+            #    self.add_polygons(annotation, session)
             if annotation.is_volume():
                 brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
@@ -193,8 +196,8 @@ class AnnotationManager(AnnotationBase):
         :param annotation_session: session object
         """
 
-        z = mode([int(np.floor(pointi.coord_start[2]) * float(self.z_scale))
-                 for pointi in annotation.childs])
+        start_time = timer()
+        z = mode([int(np.floor(pointi.coord_start[2]) * float(self.z_scale)) for pointi in annotation.childs])
         point_order = 1
         batch = []
         for point in annotation.childs:
@@ -203,11 +206,15 @@ class AnnotationManager(AnnotationBase):
             batch.append(polygon_sequence)
             point_order += 1
         PolygonSequence.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Inserting polygon {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
 
     def add_volumes(self, annotation: Annotation, annotation_session: AnnotationSession):
         """Helper method to add a volume to the bulk manager.
 
-        :param annotationi: A COM annotation
+        :param annotation: A polygon annotation 
         :param annotation_session: session object
         """
         start_time = timer()
@@ -215,8 +222,7 @@ class AnnotationManager(AnnotationBase):
         batch = []
         for polygon in annotation.childs:
             point_order = 1
-            z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale))
-                     for coord in polygon.childs])
+            z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale)) for coord in polygon.childs])
             for child in polygon.childs:
                 xa, ya, _ = child.coord_start * (self.scales).astype(np.float64)
                 polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=int(z))
@@ -227,7 +233,7 @@ class AnnotationManager(AnnotationBase):
         if DEBUG:
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)
-            print(f'Inserting {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
+            print(f'Inserting volume {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
 
     def get_session(self, brain_region, annotation_type):
         """Gets either the existing session or creates a new one.

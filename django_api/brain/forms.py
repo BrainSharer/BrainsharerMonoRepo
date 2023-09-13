@@ -146,40 +146,20 @@ def save_slide_model(self, request, obj, form, change):
     :param change: unused variable, shows if the form has changed.
     """
 
-    # scene numbers is wrong, need the indexes from the tifs
-    #scene_numbers = [1, 2, 3, 4, 5, 6, 7, 8]
     scene_indexes = list(SlideCziToTif.objects\
                         .filter(slide=obj).filter(channel=1).filter(active=True)\
                         .order_by('-active','scene_number','scene_index').values_list('scene_index', flat=True))
     scene_indexes = sorted(set(scene_indexes))
-    print('scene_indexes in forms')
-    print(type(scene_indexes))
-    print(scene_indexes)
     form_names = ['insert_before_one', 'insert_between_one_two', 'insert_between_two_three','insert_between_three_four',
                   'insert_between_four_five', 'insert_between_five_six', 'insert_between_six_seven', 'insert_between_seven_eight']
     new_values = [form.cleaned_data.get(name) for name in form_names]
-    print('new_values')
-    print(new_values)
-
     ## do the inserts
     current_values = Slide.objects.values_list('insert_before_one', 'insert_between_one_two',
                                                'insert_between_two_three', 'insert_between_three_four', 
                                                'insert_between_four_five', 'insert_between_five_six',
                                                'insert_between_six_seven', 'insert_between_seven_eight',
                                                ).get(pk=obj.id)
-    print('current_values')
-    print(current_values)
 
-    """
-    for new, current, scene_index in zip(insert_values, current_values, scene_indexes):
-        print(f'new={new} current={current} scene_index={scene_index}')
-        if new is not None and new > current:
-            difference = new - current
-            repeat_scene(obj, difference, scene_index)
-        if new is not None and new < current:
-            difference = current - new
-            remove_scene(obj, difference, scene_index)
-    """
     for scene_index in scene_indexes:
         new = new_values[scene_index]
         current = current_values[scene_index]
@@ -209,7 +189,6 @@ class TifInlineFormset(forms.models.BaseInlineFormSet):
         :param instance: slide CZI TIFF object.
         :param commit: A boolean stating if the object should be committed.
         """
-        print(f'save existing commit={str(commit)}')
         obj = super(TifInlineFormset, self).save_existing(form, instance, commit=True)
         channel_count = get_slide_channels(obj.slide) + 1
         other_channels = [i for i in range(2,channel_count)]

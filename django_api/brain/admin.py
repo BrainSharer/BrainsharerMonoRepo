@@ -339,7 +339,7 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
     """
     change_form_template = 'admin/brain/slide_change_form.html'
        
-    list_display = ('prep_id', 'file_name', 'slide_status', 'scene_count')
+    list_display = ('prep_id', 'file_name', 'slide_status', 'comments', 'scene_count')
     search_fields = ['scan_run__prep__prep_id', 'file_name']
     ordering = ['file_name', 'created']
     readonly_fields = ['file_name', 'slide_physical_id', 'scan_run', 'processed', 'file_size']

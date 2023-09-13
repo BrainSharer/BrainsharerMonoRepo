@@ -133,6 +133,7 @@ GOOGLE_OAUTH2_CLIENT_ID = '821517150552-71h6bahua9qul09l90veb8g3hii6ed25.apps.go
 HTTP_HOST = "http://localhost/brainsharer"
 INTERNAL_IPS = ['127.0.0.1']
 LANGUAGE_CODE = 'en-us'
+LOGIN_URL = 'http://localhost:8000/local/login'
 LOGIN_REDIRECT_URL = BASE_FRONTEND_URL
 LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
