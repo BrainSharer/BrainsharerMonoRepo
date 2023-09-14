@@ -11,7 +11,6 @@ router.register(r'labs', LabViewSet, basename='labs')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('local/', include('django.contrib.auth.urls')), 
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('validate/', ValidateUserView.as_view(), name='auth_validate'),
     path('user/<str:username>', UserView.as_view(), name='fetch_user'),

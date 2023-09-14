@@ -391,7 +391,7 @@ class PolygonSequence(AnnotationAbstract):
     :Inheritance:
         AnnotationAbstract"""
 
-    polygon_index = models.CharField(max_length=40, blank=True, null=True)
+    polygon_index = models.CharField(max_length=40, blank=False, null=False)
     point_order = models.IntegerField(blank=False, null=False, default=0)
     class SourceChoices(models.TextChoices):
             NA = 'NA', gettext_lazy('NA')
@@ -407,7 +407,7 @@ class PolygonSequence(AnnotationAbstract):
         db_table = 'polygon_sequences'
         verbose_name = 'Polygon sequence'
         verbose_name_plural = 'Polygon sequences'
-        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'polygon_index', 'point_order'], name='unique polygon')]        
+        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'point_order'], name='unique polygon')]        
 
     def __str__(self):
         return u'{} {}'.format(self.annotation_session, self.source)

@@ -569,9 +569,12 @@ def check_if_contour_points_are_in_order(first_point, start_points, end_points):
 
 def random_string() -> str:
     """Creates a 40 char string of random characters
+    For some reason, if the string has a leading digit, mysql will insert as integer
+    I switched it to just alpha.
     """
     
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=40))
+    #return ''.join(random.choices(string.ascii_lowercase + string.digits, k=40))
+    return ''.join(random.choices(string.ascii_lowercase, k=40))
 
 
 def create_point_annotation(coordinates, description=None, category=None, type='point'):

@@ -153,6 +153,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       const labelDesc = document.createElement('td');
       labelDesc.textContent = "Description: ";
       const landmarkCol = document.createElement('td');
+      console.log('getVolumeInfoRows line=156');
       const landmarkDropdown = this.getLandMarkDropDown();
       landmarkCol.appendChild(landmarkDropdown);
       labelRow.appendChild(labelDesc);
@@ -312,6 +313,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
      * @returns A html select element containing all the landmarks for the volume session.
      */
     getLandMarkDropDown() : HTMLSelectElement {
+      console.log('getLandmarkDropDown line=316');
       const landmarkDropdown = document.createElement('select');
       landmarkDropdown.classList.add('neuroglancer-landmarks-dropdown');
       const defaultOption = document.createElement('option');
@@ -320,7 +322,9 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       defaultOption.disabled = true;
       defaultOption.selected = true;
       landmarkDropdown.add(defaultOption);
+
       getLandmarkList(AnnotationType.VOLUME).then(function(result) {
+        console.log('getLandmarkDropDown line=327');
         const n_landmark = result.length
         for (let i = 0; i < n_landmark; i++){
           const landmarki = result[i];

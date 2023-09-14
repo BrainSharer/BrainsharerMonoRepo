@@ -40,7 +40,7 @@ from neuroglancer.models import AnnotationSession, BrainRegion, DEBUG, \
     PolygonSequence, StructureCom, PolygonSequence, MarkedCell, get_region_from_abbreviation
 from neuroglancer.atlas import get_scales
 from neuroglancer.models import CellType, UNMARKED
-from neuroglancer.annotation_layer import AnnotationLayer, Annotation
+from neuroglancer.annotation_layer import AnnotationLayer, Annotation, random_string
 from neuroglancer.annotation_base import AnnotationBase
 from timeit import default_timer as timer
 
@@ -102,15 +102,13 @@ class AnnotationManager(AnnotationBase):
                 brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='STRUCTURE_COM')
                 self.add_com(annotation, session)
-            if annotation.is_polygon():
-                raise ValidationError("Warning, the user should not have gotten to this method.")
-            #    brain_region = get_region_from_abbreviation('polygon')
-            #    session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-            #    self.add_polygons(annotation, session)
             if annotation.is_volume():
                 brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-                self.add_volumes(annotation, session)
+                if 'polygon' in brain_region.abbreviation:
+                    self.add_polygons(annotation, session)
+                else:
+                    self.add_volumes(annotation, session)
 
 
         if len(marked_cells) > 0:
@@ -197,15 +195,20 @@ class AnnotationManager(AnnotationBase):
         """
 
         start_time = timer()
-        z = mode([int(np.floor(pointi.coord_start[2]) * float(self.z_scale)) for pointi in annotation.childs])
-        point_order = 1
+
         batch = []
-        for point in annotation.childs:
-            xa, ya, _ = point.coord_start * (self.scales).astype(np.float64)
-            polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=z)
-            batch.append(polygon_sequence)
-            point_order += 1
+        for polygon in annotation.childs:
+            point_order = 1
+            polygon_index = random_string()
+            z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale)) for coord in polygon.childs])
+            for child in polygon.childs:
+                xa, ya, _ = child.coord_start * (self.scales).astype(np.float64)
+                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=str(polygon_index))
+                point_order += 1
+                batch.append(polygon_sequence)
+                
         PolygonSequence.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
+        
         if DEBUG:
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)
@@ -222,10 +225,11 @@ class AnnotationManager(AnnotationBase):
         batch = []
         for polygon in annotation.childs:
             point_order = 1
+            polygon_index = random_string()
             z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale)) for coord in polygon.childs])
             for child in polygon.childs:
                 xa, ya, _ = child.coord_start * (self.scales).astype(np.float64)
-                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=int(z))
+                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=polygon_index)
                 point_order += 1
                 batch.append(polygon_sequence)
                 

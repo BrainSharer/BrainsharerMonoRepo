@@ -102,6 +102,8 @@ export const AnnotationSortOrder: Map<AnnotationType, number> = new Map([
   [AnnotationType.ELLIPSOID, 7],
 ]);
 
+
+
 /**
  * Returns a list of landmarks from database based on annotation type.
  * @param type 
@@ -112,13 +114,17 @@ export async function getLandmarkList(type: AnnotationType) {
     return ["positive", "negative"];
   }
   const landmarkURL = `${AppSettings.API_ENDPOINT}/landmark_list`;
-  const landmarkListJSON:LandmarkListJSON = await fetchOk(landmarkURL, {
+  const landmarkListJSON: LandmarkListJSON = await fetchOk(landmarkURL, {
     method: 'GET',
   }).then(response => {
-    return response.json();});
-  const {land_marks} = landmarkListJSON;
-  return land_marks
+    return response.json();
+  });
+
+  const { land_marks } = landmarkListJSON;
+  return land_marks;
 }
+
+
 /**
  * @returns A list of categories for cell annotations. eg: Positive, negative.
  */

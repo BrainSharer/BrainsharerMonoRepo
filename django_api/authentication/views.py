@@ -86,7 +86,8 @@ class ValidateUserView(generics.ListAPIView):
 
 class LocalSignUpView(generic.CreateView):
     form_class = LocalSignUpForm
-    success_url = settings.LOGIN_URL
+    #success_url = settings.LOGIN_URL
+    success_url = reverse_lazy("login")
     template_name = "registration/signup.html"
 
 
