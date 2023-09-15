@@ -66,8 +66,9 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     list_display = ('id', 'animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'lab', 'created')
     list_per_page = 25
     ordering = ['-readonly', '-updated']
-    readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
-    exclude = ['neuroglancer_state']
+    # readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
+    readonly_fields = ['user_date']
+    # exclude = ['neuroglancer_state']
     list_filter = ['updated', 'created', 'readonly', UrlFilter, 'public']
     search_fields = ['comments']
 
@@ -89,7 +90,7 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request, obj=None):
         """Returns false as the data is only added via Neuroglancer"""
-        return False
+        return True
 
     def pretty_url(self, instance):
         """Function to display pretty version of the JSON data.

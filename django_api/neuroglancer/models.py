@@ -34,7 +34,7 @@ class NeuroglancerState(models.Model):
     readonly = models.BooleanField(default = False, verbose_name='Read only')
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)
-    user_date = models.CharField(max_length=25)
+    user_date = models.CharField(max_length=25, null=True, blank=True, default='123456789')
     comments = models.CharField(max_length=255)
 
     @property
