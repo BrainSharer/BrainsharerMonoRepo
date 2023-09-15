@@ -242,7 +242,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
           updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.EDIT;
           update(ref(database), updates)
               .then(() => {
-                  console.log('Succefully Published Cell Session State to Firebase');
+                  console.log('Successfully Published Cell Session State to Firebase');
               })
               .catch((error) => {
                   console.error(error);

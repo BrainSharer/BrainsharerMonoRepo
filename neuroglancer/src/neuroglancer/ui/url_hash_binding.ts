@@ -25,7 +25,7 @@ import { urlParams, stateAPI, StateAPI } from 'neuroglancer/services/state_loade
 import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
-import { User, updateUser, getUser } from 'neuroglancer/services/user_loader';
+import { User, getUser } from 'neuroglancer/services/user_loader';
 import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode } from 'neuroglancer/ui/annotations';
 
 /**
@@ -107,7 +107,7 @@ export class UrlHashBinding extends RefCounted {
             const sameUrl = prevUrlString === urlString || restoring_volumetool;
             restoring_volumetool = false;
             if ((!sameUrl) && (this.stateData)) {
-                updateUser(this.stateID, this.user.user_id, this.user.username);
+                // updateUser(this.stateID, this.user.user_id, this.user.username);
                 this.stateData.neuroglancer_state = urlData;
                 this.updateStateData(this.stateData);
                 this.prevUrlString = urlString;
@@ -169,7 +169,7 @@ export class UrlHashBinding extends RefCounted {
         this.root.restoreState(jsonStateUrl);
         this.prevUrlString = JSON.stringify(jsonStateUrl);
         this.updateStateData(this.stateData);
-        updateUser(this.stateID, this.user.user_id, this.user.username);
+        // updateUser(this.stateID, this.user.user_id, this.user.username);
         this.checkAndSetStateFromFirebase();
         this.updateToolStateFromFirebase();
     }
