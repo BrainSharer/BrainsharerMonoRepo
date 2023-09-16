@@ -1,10 +1,10 @@
 export const AppSettings = {
-    API_ENDPOINT: 'https://www.brainsharer.org/brainsharer',
-    IMAGESERVER_API_ENDPOINT: 'https://imageserv.dk.ucsd.edu/brainsharer',
-    GOOGLE_LOGIN: 'https://www.brainsharer.org/brainsharer/accounts/google/login/?next=',
-    LOCAL_LOGIN: 'https://www.brainsharer.org/brainsharer/admin/login/?next=',
-    ADMIN_PORTAL: 'https://www.brainsharer.org/brainsharer/admin/',
-    REFRESH_TOKEN: 'https://www.brainsharer.org/brainsharer/api-token-refresh/',
-    DISPLAY_FETCH: true,
-    DISPLAY_GOOGLE: false
+        API_ENDPOINT: 'http://localhost:8000',
+        IMAGESERVER_API_ENDPOINT: 'https://imageserv.dk.ucsd.edu/brainsharer',
+        GOOGLE_LOGIN: 'http://localhost:8000/accounts/google/login/?next=',
+        LOCAL_LOGIN: 'http://localhost:8000/brainsharer/admin/login/?next=',
+        ADMIN_PORTAL: 'https://localhost:8000/admin/',
+        REFRESH_TOKEN: 'http://localhost:8000/api-token-refresh/',
+        DISPLAY_FETCH: true,
+        DISPLAY_GOOGLE: false
 };
