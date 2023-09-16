@@ -9,17 +9,12 @@ import pandas as pd
 from decimal import Decimal
 from django.db import models
 from django.db.models import Count
-import json
 from django.conf import settings
 from django.contrib import admin, messages
 from django.forms import TextInput
 from django.urls import reverse, path
 from django.utils.html import format_html, escape
 from django.template.response import TemplateResponse
-from pygments import highlight
-from pygments.formatters import HtmlFormatter
-from pygments.lexers import JsonLexer
-from django.utils.safestring import mark_safe
 from plotly.offline import plot
 import plotly.express as px
 from brain.models import ScanRun
@@ -61,17 +56,14 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     the name of this class. The name: 'NeuroglancerState' will be changed in future versions.
     """
     formfield_overrides = {
-        models.CharField: {'widget': TextInput(attrs={'size': '100'})},
+        models.CharField: {'widget': TextInput(attrs={'size': '80'})},
     }
     list_display = ('id', 'animal', 'open_neuroglancer', 'public', 'open_multiuser', 'owner', 'lab', 'created')
     list_per_page = 25
     ordering = ['-readonly', '-updated']
-    # readonly_fields = ['animal', 'pretty_url', 'created', 'user_date', 'updated']
     readonly_fields = ['user_date']
-    # exclude = ['neuroglancer_state']
     list_filter = ['updated', 'created', 'readonly', UrlFilter, 'public']
     search_fields = ['comments']
-
 
     def get_queryset(self, request):
         """Returns the query set of points where the layer contains annotations"""
@@ -79,41 +71,12 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
         rows = rows.defer('neuroglancer_state')
         if not request.user.is_superuser:
             labs = [p.id for p in request.user.labs.all()]
-            print(labs)
             rows = rows.filter(owner__lab__in=labs)
         
         return rows
 
-
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
-
-    def has_add_permission(self, request, obj=None):
-        """Returns false as the data is only added via Neuroglancer"""
-        return True
-
-    def pretty_url(self, instance):
-        """Function to display pretty version of the JSON data.
-        It uses the pygments library to make the JSON readable.
-        
-        :param instance: admin obj
-        :returns: nicely formatted JSON data that is viewed in the page.
-        """
-        
-        # Convert the data to sorted, indented JSON
-        response = json.dumps(instance.neuroglancer_state, sort_keys=True, indent=2)
-        # Truncate the data. Alter as needed
-        response = response[:3000]
-        # Get the Pygments formatter
-        formatter = HtmlFormatter(style='colorful')
-        # Highlight the data
-        response = highlight(response, JsonLexer(), formatter)
-        # Get the stylesheet
-        style = "<style>" + formatter.get_style_defs() + "</style><br>"
-        # Safe the output
-        return mark_safe(style + response)
-
-    pretty_url.short_description = 'Formatted URL'
 
     def open_neuroglancer(self, obj):
         """This method creates an HTML link that allows the user to access Neuroglancer"""
