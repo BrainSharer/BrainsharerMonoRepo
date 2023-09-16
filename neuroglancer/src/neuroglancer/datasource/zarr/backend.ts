@@ -23,7 +23,7 @@ import {VolumeChunkSourceParameters, ZarrCompressor, ZarrEncoding} from 'neurogl
 import {decodeRawChunk} from 'neuroglancer/sliceview/backend_chunk_decoders/raw';
 import {VolumeChunk, VolumeChunkSource} from 'neuroglancer/sliceview/volume/backend';
 import {CancellationToken} from 'neuroglancer/util/cancellation';
-import {responseArrayBuffer} from 'neuroglancer/util/http_request';
+import {isNotFoundError, responseArrayBuffer} from 'neuroglancer/util/http_request';
 import {cancellableFetchSpecialOk, SpecialProtocolCredentials} from 'neuroglancer/util/special_protocol_request';
 import {registerSharedObject} from 'neuroglancer/worker_rpc';
 
@@ -52,13 +52,23 @@ async function decodeChunk(
     chunk.chunkDataSize = this.spec.chunkDataSize;
     const {parameters} = this;
     const {chunkGridPosition} = chunk;
-    let {url, separator} = parameters;
+    let {url, separator, order} = parameters;
     const rank = this.spec.rank;
-    for (let i = rank; i > 0; --i) {
-      url += `${i == rank ? '/' : separator}${chunkGridPosition[i - 1]}`;
+    if (order === 'C') {
+      for (let i = rank; i > 0; --i) {
+        url += `${i == rank ? '/' : separator}${chunkGridPosition[i - 1]}`;
+      }
+    } else {
+      for (let i = 0; i < rank; ++i) {
+        url += `${i == 0 ? '/' : separator}${chunkGridPosition[i]}`;
+      }
     }
-    const response = await cancellableFetchSpecialOk(
-        this.credentialsProvider, url, {}, responseArrayBuffer, cancellationToken);
-    await decodeChunk(chunk, cancellationToken, response, parameters.encoding);
+    try {
+      const response = await cancellableFetchSpecialOk(
+          this.credentialsProvider, url, {}, responseArrayBuffer, cancellationToken);
+      await decodeChunk(chunk, cancellationToken, response, parameters.encoding);
+    } catch (e) {
+      if (!isNotFoundError(e)) throw e;
+    }
   }
 }
