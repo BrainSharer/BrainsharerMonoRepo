@@ -26,7 +26,7 @@ import { StatusMessage } from '../status';
  import { TrackableValue } from '../trackable_value';
 import { UserLayerWithAnnotations } from '../ui/annotations';
 import { arraysEqual } from '../util/array';
- import { verifyInt, verifyNonNegativeFloat } from '../util/json';
+ import { verifyInt, verifyFiniteNonNegativeFloat } from '../util/json';
  import { AnnotationLayerState } from './annotation_layer_state';
 import { isSectionValid } from './volume';
  
@@ -37,7 +37,7 @@ import { isSectionValid } from './volume';
  /**
   * Polygon scale percentage value set from the form submitted by user. Default value is same as DEFAULT_POLYGON_SCALE_PERCENTAGE
   */
- export const polygonScalePercentage = new TrackableValue<number>(DEFAULT_POLYGON_SCALE_PERCENTAGE, verifyNonNegativeFloat);
+ export const polygonScalePercentage = new TrackableValue<number>(DEFAULT_POLYGON_SCALE_PERCENTAGE, verifyFiniteNonNegativeFloat);
  /**
  * Indicates the default value of polygon rotate angle. Default value is 1 degree.
  */
@@ -45,7 +45,7 @@ import { isSectionValid } from './volume';
  /**
   * Polygon rotate angle value set from the form submitted by user. Default value is same as DEFAULT_POLYGON_ROTATE_ANGLE
   */
- export const polygonRotateAngle = new TrackableValue<number>(DEFAULT_POLYGON_ROTATE_ANGLE, verifyNonNegativeFloat);
+ export const polygonRotateAngle = new TrackableValue<number>(DEFAULT_POLYGON_ROTATE_ANGLE, verifyFiniteNonNegativeFloat);
  /**
  * Indicates the default value of polygon clone section offset. Default value is 1. (clones from section 's' to section 's+1')
  */

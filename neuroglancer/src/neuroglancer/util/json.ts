@@ -412,30 +412,11 @@ export function verifyPositiveInt(obj: any) {
   }
   return result;
 }
-/**
- * 
- * @param obj the object from which the value should be parsed.
- * @returns the parsed value from object, throws error if obj
- * does not contain non negative float.
- */
-export function verifyNonNegativeFloat(obj: any) {
-  let result = verifyFloat(obj);
-  if (result < 0) {
-    throw new Error(`Expected non negative float, but received: ${result}.`);
-  }
-  return result;
-}
 
-/**
- * 
- * @param obj the object from which the value should be parsed.
- * @returns the parsed value from object, throws error if obj
- * does not contain non negative int.
- */
-export function verifyNonNegativeInt(obj: any) {
-  let result = verifyInt(obj);
+export function verifyNonnegativeInt(obj: any) {
+  const result = verifyInt(obj);
   if (result < 0) {
-    throw new Error(`Expected non negative integer, but received: ${result}.`);
+    throw new Error(`Expected non-negative integer, but received: ${result}.`);
   }
   return result;
 }
