@@ -1573,6 +1573,7 @@ abstract class PlaceCollectionAnnotationTool extends MultiStepAnnotationTool {
   }
 }
 
+let volume_tool_used: boolean = false;
 let last_location = new Float32Array(3);
 let source_location = new Float32Array(3);
 let inProgressAnnotation = false;
@@ -1592,6 +1593,19 @@ export function clearVolumeToolState() {
   global_childAnnotationIds = [];
   polygon_id = undefined;
 }
+
+export function getInProgressAnnotation() {
+  return inProgressAnnotation;
+}
+
+export function getVolumeToolUsed() {
+  return volume_tool_used;
+}
+
+export function clearVolumeToolUsed() {
+  volume_tool_used = false;
+}
+
 
 /**
  * This class is used to draw polygon annotations.
@@ -1667,6 +1681,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns void
    */
   trigger(mouseState: MouseSelectionState, parentRef?: AnnotationReference) {
+    volume_tool_used = true;
     global_mouseState = mouseState;
     const {annotationLayer, mode} = this;
     if (annotationLayer === undefined || mode === ToolMode.EDIT) {
@@ -1799,6 +1814,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns true if the operation suceeded otherwise false.
    */
   complete(): boolean {
+    volume_tool_used = true;
     const {annotationLayer, mode} = this;
 
     if(inProgressAnnotation && urlParams.multiUserMode && this.inProgressAnnotation === undefined && annotationLayer != undefined) {

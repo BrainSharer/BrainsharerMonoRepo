@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode } from 'neuroglancer/ui/annotations';
+import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -104,13 +104,15 @@ export class UrlHashBinding extends RefCounted {
             const urlString = JSON.stringify(cacheState.value)
             const urlData = JSON.parse(urlString);
             const { prevUrlString } = this;
+
             const sameUrl = prevUrlString === urlString || restoring_volumetool;
             restoring_volumetool = false;
-            if ((!sameUrl) && (this.stateData)) {
+            if ((!sameUrl) && (this.stateData) || getVolumeToolUsed()) {
                 // updateUser(this.stateID, this.user.user_id, this.user.username);
                 this.stateData.neuroglancer_state = urlData;
                 this.updateStateData(this.stateData);
                 this.prevUrlString = urlString;
+                clearVolumeToolUsed();
             }
         }
     }
@@ -177,26 +179,41 @@ export class UrlHashBinding extends RefCounted {
     private updateToolStateFromFirebase() {
         const stateRefCellSession = ref(database, `/test_annotations_tool/test/${this.stateID}`);
         onValue(stateRefCellSession, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalCellSession(snapshot.val());
         });
 
         const stateRefCellMode = ref(database, `/test_annotations_tool/mode/${this.stateID}`);
         onValue(stateRefCellMode , (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalCellMode(snapshot.val());
         });
 
         const stateRefComSession = ref(database, `/test_annotations_tool/com_session/${this.stateID}`);
         onValue(stateRefComSession, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalComSession(snapshot.val());
         });
 
         const stateRefComMode = ref(database, `/test_annotations_tool/com_mode/${this.stateID}`);
         onValue(stateRefComMode, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalComMode(snapshot.val());
         });
 
         const stateRefVolumeMode = ref(database, `/test_annotations_tool/volume_mode/${this.stateID}`);
         onValue(stateRefVolumeMode, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalVolumeMode(snapshot.val());
         });
 
@@ -223,6 +240,9 @@ export class UrlHashBinding extends RefCounted {
     private checkAndSetStateFromFirebase() {
         const stateRef = ref(database, `neuroglancer/${this.stateID}`);
         onValue(stateRef, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             this.stateData = snapshot.val();
             const jsonStateUrl = this.stateData.neuroglancer_state;
             this.root.reset();
