@@ -277,7 +277,7 @@ chunkDecoders.set(VolumeChunkEncoding.PNG, decodePngChunk);
     const {parameters} = this;
 
     const {minishardIndexSource} = this;
-    let response: ArrayBuffer;
+    let response: ArrayBuffer|undefined;
     if (minishardIndexSource === undefined) {
       let url: string;
       {
@@ -289,8 +289,16 @@ chunkDecoders.set(VolumeChunkEncoding.PNG, decodePngChunk);
             `${chunkPosition[1]}-${chunkPosition[1] + chunkDataSize[1]}_` +
             `${chunkPosition[2]}-${chunkPosition[2] + chunkDataSize[2]}`;
       }
-      response = await cancellableFetchSpecialOk(
-          this.credentialsProvider, url, {}, responseArrayBuffer, cancellationToken);
+      try {
+        response = await cancellableFetchSpecialOk(
+            this.credentialsProvider, url, {}, responseArrayBuffer, cancellationToken);
+      } catch (e) {
+        if (isNotFoundError(e)) {
+          response = undefined;
+        } else {
+          throw e;
+        }
+      }
     } else {
       this.computeChunkBounds(chunk);
       const {gridShape} = this;
@@ -300,11 +308,12 @@ chunkDecoders.set(VolumeChunkEncoding.PNG, decodePngChunk);
       const chunkIndex = encodeZIndexCompressed3d(
           new Uint64(), xBits, yBits, zBits, chunkGridPosition[0], chunkGridPosition[1],
           chunkGridPosition[2]);
-      response = (getOrNotFoundError(await getShardedData(
-                      minishardIndexSource, chunk, chunkIndex, cancellationToken)))
-                     .data;
+      response =
+          (await getShardedData(minishardIndexSource, chunk, chunkIndex, cancellationToken)) ?.data;
     }
-    await this.chunkDecoder(chunk, cancellationToken, response);
+    if (response !== undefined) {
+      await this.chunkDecoder(chunk, cancellationToken, response);
+    }
   }
 }
 
@@ -639,8 +648,7 @@ function parseAnnotations(
   const countLow = dv.getUint32(0, /*littleEndian=*/ true);
   const countHigh = dv.getUint32(4, /*littleEndian=*/ true);
   if (countHigh !== 0) throw new Error('Annotation count too high');
-  const numBytes = annotationTypeHandlers[parameters.type].serializedBytes(parameters.rank) +
-      propertySerializer.serializedBytes;
+  const numBytes = propertySerializer.serializedBytes;
   const expectedBytes = 8 + (numBytes + 8) * countLow;
   if (buffer.byteLength !== expectedBytes) {
     throw new Error(`Expected ${expectedBytes} bytes, but received: ${buffer.byteLength} bytes`);
@@ -654,8 +662,32 @@ function parseAnnotations(
     ids[i] = id.toString();
   }
   const geometryData = new AnnotationGeometryData();
-  const data = geometryData.data = new Uint8Array(buffer, 8, numBytes * countLow);
-  convertEndian32(data, Endianness.LITTLE);
+  const origData = new Uint8Array(buffer, 8, numBytes * countLow);
+  let data: Uint8Array;
+  const {propertyGroupBytes} = propertySerializer;
+  if (propertyGroupBytes.length > 1) {
+    // Need to transpose the property data.
+    data = new Uint8Array(origData.length);
+
+    let origOffset = 0;
+    let groupOffset = 0;
+    for (let groupIndex = 0; groupIndex < propertyGroupBytes.length; ++groupIndex) {
+      const groupBytesPerAnnotation = propertyGroupBytes[groupIndex];
+      for (let annotationIndex = 0; annotationIndex < countLow; ++annotationIndex) {
+        let origBase = origOffset + annotationIndex * numBytes;
+        let newBase = groupOffset + annotationIndex * groupBytesPerAnnotation;
+        for (let i = 0; i < groupBytesPerAnnotation; ++i) {
+          data[newBase + i] = origData[origBase + i];
+        }
+      }
+      origOffset += groupBytesPerAnnotation;
+      groupOffset += groupBytesPerAnnotation * countLow;
+    }
+  } else {
+    data = origData;
+  }
+  geometryData.data = data;
+  // FIXME: convert endian in order to support big endian platforms
   const typeToOffset = geometryData.typeToOffset = new Array<number>(annotationTypes.length);
   typeToOffset.fill(0);
   typeToOffset[parameters.type] = 0;
@@ -673,7 +705,7 @@ function parseSingleAnnotation(
     buffer: ArrayBuffer, parameters: AnnotationSourceParameters,
     propertySerializer: AnnotationPropertySerializer, id: string): Annotation {
   const handler = annotationTypeHandlers[parameters.type];
-  const baseNumBytes = handler.serializedBytes(parameters.rank);
+  const baseNumBytes = propertySerializer.serializedBytes;
   const numRelationships = parameters.relationships.length;
   const minNumBytes = baseNumBytes + 4 * numRelationships;
   if (buffer.byteLength < minNumBytes) {
@@ -682,9 +714,9 @@ function parseSingleAnnotation(
   const dv = new DataView(buffer);
   const annotation = handler.deserialize(dv, 0, /*isLittleEndian=*/ true, parameters.rank, id);
   propertySerializer.deserialize(
-      dv, baseNumBytes, /*isLittleEndian=*/ true,
+      dv, /*offset=*/ 0, /*annotationIndex=*/ 0, /*annotationCount=*/ 1, /*isLittleEndian=*/ true,
       annotation.properties = new Array(parameters.properties.length));
-  let offset = baseNumBytes + propertySerializer.serializedBytes;
+  let offset = baseNumBytes;
   const relatedSegments: Uint64[][] = annotation.relatedSegments = [];
   relatedSegments.length = numRelationships;
   for (let i = 0; i < numRelationships; ++i) {
@@ -748,8 +780,10 @@ export class PrecomputedAnnotationSourceBackend extends (WithParameters(WithShar
       this.chunkManager, this.credentialsProvider, this.parameters.byId);
   private relationshipIndexSource = this.parameters.relationships.map(
       x => getMinishardIndexDataSource(this.chunkManager, this.credentialsProvider, x));
-  annotationPropertySerializer =
-      new AnnotationPropertySerializer(this.parameters.rank, this.parameters.properties);
+  annotationPropertySerializer = new AnnotationPropertySerializer(
+      this.parameters.rank,
+      annotationTypeHandlers[this.parameters.type].serializedBytes(this.parameters.rank),
+      this.parameters.properties);
 
   async downloadSegmentFilteredGeometry(
       chunk: AnnotationSubsetGeometryChunk, relationshipIndex: number,

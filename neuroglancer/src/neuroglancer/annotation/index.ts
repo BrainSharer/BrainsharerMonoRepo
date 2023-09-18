@@ -24,12 +24,11 @@ import {packColor, parseRGBAColorSpecification, parseRGBColorSpecification, seri
 import {DataType} from 'neuroglancer/util/data_type';
 import {Borrowed, RefCounted} from 'neuroglancer/util/disposable';
 import {Endianness, ENDIANNESS} from 'neuroglancer/util/endian';
-import {verifyBoolean, expectArray, parseArray, parseFixedLengthArray, verifyEnumString, verifyFiniteFloat, verifyFiniteNonNegativeFloat, verifyFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyString, verifyStringArray} from 'neuroglancer/util/json';
+import {expectArray, parseArray, parseFixedLengthArray, verifyEnumString, verifyFiniteFloat, verifyFiniteNonNegativeFloat, verifyFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyString} from 'neuroglancer/util/json';
 import {parseDataTypeValue} from 'neuroglancer/util/lerp';
 import {getRandomHexString} from 'neuroglancer/util/random';
 import {NullarySignal, Signal} from 'neuroglancer/util/signal';
 import {Uint64} from 'neuroglancer/util/uint64';
-// import { StatusMessage } from '../status';
 
 export type AnnotationId = string;
 
@@ -313,63 +312,121 @@ export function isDummyAnnotation(annotation: Annotation) : boolean {
   return annotation.type === AnnotationType.LINE && 
   (annotation.parentAnnotationId !== null || annotation.parentAnnotationId !== undefined);
 }
+// Maximum stride value supported by WebGL.
+const MAX_BUFFER_STRIDE = 255;
 
 export function getPropertyOffsets(
-    rank: number, propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
+  rank: number, firstGroupInitialOffset: number,
+  propertySpecs: readonly Readonly<AnnotationPropertySpec>[]): {
+    serializedBytes: number,
+    offsets: { group: number, offset: number }[],
+    propertyGroupBytes: number[],
+  } {
   let serializedBytes = 0;
   const numProperties = propertySpecs.length;
   const permutation = new Array<number>(numProperties);
+  const propertyGroupBytes: number[] = [];
   for (let i = 0; i < numProperties; ++i) {
     permutation[i] = i;
   }
   const getAlignment = (i: number) =>
-      annotationPropertyTypeHandlers[propertySpecs[i].type].alignment(rank);
+    annotationPropertyTypeHandlers[propertySpecs[i].type].alignment(rank);
   permutation.sort((i, j) => getAlignment(j) - getAlignment(i));
-  const offsets = new Array<number>(numProperties);
+  let propertyGroupIndex = 0;
+  const offsets = new Array<{ group: number, offset: number }>(numProperties);
+  let propertyGroupOffset = firstGroupInitialOffset;
+  const nextPropertyGroup = () => {
+    propertyGroupOffset += (4 - (propertyGroupOffset % 4)) % 4;
+    serializedBytes += propertyGroupOffset;
+    propertyGroupBytes[propertyGroupIndex] = propertyGroupOffset;
+    propertyGroupOffset = 0;
+    ++propertyGroupIndex;
+  };
   for (let outputIndex = 0; outputIndex < numProperties; ++outputIndex) {
     const propertyIndex = permutation[outputIndex];
     const spec = propertySpecs[propertyIndex];
     const handler = annotationPropertyTypeHandlers[spec.type];
     const numBytes = handler.serializedBytes(rank);
     const alignment = handler.alignment(rank);
-    serializedBytes += (alignment - (serializedBytes % alignment)) % alignment;
-    offsets[propertyIndex] = serializedBytes;
-    serializedBytes += numBytes;
+    // Check if the property fits in the current property group.
+    const alignmentOffset = (alignment - (propertyGroupOffset % alignment)) % alignment
+    const newStartOffset = propertyGroupOffset + alignmentOffset;
+    const newEndOffset = newStartOffset + numBytes;
+    const newAlignedEndOffset = newEndOffset + (4 - (newEndOffset % 4)) % 4;
+    if (newAlignedEndOffset <= MAX_BUFFER_STRIDE) {
+      // Property fits
+      propertyGroupOffset += alignmentOffset;
+    } else {
+      // Property does not fit.
+      nextPropertyGroup();
+    }
+    offsets[propertyIndex] = { offset: propertyGroupOffset, group: propertyGroupIndex };
+    propertyGroupOffset += numBytes;
   }
-  serializedBytes += (4 - (serializedBytes % 4)) % 4;
-  return {serializedBytes, offsets};
+  nextPropertyGroup();
+  return { serializedBytes, offsets, propertyGroupBytes };
 }
-
 export class AnnotationPropertySerializer {
   serializedBytes: number;
-  serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, properties: any[]) => void;
+  serialize:
+      (buffer: DataView, offset: number, annotationIndex: number, annotationCount: number,
+       isLittleEndian: boolean, properties: any[]) => void;
   deserialize:
-      (buffer: DataView, offset: number, isLittleEndian: boolean, properties: any[]) => void;
+      (buffer: DataView, offset: number, annotationIndex: number, annotationCount: number,
+       isLittleEndian: boolean, properties: any[]) => void;
+  propertyGroupBytes: number[];
   constructor(
-      public rank: number, public propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
+      public rank: number, public firstGroupInitialOffset: number,
+      public propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
     if (propertySpecs.length === 0) {
-      this.serializedBytes = 0;
+      this.serializedBytes = firstGroupInitialOffset;
       this.serialize = this.deserialize = () => {};
+      this.propertyGroupBytes = [firstGroupInitialOffset];
       return;
     }
-    let serializeCode = '';
-    let deserializeCode = '';
-    const {serializedBytes, offsets} = getPropertyOffsets(rank, propertySpecs);
+    const {serializedBytes, offsets, propertyGroupBytes} =
+        getPropertyOffsets(rank, firstGroupInitialOffset, propertySpecs);
+    this.propertyGroupBytes = propertyGroupBytes;
+    let groupOffsetCode = 'let groupOffset0 = offset;';
+    for (let groupIndex = 1; groupIndex < propertyGroupBytes.length; ++groupIndex) {
+      groupOffsetCode += `let groupOffset${groupIndex} = groupOffset${groupIndex - 1} + ${
+          propertyGroupBytes[groupIndex - 1]}*annotationCount;`;
+    }
+    for (let groupIndex = 0; groupIndex < propertyGroupBytes.length; ++groupIndex) {
+      groupOffsetCode +=
+          `groupOffset${groupIndex} += ${propertyGroupBytes[groupIndex]}*annotationIndex;`;
+    }
+    let serializeCode = groupOffsetCode;
+    let deserializeCode = groupOffsetCode;
     const numProperties = propertySpecs.length;
     for (let propertyIndex = 0; propertyIndex < numProperties; ++propertyIndex) {
+      const {group, offset} = offsets[propertyIndex];
       const spec = propertySpecs[propertyIndex];
       const handler = annotationPropertyTypeHandlers[spec.type];
       const propId = `properties[${propertyIndex}]`;
-      const offsetExpr = `offset + ${offsets[propertyIndex]}`;
+      const offsetExpr = `groupOffset${group} + ${offset}`;
       serializeCode += handler.serializeCode(propId, offsetExpr, rank);
       deserializeCode += handler.deserializeCode(propId, offsetExpr, rank);
     }
     this.serializedBytes = serializedBytes;
-    this.serialize =
-        new Function('dv', 'offset', 'isLittleEndian', 'properties', serializeCode) as any;
-    this.deserialize =
-        new Function('dv', 'offset', 'isLittleEndian', 'properties', deserializeCode) as any;
+    this.serialize = new Function(
+                         'dv', 'offset', 'annotationIndex', 'annotationCount', 'isLittleEndian',
+                         'properties', serializeCode) as any;
+    this.deserialize = new Function(
+                           'dv', 'offset', 'annotationIndex', 'annotationCount', 'isLittleEndian',
+                           'properties', deserializeCode) as any;
   }
+}
+
+export function makeAnnotationPropertySerializers(
+  rank: number, propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
+  const serializers: AnnotationPropertySerializer[] = [];
+  for (const annotationType of annotationTypes) {
+    const handler = annotationTypeHandlers[annotationType];
+    serializers[annotationType] =
+      new AnnotationPropertySerializer(rank, handler.serializedBytes(rank), propertySpecs);
+  }
+  return serializers;
 }
 
 export function formatNumericProperty(property: AnnotationNumericPropertySpec, value: number): string {
@@ -487,7 +544,6 @@ export interface AnnotationBase {
 
   relatedSegments?: Uint64[][];
   properties: any[];
-
   parentAnnotationId?: string;
 }
 
@@ -911,7 +967,7 @@ export function annotationToJson(annotation: Annotation, schema: AnnotationSchem
   return result;
 }
 
-export function restoreAnnotation(obj: any, schema: AnnotationSchema, allowMissingId = false): Annotation {
+function restoreAnnotation(obj: any, schema: AnnotationSchema, allowMissingId = false): Annotation {
   verifyObject(obj);
   const type = verifyObjectProperty(obj, 'type', x => verifyEnumString(x, AnnotationType));
   const id =
@@ -935,28 +991,16 @@ export function restoreAnnotation(obj: any, schema: AnnotationSchema, allowMissi
   const properties = verifyObjectProperty(obj, 'props', propsObj => {
     const propSpecs = schema.properties;
     if (propsObj === undefined) return propSpecs.map(x => x.default);
-    expectArray(propsObj);
-    if (propsObj.length > schema.properties.length) {
-      throw new Error('Properties of annotation element cannot be more than schema properties');
-    }
-    const parsedProps = parseArray(
-        propsObj,
+    return parseArray(
+        expectArray(propsObj, schema.properties.length),
         (x, i) => annotationPropertyTypeHandlers[propSpecs[i].type].deserializeJson(x));
-    if (propsObj.length !== schema.properties.length) {
-      for(let i = propsObj.length; i < schema.properties.length; i++) {
-        parsedProps.push(propSpecs[i].default);
-      }
-    }
-    return parsedProps;
   });
-  const parentAnnotationId = verifyObjectProperty(obj, 'parentAnnotationId', verifyOptionalString);
   const result: Annotation = {
     id,
     description: verifyObjectProperty(obj, 'description', verifyOptionalString),
     relatedSegments,
     properties,
     type,
-    parentAnnotationId,
   } as Annotation;
   annotationTypeHandlers[type].restoreState(result, obj, schema.rank);
   return result;
@@ -966,6 +1010,7 @@ export interface AnnotationSourceSignals {
   changed: NullarySignal;
   childAdded: Signal<(annotation: Annotation) => void>;
   childUpdated: Signal<(annotation: Annotation) => void>;
+  childCommitted: Signal<(annotationId: string) => void>;
   childDeleted: Signal<(annotationId: string) => void>;
 }
 
@@ -975,9 +1020,10 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
   readonly = false;
   childAdded = new Signal<(annotation: Annotation) => void>();
   childUpdated = new Signal<(annotation: Annotation) => void>();
+  childCommitted = new Signal<(annotationId: string) => void>();
   childDeleted = new Signal<(annotationId: string) => void>();
 
-  private pending = new Set<AnnotationId>();
+  public pending = new Set<AnnotationId>();
 
   protected rank_: number;
 
@@ -985,14 +1031,14 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return this.rank_;
   }
 
-  annotationPropertySerializer: AnnotationPropertySerializer;
+  annotationPropertySerializers: AnnotationPropertySerializer[];
 
   constructor(
       rank: number, public readonly relationships: readonly string[] = [],
       public readonly properties: Readonly<AnnotationPropertySpec>[] = []) {
     super();
     this.rank_ = rank;
-    this.annotationPropertySerializer = new AnnotationPropertySerializer(rank, properties);
+    this.annotationPropertySerializers = makeAnnotationPropertySerializers(rank, properties);
   }
 
   hasNonSerializedProperties() {
@@ -1128,6 +1174,7 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
       });
     }
     this.changed.dispatch();
+    this.childCommitted.dispatch(id);
   }
 
   update(reference: AnnotationReference, annotation: Annotation) {
@@ -1592,8 +1639,9 @@ export class LocalAnnotationSource extends AnnotationSource {
     }
     if (this.rank_ !== sourceRank) {
       this.rank_ = sourceRank;
-      this.annotationPropertySerializer =
-          new AnnotationPropertySerializer(this.rank_, this.properties);
+      this.annotationPropertySerializers =
+          makeAnnotationPropertySerializers(this.rank_, this.properties);
+
     }
     this.changed.dispatch();
   }
@@ -1631,52 +1679,52 @@ export interface SerializedAnnotations {
 }
 
 function serializeAnnotations(
-    allAnnotations: Annotation[][],
-    propertySerializer: AnnotationPropertySerializer): SerializedAnnotations {
-  const {rank} = propertySerializer;
+  allAnnotations: Annotation[][],
+  propertySerializers: AnnotationPropertySerializer[]): SerializedAnnotations {
   let totalBytes = 0;
   const typeToOffset: number[] = [];
-  const serializedPropertiesBytes = propertySerializer.serializedBytes;
   for (const annotationType of annotationTypes) {
+    const propertySerializer = propertySerializers[annotationType];
+    const serializedPropertiesBytes = propertySerializer.serializedBytes;
     typeToOffset[annotationType] = totalBytes;
     const annotations: Annotation[] = allAnnotations[annotationType];
     const count = annotations.length;
-    const handler = annotationTypeHandlers[annotationType];
-    totalBytes += (handler.serializedBytes(rank) + serializedPropertiesBytes) * count;
-    totalBytes += (4 - (totalBytes % 4)) % 4;
+    totalBytes += serializedPropertiesBytes * count;
   }
-  const serializeProperties = propertySerializer.serialize;
   const typeToIds: string[][] = [];
   const typeToIdMaps: Map<string, number>[] = [];
   const data = new ArrayBuffer(totalBytes);
   const dataView = new DataView(data);
   const isLittleEndian = ENDIANNESS === Endianness.LITTLE;
   for (const annotationType of annotationTypes) {
+    const propertySerializer = propertySerializers[annotationType];
+    const { rank } = propertySerializer;
+    const serializeProperties = propertySerializer.serialize;
     const annotations: Annotation[] = allAnnotations[annotationType];
     typeToIds[annotationType] = annotations.map(x => x.id);
     typeToIdMaps[annotationType] = new Map(annotations.map((x, i) => [x.id, i]));
     const handler = annotationTypeHandlers[annotationType];
     const serialize = handler.serialize;
-    const geometryBytes = handler.serializedBytes(rank);
-    let offset = typeToOffset[annotationType];
-    for (const annotation of annotations) {
-      serialize(dataView, offset, isLittleEndian, rank, annotation);
-      offset += geometryBytes;
-      serializeProperties(dataView, offset, isLittleEndian, annotation.properties);
-      offset += serializedPropertiesBytes;
+    const offset = typeToOffset[annotationType];
+    const geometryDataStride = propertySerializer.propertyGroupBytes[0];
+    for (let i = 0, count = annotations.length; i < count; ++i) {
+      const annotation = annotations[i];
+      serialize(dataView, offset + i * geometryDataStride, isLittleEndian, rank, annotation);
+      serializeProperties(dataView, offset, i, count, isLittleEndian, annotation.properties);
     }
   }
-  return {data: new Uint8Array(data), typeToIds, typeToOffset, typeToIdMaps};
+  return { data: new Uint8Array(data), typeToIds, typeToOffset, typeToIdMaps };
 }
+
 
 export class AnnotationSerializer {
   annotations: [Point[], Line[], AxisAlignedBoundingBox[], Ellipsoid[], Polygon[], Volume[], Com[], Cell[]] = [[], [], [], [], [], [], [], []];
-  constructor(public propertySerializer: AnnotationPropertySerializer) {}
+  constructor(public propertySerializers: AnnotationPropertySerializer[]) {}
   add(annotation: Annotation) {
     (<Annotation[]>this.annotations[annotation.type]).push(annotation);
   }
   serialize(): SerializedAnnotations {
-    return serializeAnnotations(this.annotations, this.propertySerializer);
+    return serializeAnnotations(this.annotations, this.propertySerializers);
   }
 }
 

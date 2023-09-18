@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2016 Google Inc.
+ * Copyright 2018 The Neuroglancer Authors
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,20 +14,7 @@
  * limitations under the License.
  */
 
-/**
- * @file This implements a Brain Maps CredentialsProvider based on neuroglancer/util/google_auth2.
- */
+import {GrapheneDataSource} from 'neuroglancer/datasource/graphene/frontend';
+import {registerProvider} from 'neuroglancer/datasource/default_provider';
 
-import {GoogleOAuth2CredentialsProvider, OPENID_SCOPE, EMAIL_SCOPE} from 'neuroglancer/util/google_oauth2';
-
-const BRAINMAPS_SCOPE = 'https://www.googleapis.com/auth/brainmaps';
-
-export class BrainmapsCredentialsProvider extends GoogleOAuth2CredentialsProvider {
-  constructor(clientId: string) {
-    super({
-      clientId: clientId,
-      scopes: [BRAINMAPS_SCOPE, OPENID_SCOPE, EMAIL_SCOPE],
-      description: 'Brain Maps'
-    });
-  }
-}
+registerProvider('graphene', () => new GrapheneDataSource());

@@ -37,13 +37,13 @@ import {Borrowed} from 'neuroglancer/util/disposable';
 import {mat4, vec3} from 'neuroglancer/util/geom';
 import {completeHttpPath} from 'neuroglancer/util/http_path_completion';
 import {isNotFoundError, responseJson} from 'neuroglancer/util/http_request';
-import {parseArray, parseFixedLengthArray, parseQueryStringParameters, unparseQueryStringParameters, verifyEnumString, verifyFiniteFloat, verifyFinitePositiveFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyPositiveInt, verifyString, verifyStringArray} from 'neuroglancer/util/json';
+import {parseArray, parseFixedLengthArray, parseQueryStringParameters, unparseQueryStringParameters, verifyEnumString, verifyFiniteFloat, verifyFinitePositiveFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyPositiveInt, verifyString, verifyStringArray, verifyOptionalBoolean} from 'neuroglancer/util/json';
 import * as matrix from 'neuroglancer/util/matrix';
 import {getObjectId} from 'neuroglancer/util/object_id';
 import {cancellableFetchSpecialOk, parseSpecialUrl, SpecialProtocolCredentials, SpecialProtocolCredentialsProvider} from 'neuroglancer/util/special_protocol_request';
 import {Uint64} from 'neuroglancer/util/uint64';
 
-class PrecomputedVolumeChunkSource extends
+export class PrecomputedVolumeChunkSource extends
 (WithParameters(WithCredentialsProvider<SpecialProtocolCredentials>()(VolumeChunkSource), VolumeChunkSourceParameters)) {}
 
 class PrecomputedMeshSource extends
@@ -62,7 +62,7 @@ class PrecomputedSkeletonSource extends
   }
 }
 
-function resolvePath(a: string, b: string) {
+export function resolvePath(a: string, b: string) {
   const outputParts = a.split('/');
   for (const part of b.split('/')) {
     if (part === '..') {
@@ -85,6 +85,7 @@ class ScaleInfo {
   chunkSizes: Uint32Array[];
   compressedSegmentationBlockSize: vec3|undefined;
   sharding: ShardingParameters|undefined;
+  hidden: boolean;
   constructor(obj: any, numChannels: number) {
     verifyObject(obj);
     const rank = (numChannels === 1) ? 3 : 4;
@@ -124,10 +125,11 @@ class ScaleInfo {
           x => parseFixedLengthArray(vec3.create(), x, verifyPositiveInt));
     }
     this.key = verifyObjectProperty(obj, 'key', verifyString);
+    this.hidden =  verifyObjectProperty(obj, 'hidden', verifyOptionalBoolean) ?? false;
   }
 }
 
-interface MultiscaleVolumeInfo {
+export interface MultiscaleVolumeInfo {
   dataType: DataType;
   volumeType: VolumeType;
   mesh: string|undefined;
@@ -137,7 +139,7 @@ interface MultiscaleVolumeInfo {
   modelSpace: CoordinateSpace;
 }
 
-function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
+export function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
   verifyObject(obj);
   const dataType = verifyObjectProperty(obj, 'data_type', x => verifyEnumString(x, DataType));
   const numChannels = verifyObjectProperty(obj, 'num_channels', verifyPositiveInt);
@@ -186,7 +188,7 @@ function parseMultiscaleVolumeInfo(obj: unknown): MultiscaleVolumeInfo {
   };
 }
 
-class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
+export class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource {
   get dataType() {
     return this.info.dataType;
   }
@@ -208,7 +210,7 @@ class PrecomputedMultiscaleVolumeChunkSource extends MultiscaleVolumeChunkSource
   getSources(volumeSourceOptions: VolumeSourceOptions) {
     const modelResolution = this.info.scales[0].resolution;
     const {rank} = this;
-    return transposeNestedArrays(this.info.scales.map(scaleInfo => {
+    return transposeNestedArrays(this.info.scales.filter(x => !x.hidden).map(scaleInfo => {
       const {resolution} = scaleInfo;
       const stride = rank + 1;
       const chunkToMultiscaleTransform = new Float32Array(stride * stride);
@@ -856,7 +858,7 @@ export const PrecomputedIndexedSegmentPropertySource = WithParameters(
 //   return {sharding, properties};
 // }
 
-function getSegmentPropertyMap(
+export function getSegmentPropertyMap(
     chunkManager: Borrowed<ChunkManager>, credentialsProvider: SpecialProtocolCredentialsProvider,
     data: unknown, url: string): SegmentPropertyMap {
   chunkManager;
@@ -901,7 +903,7 @@ async function getSegmentPropertyMapDataSource(
 
 const urlPattern = /^([^#]*)(?:#(.*))?$/;
 
-function parseProviderUrl(providerUrl: string) {
+export function parseProviderUrl(providerUrl: string) {
   let [, url, fragment] = providerUrl.match(urlPattern)!;
   if (url.endsWith('/')) {
     url = url.substring(0, url.length - 1);
@@ -910,7 +912,7 @@ function parseProviderUrl(providerUrl: string) {
   return {url, parameters};
 }
 
-function unparseProviderUrl(url: string, parameters: any) {
+export function unparseProviderUrl(url: string, parameters: any) {
   const fragment = unparseQueryStringParameters(parameters);
   if (fragment) {
     url += `#${fragment}`;
