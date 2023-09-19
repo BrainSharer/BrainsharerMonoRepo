@@ -179,23 +179,25 @@ async updateAnnotationList(type:string) {
   };
 
   async setUpAnnotationList() {
-      const annotationTypes = document.createElement('select');
-      annotationTypes.classList.add('neuroglancer-annotation-type-selection');
-      let types = ['Volume','Cell','COM'];
-      for (var type of types) {
-        const typeOption = document.createElement('option');
-        typeOption.text = type;
-        typeOption.value = type;
-        typeOption.selected = true;
-        annotationTypes.add(typeOption);
-      }
-      annotationTypes.addEventListener('change', 
-      async()=> {
-      const annotationType = this.annotationTypeSelection.value;
-      this.updateAnnotationList(annotationType);
-    },);
-      this.annotationTypeSelection = annotationTypes
-      this.updateAnnotationList('COM')
+    const annotationTypes = document.createElement('select');
+    annotationTypes.classList.add('neuroglancer-annotation-type-selection');
+    let types = ['Volume', 'Cell', 'COM'];
+    for (var type of types) {
+      const typeOption = document.createElement('option');
+      typeOption.text = type;
+      typeOption.value = type;
+      typeOption.selected = true;
+      annotationTypes.add(typeOption);
+    }
+    
+    annotationTypes.addEventListener('change',
+      async () => {
+        const annotationType = this.annotationTypeSelection.value;
+        this.updateAnnotationList(annotationType);
+      });
+    
+    this.annotationTypeSelection = annotationTypes
+    this.updateAnnotationList('COM')
   }
 
   async fetchAnnotation() {

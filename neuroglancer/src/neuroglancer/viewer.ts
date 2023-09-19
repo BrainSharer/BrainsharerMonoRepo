@@ -73,7 +73,7 @@ import {UrlHashBinding} from 'neuroglancer/ui/url_hash_binding';
 import { ToolMode, MultiStepAnnotationTool, PlaceCellTool, PlaceComTool, PlacePolygonTool, PlaceVolumeTool } from './ui/annotations';
 import { PolygonOptionsDialog } from './ui/polygon_options';
 import { AnnotationUserLayer } from './annotation/user_layer';
-import { AnnotationStateLoader } from './services/annotation_state_loader';
+// import { AnnotationStateLoader } from './services/annotation_state_loader';
 
 
 declare var NEUROGLANCER_OVERRIDE_DEFAULT_VIEWER_OPTIONS: any
@@ -599,9 +599,9 @@ export class Viewer extends RefCounted implements ViewerState {
     /* START OF CHANGE: Add state loader */
     this.stateLoader = new StateLoader(this);
     const userLoader = new UserLoader();
-    const annotationStateLoader = new AnnotationStateLoader(this.annotationsSavedState);
+    // const annotationStateLoader = new AnnotationStateLoader(this.annotationsSavedState);
     topRow.appendChild(userLoader.element);
-    topRow.appendChild(annotationStateLoader.element);
+    // topRow.appendChild(annotationStateLoader.element);
     topRow.appendChild(this.stateLoader.element);
     /* END OF CHANGE: Add state loader */
 
