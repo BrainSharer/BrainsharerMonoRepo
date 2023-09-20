@@ -2147,6 +2147,11 @@ export function updateVolumeRef(ref_id: string) {
   volume_ref_id = ref_id;
 }
 
+export function getVolumeRef() {
+  return volume_ref_id;
+}
+
+
 let volume_tool_mode: ToolMode = ToolMode.NOOP;
 
 export function updateGlobalVolumeMode(mode: ToolMode) {
@@ -2181,6 +2186,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
 
     if(restore_from_firebase && urlParams.multiUserMode) {
       this.mode = volume_tool_mode;
+      has_volume_tool = true;
     }
 
     this.childTool = this.mode == ToolMode.NOOP ? undefined : new PlacePolygonTool(layer, {...options, parent: this}, this.mode);
@@ -2198,6 +2204,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
       // @ts-ignore
       if(!this.annotationLayer || !this.annotationLayer.source || !this.annotationLayer.source.annotationMap) {
         return
+      }
+
+      if(restore_from_firebase) {
+        volume_ref_id = getVolumeRef();
       }
 
       //@ts-ignore

@@ -126,18 +126,28 @@ import { displayWidgets } from '../services/display_widgets';
             return
           }
           updateVolumeRef(reference.id);
-        }
 
-        if(urlParams.multiUserMode) {
-          const updates: any = {};
-          updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.DRAW;
-          update(ref(database), updates)
-              .then(() => {
-                  console.log('Successfully Published Volume Mode State to Firebase');
-              })
-              .catch((error) => {
-                  console.error(error);
-              });
+          if(urlParams.multiUserMode) {
+            const updates: any = {};
+            updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.DRAW;
+            update(ref(database), updates)
+                .then(() => {
+                    console.log('Successfully Published Volume Mode State to Firebase');
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+
+            updates[`/test_annotations_tool/volume_ref/${urlParams.stateID}`] = reference.id;
+            update(ref(database), updates)
+                .then(() => {
+                    console.log('Successfully Published Volume Session State to Firebase');
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+          }
+
         }
 
         this.dispose();
