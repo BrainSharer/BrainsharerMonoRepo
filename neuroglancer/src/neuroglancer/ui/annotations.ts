@@ -65,7 +65,6 @@ import {makeMoveToButton} from 'neuroglancer/widget/move_to_button';
 import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
 import {FetchAnnotationWidget} from 'neuroglancer/widget/fetch_annotation';
-import {displayWidgets} from 'neuroglancer/services/display_widgets';
 import {fetchOk} from 'neuroglancer/util/http_request';
 import { StatusMessage } from '../status';
 import { getEndPointBasedOnPartIndex, isCornerPicked } from '../annotation/line';
@@ -411,15 +410,10 @@ export class AnnotationLayerView extends Tab {
       const fetchTracingAnnotationWidget = this.registerDisposer(
         new FetchTracingAnnotationWidget(this.layer as SegmentationUserLayer));
       this.element.appendChild(fetchTracingAnnotationWidget.element);
-    } 
-
-    if (displayWidgets.fetchAnnotations) {
-      console.log('We are displaying fetch annotations');
+    } else {
       const fetchAnnotationWidget = this.registerDisposer(new FetchAnnotationWidget(this));
       this.element.appendChild(fetchAnnotationWidget.element);
-    } else {
-      console.log('We are NOT displaying fetch annotations');
-    }
+    } 
 
     const saveAnnotationWidget = this.registerDisposer(new SaveAnnotationWidget(this));
     this.element.appendChild(saveAnnotationWidget.element);
@@ -1233,6 +1227,7 @@ export class AnnotationLayerView extends Tab {
       description.classList.add('neuroglancer-annotation-description');
       description.textContent = annotation.description;
       element.appendChild(description);
+      console.log('annotations line=1230');
     }
     if (annotation.type === AnnotationType.CELL && annotation.category) {
       ++numRows;
@@ -2505,7 +2500,9 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
                     sessionBody.appendChild(label);
                   }
 
-                  if (annotation.description) {
+                  if (annotation.description && annotation.description.length > 0) {
+                    console.log('annotations.ts line=2504 desc=' + annotation.description);
+                    console.log('annotations.ts line=2505 length=' + annotation.description.length);
                     const label = document.createElement('label');
                     label.classList.add('neuroglancer-annotation-property');
                     const idElement = document.createElement('span');

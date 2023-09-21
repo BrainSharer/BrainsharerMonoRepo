@@ -30,7 +30,6 @@ import { LegacyTool } from './tool';
 import { ref, update } from "firebase/database";
 import { database } from 'neuroglancer/services/firebase';
 import { urlParams } from 'neuroglancer/services/state_loader';
-import { displayWidgets } from '../services/display_widgets';
  
  import './volume_session.css';
   /**
@@ -41,16 +40,12 @@ import { displayWidgets } from '../services/display_widgets';
     landmarkDropdown : HTMLSelectElement|undefined = undefined;
     /** Color element for selecting color for annotations */
     colorInput: HTMLInputElement|undefined = undefined;
-    //displayWidgets: DisplayWidgets;
     constructor(public annotationLayerView: AnnotationLayerView) {
       super();
       
       const configTable = document.createElement('table');
       configTable.caption = configTable.createCaption();
       configTable.caption.innerHTML = "<h2>Volume session</h2>";
-      displayWidgets.fetchAnnotations = false;
-      console.log('setting display of fetch annotations to =' + displayWidgets.fetchAnnotations);
-
       const volumeInfoRows = this.getVolumeInfoRows();
       const newVolumeRow = this.getNewVolumeRow();
       const editVolumeRow = this.getEditVolumeRow();
