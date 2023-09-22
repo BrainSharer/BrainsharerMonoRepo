@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef } from 'neuroglancer/ui/annotations';
+import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef, updateHasVolumeTool } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -225,6 +225,13 @@ export class UrlHashBinding extends RefCounted {
             updateVolumeRef(snapshot.val());
         });
 
+        const stateRefVolumeHasVol = ref(database, `/test_annotations_tool/volume_had_vol/${this.stateID}`);
+        onValue(stateRefVolumeHasVol, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
+            updateHasVolumeTool(snapshot.val());
+        });
         /*
         const stateRefComSession = ref(database, `/test_annotations_tool/volume_session/${this.stateID}`);
         onValue(stateRefComSession, (snapshot) => {
@@ -271,6 +278,7 @@ export class UrlHashBinding extends RefCounted {
         }
         const updates: any = {};
         updates['/neuroglancer/' + this.stateID] = stateData;
+        updates[`/test_annotations_tool/volume_had_vol/${this.stateID}`] = getVolumeToolUsed();
         update(ref(database), updates)
             .then(() => {
                 console.log('Updating state data was OK');
