@@ -2577,6 +2577,9 @@ export class PlaceCellTool extends PlaceAnnotationTool {
      mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
+    const date = new Date();
+    let time = date.getTime();
+    console.log("cell tool trigger called at: ", time);
     has_volume_tool= false;
     const func = this.displayCellSession.bind(this);
     this.sessionWidgetDiv = sessionDiv;

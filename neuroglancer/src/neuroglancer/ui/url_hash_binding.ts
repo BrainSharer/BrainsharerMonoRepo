@@ -257,12 +257,18 @@ export class UrlHashBinding extends RefCounted {
             if (getInProgressAnnotation()) {
                 return;
             }
+            const date = new Date();
+            let start_time = date.getTime();
+            console.log("start_time: ", start_time);
             this.stateData = snapshot.val();
             const jsonStateUrl = this.stateData.neuroglancer_state;
             this.root.reset();
             verifyObject(jsonStateUrl);
             this.root.restoreState(jsonStateUrl);
             this.prevUrlString = JSON.stringify(jsonStateUrl);
+            let end_time = date.getTime();
+            console.log("end_time: ", end_time);
+            console.log("time to run reset: ", end_time - start_time);
         });
     }
 
@@ -282,6 +288,9 @@ export class UrlHashBinding extends RefCounted {
         update(ref(database), updates)
             .then(() => {
                 console.log('Updating state data was OK');
+                const date = new Date();
+                let time = date.getTime();
+                console.log("Push to firebase at: ", time);
             })
             .catch((error) => {
                 console.error(error);
