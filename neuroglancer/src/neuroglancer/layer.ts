@@ -368,7 +368,9 @@ export class UserLayer extends RefCounted {
   }
 
   restoreState(specification: any) {
-    this.tool.restoreState(specification[TOOL_JSON_KEY]);
+    if(specification["type"] != "image") {
+      this.tool.restoreState(specification[TOOL_JSON_KEY]);
+    }
     this.toolBinder.restoreState(specification[TOOL_BINDINGS_JSON_KEY]);
     this.panels.restoreState(specification);
     this.localCoordinateSpace.restoreState(specification[LOCAL_COORDINATE_SPACE_JSON_KEY]);

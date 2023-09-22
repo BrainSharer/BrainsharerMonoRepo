@@ -2132,8 +2132,8 @@ export interface CellSession {
 
 let has_volume_tool: boolean = false;
 
-export function updateHasVolumeTool() {
-  has_volume_tool = true;
+export function updateHasVolumeTool(value: boolean = true) {
+  has_volume_tool = value;
 }
 
 let volume_ref_id: string|undefined = undefined;

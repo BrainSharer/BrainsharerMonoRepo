@@ -279,6 +279,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       button.setAttribute('type', 'button');
       button.textContent = 'Close session';
       button.addEventListener('click', () => {
+        updateHasVolumeTool(false);
         const isInstance = this.annotationLayerView.layer.tool.value instanceof PlaceVolumeTool;
         if (isInstance) {
           if (this.annotationLayerView.layer.tool.value  instanceof LegacyTool) {
