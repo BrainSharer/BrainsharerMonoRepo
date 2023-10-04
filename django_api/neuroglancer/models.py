@@ -18,7 +18,7 @@ POINT_ID = 52
 LINE_ID = 53
 POLYGON_ID = 54
 UNMARKED = 'UNMARKED'
-DEBUG = True
+DEBUG = False
 
 class NeuroglancerState(models.Model):
     """Model corresponding to the neuroglancer json states stored in the neuroglancer_state table.

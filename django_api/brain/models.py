@@ -62,10 +62,10 @@ class Animal(AtlasModel):
         links = []
         png = f'{self.prep_id}.png'
         for channel in [1,2,3]:
-            testfile = f'/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{self.prep_id}/histogram/CH{channel}/{png}'
+            testfile = f'/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{self.prep_id}/www/histogram/CH{channel}/{png}'
             if os.path.isfile(testfile):
                 histogram = f'/data/{self.prep_id}/histogram/CH{channel}/{png}'
-                link = f'<div class="hover_img"><a href="#">CH{channel}<span><img src="https://imageserv.dk.ucsd.edu/{histogram}" /></span></a></div>' 
+                link = f'<div class="hover_img"><a href="#">CH{channel}<span><img src="https://imageserv.dk.ucsd.edu/{histogram}" alt="histogram"/></span></a></div>' 
                 links.append(link)
 
         return mark_safe(' '.join(links))
@@ -362,7 +362,7 @@ class Section(AtlasModel):
         png = self.file_name.replace('tif', 'png')
         # http://localhost:8000/data/DK39/thumbnail/DK39_ID_0002_slide058_S1_C2.png
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.prep_id}/scene/{png}"
-        return mark_safe('<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
+        return mark_safe('<div class="profile-pic-wrapper"><img src="{}" alt="png"/></div>'.format(thumbnail))
 
     image_tag.short_description = 'Image'
 
