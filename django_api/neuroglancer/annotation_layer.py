@@ -61,7 +61,7 @@ class AnnotationLayer:
         if DEBUG:
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)
-            print(f'Puting annotations in a numpy array took {total_elapsed_time} seconds.')
+            print(f'Putting annotations in a numpy array took {total_elapsed_time} seconds.')
 
         self.annotations_to_id_mapping = {}
         self.annotation_removed = {}
@@ -164,7 +164,6 @@ class AnnotationLayer:
         
         :param _type: string to determing if we are grouping points to polygons are polygons to volumes
         """
-        print(f'annotation layer::group_annotations _type={_type}')
 
         for annotationi in self.annotations:
             if annotationi in self.annotation_removed:

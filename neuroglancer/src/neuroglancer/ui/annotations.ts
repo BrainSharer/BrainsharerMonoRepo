@@ -12,6 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified for Brainsharer
  */
 
 /**
@@ -19,7 +20,10 @@
  */
 
 import './annotations.css';
-
+import './volume_session.css';
+import './cell_session.css';
+import './com_session.css';
+import {AppSettings} from 'neuroglancer/services/service';
 import {Annotation, AnnotationId, AnnotationPropertySerializer, AnnotationReference, AnnotationSource, annotationToJson, AnnotationType, annotationTypeHandlers, AxisAlignedBoundingBox, Ellipsoid, formatNumericProperty, Line} from 'neuroglancer/annotation';
 import {AnnotationDisplayState, AnnotationLayerState} from 'neuroglancer/annotation/annotation_layer_state';
 import {MultiscaleAnnotationSource} from 'neuroglancer/annotation/frontend_source';
@@ -815,6 +819,10 @@ const ANNOTATE_POINT_TOOL_ID = 'annotatePoint';
 const ANNOTATE_LINE_TOOL_ID = 'annotateLine';
 const ANNOTATE_BOUNDING_BOX_TOOL_ID = 'annotateBoundingBox';
 const ANNOTATE_ELLIPSOID_TOOL_ID = 'annotateSphere';
+const ANNOTATE_POLYGON_TOOL_ID = 'annotatePolygon';
+const ANNOTATE_VOLUME_TOOL_ID = 'annotateVolume';
+const ANNOTATE_CELL_TOOL_ID = 'annotateCell';
+const ANNOTATE_COM_TOOL_ID = 'annotateCom';
 
 export class PlacePointTool extends PlaceAnnotationTool {
   trigger(mouseState: MouseSelectionState) {
@@ -1668,5 +1676,81 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
   return C;
 }
 
+/**
+ * Enum to represent different types of tool modes (noop is view mode).
+ */
+export enum ToolMode {
+  DRAW,
+  EDIT,
+  NOOP
+}
+
+export interface CellSession {
+  label: string|undefined;
+  color: string|undefined;
+  category: string|undefined;
+}
+
+export interface VolumeSession {
+  reference: AnnotationReference;
+}
+
+export interface COMSession {
+  label: string|undefined;
+  color: string|undefined;
+}
+
 export type UserLayerWithAnnotations =
     InstanceType<ReturnType<typeof UserLayerWithAnnotationsMixin>>;
+
+let glocal_cell_session: CellSession|undefined = undefined;
+export function updateGlobalCellSession(session: CellSession|undefined = undefined) {
+  glocal_cell_session = session;
+}
+
+let volume_tool_mode: ToolMode = ToolMode.NOOP;
+export function updateGlobalVolumeMode(mode: ToolMode) {
+  volume_tool_mode = mode;
+}
+
+let glocal_com_session: COMSession|undefined = undefined;
+export function updateGlobalComSession(session: CellSession|undefined = undefined) {
+  glocal_com_session = session;
+}
+
+let glocal_com_mode: ToolMode = ToolMode.NOOP;
+export function updateGlobalComMode(mode: ToolMode= ToolMode.NOOP) {
+  glocal_com_mode = mode;
+}
+
+
+let volume_ref_id: string|undefined = undefined;
+export function updateVolumeRef(ref_id: string) {
+  volume_ref_id = ref_id;
+}
+
+let has_volume_tool: boolean = false;
+export function updateHasVolumeTool(value: boolean = true) {
+  has_volume_tool = value;
+}
+
+let glocal_cell_mode: ToolMode = ToolMode.NOOP;
+export function updateGlobalCellMode(mode: ToolMode= ToolMode.NOOP) {
+  glocal_cell_mode = mode;
+}
+
+let volume_tool_used: boolean = false;
+export function clearVolumeToolUsed() {
+  volume_tool_used = false;
+}
+
+export function getVolumeToolUsed() {
+  return volume_tool_used;
+}
+
+let inProgressAnnotation = false;
+export function getInProgressAnnotation() {
+  return inProgressAnnotation;
+}
+
+

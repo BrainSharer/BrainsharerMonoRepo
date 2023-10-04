@@ -259,8 +259,9 @@ class TifInline(admin.TabularInline):
         tif_file = obj.file_name
         png = tif_file.replace('tif', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/scene/{png}"
+        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
-            '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
+            '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt="" /></div>'.format(thumbnail, onerror))
 
     scene_image.short_description = 'Pre Image'
 
@@ -276,8 +277,9 @@ class TifInline(admin.TabularInline):
         png = tif_file.replace('tif', 'png')
         filepath = f"{animal}/section/{png}"
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{filepath}"
+        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
-            '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(thumbnail))
+            '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt=""/></div>'.format(thumbnail, onerror))
 
     section_image.short_description = 'Post Image'
 
@@ -375,7 +377,8 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
             7: ['insert_between_seven_eight']
         }
         for scene_index in scene_indexes:
-            fields.extend(replication_fields[scene_index])
+            if scene_index in replication_fields:
+                fields.extend(replication_fields[scene_index])
         
         fields.extend(['comments'])
         return fields

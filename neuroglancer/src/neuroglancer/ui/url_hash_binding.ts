@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-// import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef, updateHasVolumeTool } from 'neuroglancer/ui/annotations';
+import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef, updateHasVolumeTool } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -107,12 +107,11 @@ export class UrlHashBinding extends RefCounted {
 
             const sameUrl = prevUrlString === urlString || restoring_volumetool;
             restoring_volumetool = false;
-            //TODO if ((!sameUrl) && (this.stateData) || getVolumeToolUsed()) {
-            if ((!sameUrl) && (this.stateData) ) {
+            if ((!sameUrl) && (this.stateData) || getVolumeToolUsed()) {
                     this.stateData.neuroglancer_state = urlData;
                 this.updateStateData(this.stateData);
                 this.prevUrlString = urlString;
-                //TODO clearVolumeToolUsed();
+                clearVolumeToolUsed();
             }
         }
     }
@@ -173,10 +172,10 @@ export class UrlHashBinding extends RefCounted {
         this.updateStateData(this.stateData);
         // updateUser(this.stateID, this.user.user_id, this.user.username);
         this.checkAndSetStateFromFirebase();
-        //TODO this.updateToolStateFromFirebase();
+        this.updateToolStateFromFirebase();
     }
 
-    /*
+    
     private updateToolStateFromFirebase() {
         const stateRefCellSession = ref(database, `/test_annotations_tool/test/${this.stateID}`);
         onValue(stateRefCellSession, (snapshot) => {
@@ -234,7 +233,7 @@ export class UrlHashBinding extends RefCounted {
             updateHasVolumeTool(snapshot.val());
         });
     }
-    */
+    
 
     /**
      * ActiveBrainAtlas fork:
@@ -245,11 +244,10 @@ export class UrlHashBinding extends RefCounted {
     private checkAndSetStateFromFirebase() {
         const stateRef = ref(database, `neuroglancer/${this.stateID}`);
         onValue(stateRef, (snapshot) => {
-            /** TODO 
             if (getInProgressAnnotation()) {
                 return;
             }
-            */
+            
             const date = new Date();
             let start_time = date.getTime();
             console.log("start_time: ", start_time);
@@ -277,7 +275,7 @@ export class UrlHashBinding extends RefCounted {
         }
         const updates: any = {};
         updates['/neuroglancer/' + this.stateID] = stateData;
-        //TODO updates[`/test_annotations_tool/volume_had_vol/${this.stateID}`] = getVolumeToolUsed();
+        updates[`/test_annotations_tool/volume_had_vol/${this.stateID}`] = getVolumeToolUsed();
         update(ref(database), updates)
             .then(() => {
                 console.log('Updating state data was OK');

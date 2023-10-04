@@ -67,6 +67,9 @@ import {makeIcon} from 'neuroglancer/widget/icon';
 import {MousePositionWidget, PositionWidget} from 'neuroglancer/widget/position_widget';
 import {TrackableScaleBarOptions} from 'neuroglancer/widget/scale_bar';
 import {RPC} from 'neuroglancer/worker_rpc';
+import {StateLoader} from 'neuroglancer/services/state_loader';
+import {UserLoader} from 'neuroglancer/services/user_loader';
+import {UrlHashBinding} from 'neuroglancer/ui/url_hash_binding';
 
 declare var NEUROGLANCER_OVERRIDE_DEFAULT_VIEWER_OPTIONS: any;
 
@@ -305,6 +308,7 @@ export class Viewer extends RefCounted implements ViewerState {
       new TrackableDataSelectionState(this.coordinateSpace, this.layerSelectedValues));
   selectedStateServer = new TrackableValue<string>('', verifyString);
   layerListPanelState = new LayerListPanelState();
+  public annotationsSavedState = new TrackableBoolean(true, true);
 
   resetInitiated = new NullarySignal();
 
@@ -328,6 +332,8 @@ export class Viewer extends RefCounted implements ViewerState {
   dataSourceProvider: Borrowed<DataSourceProviderRegistry>;
 
   uiConfiguration: ViewerUIConfiguration;
+  urlHashBinding: UrlHashBinding;
+  stateLoader: StateLoader;
 
   private makeUiControlVisibilityState(key: keyof ViewerUIOptions) {
     const showUIControls = this.uiConfiguration.showUIControls;
@@ -584,6 +590,14 @@ export class Viewer extends RefCounted implements ViewerState {
           this.uiControlVisibility.showLayerSidePanelButton, button.element));
       topRow.appendChild(button.element);
     }
+    /* START OF CHANGE: Add state loader */
+    this.stateLoader = new StateLoader(this);
+    const userLoader = new UserLoader();
+    // const annotationStateLoader = new AnnotationStateLoader(this.annotationsSavedState);
+    topRow.appendChild(userLoader.element);
+    // topRow.appendChild(annotationStateLoader.element);
+    topRow.appendChild(this.stateLoader.element);
+    /* END OF CHANGE: Add state loader */
 
     {
       const button = makeIcon({text: '{}', title: 'Edit JSON state'});

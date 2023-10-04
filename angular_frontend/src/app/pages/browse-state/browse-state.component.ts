@@ -1,6 +1,5 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { UntypedFormGroup, UntypedFormControl } from '@angular/forms';
-
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import {MatPaginator, PageEvent} from '@angular/material/paginator';
@@ -83,9 +82,13 @@ export class BrowseStateComponent implements OnInit {
    * @param search string for whatever the user inputs. Searches the comments field from the database
    */
   public searchTitle(search: string): void {
+    if (search && search.length > 1) {
       this.title_filter = search;
-      this.page = 0;
-      this.setData();
+    } else {
+      this.title_filter = undefined;
+    }
+    this.page = 0;
+    this.setData();
   }
 
   /**
@@ -135,14 +138,15 @@ export class BrowseStateComponent implements OnInit {
    */
   private buildUrl(): string {
     let baseUrl = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + this.offset;
+
+    if (this.title_filter && this.title_filter.length > 1) {
+      baseUrl += '&comments=' + this.title_filter;
+    } 
     
     if (this.lab_filter) {
       baseUrl += '&lab=' + this.lab_filter;
     }
 
-    if (this.title_filter) {
-      baseUrl += '&comments=' + this.title_filter;
-    }
 
     return baseUrl;
   }

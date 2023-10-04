@@ -39,6 +39,7 @@ MIDDLEWARE = [
     'authentication.cookiemiddleware.CookieMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -145,7 +146,7 @@ SITE_ID = 2
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'assets'),)
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
-TIME_ZONE = 'Asia/Bangkok'
+TIME_ZONE = 'America/New_York'
 USE_I18N = True
 USE_L10N = True
 

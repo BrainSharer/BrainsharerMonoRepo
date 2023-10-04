@@ -434,11 +434,11 @@ export class StateLoader extends RefCounted {
             public: true
         };
 
-        //TODO const annotationSavedState = this.viewer.annotationsSavedState;
+        const annotationSavedState = this.viewer.annotationsSavedState;
 
         this.stateAPI.saveState(this.stateID, state).then(() => {
             StatusMessage.showTemporaryMessage(`The data was saved successfully.`);
-            //TODO annotationSavedState.value = true;
+            annotationSavedState.value = true;
         }).catch(err => {
             StatusMessage.showTemporaryMessage(`Internal error saving state: ` + err);
             console.log(err);
