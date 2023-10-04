@@ -29,7 +29,7 @@ import {RenderLayerRole} from 'neuroglancer/renderlayer';
 import {SegmentationDisplayState} from 'neuroglancer/segmentation_display_state/frontend';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import {TrackableBoolean, TrackableBooleanCheckbox} from 'neuroglancer/trackable_boolean';
-import {makeCachedLazyDerivedWatchableValue, WatchableValue} from 'neuroglancer/trackable_value';
+import {makeCachedLazyDerivedWatchableValue} from 'neuroglancer/trackable_value';
 import {AnnotationLayerView, MergedAnnotationStates, UserLayerWithAnnotationsMixin} from 'neuroglancer/ui/annotations';
 import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
 import {Borrowed, Owned, RefCounted} from 'neuroglancer/util/disposable';
@@ -44,7 +44,6 @@ import {RenderScaleWidget} from 'neuroglancer/widget/render_scale_widget';
 import {ShaderCodeWidget} from 'neuroglancer/widget/shader_code_widget';
 import {registerLayerShaderControlsTool, ShaderControls} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
-import { defaultAnnotationPropertiesSchema } from '../ui/layer_bar';
 
 const POINTS_JSON_KEY = 'points';
 const ANNOTATIONS_JSON_KEY = 'annotations';
@@ -136,9 +135,11 @@ class LinkedSegmentationLayers extends RefCounted {
       state.seenGeneration = generation;
     }
     if (!isLoading) {
+      const {relationshipStates} = this.annotationDisplayState;
       for (const [relationship, state] of map) {
         if (state.seenGeneration !== generation) {
           map.delete(relationship);
+          relationshipStates.delete(relationship);
           changed = true;
         }
       }
@@ -318,7 +319,6 @@ export class AnnotationUserLayer extends Base {
   localAnnotations: LocalAnnotationSource|undefined;
   private localAnnotationProperties: AnnotationPropertySpec[]|undefined;
   private localAnnotationRelationships: string[];
-  annotationProperties = new WatchableValue<AnnotationPropertySpec[]|undefined>(undefined);
   private localAnnotationsJson: any = undefined;
   private pointAnnotationsJson: any = undefined;
   linkedSegmentationLayers = this.registerDisposer(new LinkedSegmentationLayers(
@@ -338,6 +338,7 @@ export class AnnotationUserLayer extends Base {
     this.annotationDisplayState.ignoreNullSegmentFilter.changed.add(
         this.specificationChanged.dispatch);
     this.annotationCrossSectionRenderScaleTarget.changed.add(this.specificationChanged.dispatch);
+    this.annotationProjectionRenderScaleTarget.changed.add(this.specificationChanged.dispatch);
     this.tabs.add(
         'rendering',
         {label: 'Rendering', order: -100, getter: () => new RenderingOptionsTab(this)});
@@ -348,14 +349,8 @@ export class AnnotationUserLayer extends Base {
     super.restoreState(specification);
     this.linkedSegmentationLayers.restoreState(specification);
     this.localAnnotationsJson = specification[ANNOTATIONS_JSON_KEY];
-    // TODO(Ed, Naga): This may cause issues, later we may want to load the annotation properties from JSON.
-    // this.localAnnotationProperties = verifyOptionalObjectProperty(
-        // specification, ANNOTATION_PROPERTIES_JSON_KEY, parseAnnotationPropertySpecs);
-    // if (this.localAnnotationProperties === undefined) {
-      specification[ANNOTATION_PROPERTIES_JSON_KEY] = defaultAnnotationPropertiesSchema;
-      this.localAnnotationProperties = verifyOptionalObjectProperty(
+    this.localAnnotationProperties = verifyOptionalObjectProperty(
         specification, ANNOTATION_PROPERTIES_JSON_KEY, parseAnnotationPropertySpecs);
-    // }
     this.localAnnotationRelationships = verifyOptionalObjectProperty(
         specification, ANNOTATION_RELATIONSHIPS_JSON_KEY, verifyStringArray, ['segments']);
     this.pointAnnotationsJson = specification[POINTS_JSON_KEY];
@@ -484,9 +479,9 @@ export class AnnotationUserLayer extends Base {
       }
       loadedSubsource.deactivate('Not compatible with annotation layer');
     }
-    const prevAnnotationProperties = this.annotationProperties.value;
+    const prevAnnotationProperties = this.annotationDisplayState.annotationProperties.value;
     if (stableStringify(prevAnnotationProperties) !== stableStringify(properties)) {
-      this.annotationProperties.value = properties;
+      this.annotationDisplayState.annotationProperties.value = properties;
     }
   }
 
@@ -513,22 +508,20 @@ export class AnnotationUserLayer extends Base {
           }
         }));
     tab.element.insertBefore(renderScaleControls.element, tab.element.firstChild);
-    // {
-    //   const checkbox = tab.registerDisposer(
-    //       new TrackableBooleanCheckbox(this.annotationDisplayState.ignoreNullSegmentFilter));
-    //   const label = document.createElement('label');
-    //   label.appendChild(document.createTextNode('Ignore null related segment filter'));
-    //   label.title =
-    //       'Display all annotations if filtering by related segments is enabled but no segments are selected';
-    //   label.appendChild(checkbox.element);
-    //   tab.element.appendChild(label);
-    // }
+    {
+      const checkbox = tab.registerDisposer(
+          new TrackableBooleanCheckbox(this.annotationDisplayState.ignoreNullSegmentFilter));
+      const label = document.createElement('label');
+      label.appendChild(document.createTextNode('Ignore null related segment filter'));
+      label.title =
+          'Display all annotations if filtering by related segments is enabled but no segments are selected';
+      label.appendChild(checkbox.element);
+      tab.element.appendChild(label);
+    }
     tab.element.appendChild(
         tab.registerDisposer(new LinkedSegmentationLayersWidget(this.linkedSegmentationLayers))
             .element);
   }
-  //@ts-ignore
-  private map = new Map<string, LinkedSegmentationLayer>();
 
   toJSON() {
     const x = super.toJSON();
@@ -584,7 +577,7 @@ class RenderingOptionsTab extends Tab {
     element.appendChild(
         this
             .registerDisposer(new DependentViewWidget(
-                layer.annotationProperties,
+                layer.annotationDisplayState.annotationProperties,
                 (properties, parent) => {
                   if (properties === undefined || properties.length === 0) return;
                   const propertyList = document.createElement('div');

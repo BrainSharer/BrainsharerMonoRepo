@@ -15,8 +15,9 @@
  */
 
 import debounce from 'lodash/debounce';
-import {VisibleSegmentsState} from 'neuroglancer/segmentation_display_state/base';
+import {VisibleSegmentEquivalencePolicy} from 'neuroglancer/segmentation_graph/segment_id';
 import {ComputedSplit, SegmentationGraphSource, SegmentationGraphSourceConnection} from 'neuroglancer/segmentation_graph/source';
+import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import {SharedDisjointUint64Sets} from 'neuroglancer/shared_disjoint_sets';
 import {Uint64Set} from 'neuroglancer/uint64_set';
 import {DisjointUint64Sets} from 'neuroglancer/util/disjoint_sets';
@@ -137,8 +138,8 @@ export class LocalSegmentationGraphSource extends SegmentationGraphSource {
     return sets.map(set => set.map(element => element.toString()));
   }
 
-  get highBitRepresentative() {
-    return false;
+  get visibleSegmentEquivalencePolicy() {
+    return VisibleSegmentEquivalencePolicy.MIN_REPRESENTATIVE;
   }
 
   async merge(a: Uint64, b: Uint64): Promise<Uint64> {
@@ -179,9 +180,10 @@ export class LocalSegmentationGraphSource extends SegmentationGraphSource {
     removeSplitEdges(includeBaseSegments, includeRoot);
     removeSplitEdges(excludeBaseSegments, excludeRoot);
     for (const connection of this.connections) {
-      const {visibleSegments} = connection.segmentsState;
-      if (visibleSegments.has(excludeRepresentative)) {
-        visibleSegments.delete(excludeRepresentative);
+      const {selectedSegments, visibleSegments} = connection.segmentsState;
+      if (selectedSegments.has(excludeRepresentative)) {
+        selectedSegments.delete(excludeRepresentative);
+        selectedSegments.add(includeRepresentative);
         visibleSegments.add(includeRepresentative);
       }
     }
@@ -238,7 +240,8 @@ export class LocalSegmentationGraphSource extends SegmentationGraphSource {
     };
   }
 
-  connect(segmentsState: VisibleSegmentsState): SegmentationGraphSourceConnection {
+  connect(layer: SegmentationUserLayer): SegmentationGraphSourceConnection {
+    const segmentsState = layer.displayState.segmentationGroupState.value;
     const connection = new LocalSegmentationGraphSourceConnection(this, segmentsState);
     segmentsState.segmentEquivalences.assignFrom(this.equivalences);
     normalizeSegmentSet(
@@ -258,7 +261,7 @@ export class LocalSegmentationGraphSource extends SegmentationGraphSource {
 
 function normalizeSegmentSet(segmentSet: Uint64Set, equivalences: DisjointUint64Sets) {
   const add: Uint64[] = [];
-  for (const id of segmentSet) {
+  for (const id of segmentSet.unsafeKeys()) {
     const rootId = equivalences.get(id);
     if (!Uint64.equal(id, rootId)) {
       add.push(rootId);

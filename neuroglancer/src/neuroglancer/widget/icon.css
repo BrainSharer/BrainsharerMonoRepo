@@ -31,6 +31,7 @@
   font-weight: 900;
   margin-left: 1px;
   margin-right: 1px;
+  user-select: none;
 }
 
 .neuroglancer-icon svg {
@@ -45,4 +46,12 @@
 
 .neuroglancer-icon:hover {
   background-color: #db4437;
+}
+
+.neuroglancer-icon-hover:not(:hover) svg:last-child {
+  display: none;
+}
+
+.neuroglancer-icon-hover:hover svg:first-child {
+  display: none;
 }

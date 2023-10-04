@@ -106,7 +106,6 @@ export class StatusMessage {
     this.element.appendChild(button);
   }
 
-
   static showMessage(message: string): StatusMessage {
     const msg = new StatusMessage();
     msg.element.textContent = message;
@@ -114,12 +113,9 @@ export class StatusMessage {
     return msg;
   }
 
-
   static showTemporaryMessage(message: string, closeAfter: number = 2000): StatusMessage {
     const msg = this.showMessage(message);
     window.setTimeout(() => msg.dispose(), closeAfter);
     return msg;
   }
-  
-  
 }

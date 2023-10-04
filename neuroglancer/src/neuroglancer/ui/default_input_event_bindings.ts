@@ -16,7 +16,6 @@
 
 import {EventActionMap} from 'neuroglancer/util/event_action_map';
 import {InputEventBindings} from 'neuroglancer/viewer';
-import { RefCounted } from '../util/disposable';
 
 let defaultGlobalBindings: EventActionMap|undefined;
 
@@ -68,8 +67,7 @@ export function getDefaultAnnotationListBindings() {
     defaultAnnotationListBindings = EventActionMap.fromObject(
         {
           'click0': 'pin-annotation',
-          'control+mousedown0': 'move-to-annotation',
-          'mousedown2': 'display-annotation-children',
+          'mousedown2': 'move-to-annotation',
         },
         {parents: [[getDefaultSelectBindings(), 0]]});
   }
@@ -87,12 +85,6 @@ export function getDefaultRenderedDataPanelBindings() {
           'arrowdown': 'y+',
           'comma': 'z-',
           'period': 'z+',
-          'alt+arrowleft': 'pan-x-',
-          'alt+arrowright': 'pan-x+',
-          'alt+arrowup': 'pan-y-',
-          'alt+arrowdown': 'pan-y+',
-          'alt+comma': 'pan-z-',
-          'alt+period': 'pan-z+',
           'bracketleft': 't-',
           'bracketright': 't+',
           'keyz': 'snap',
@@ -113,6 +105,7 @@ export function getDefaultRenderedDataPanelBindings() {
           'at:wheel': {action: 'z+1-via-wheel', preventDefault: true},
           'at:shift+wheel': {action: 'z+10-via-wheel', preventDefault: true},
           'at:dblclick0': 'select',
+          'at:shift+dblclick0': 'star',
           'at:control+mousedown0': 'annotate',
           'at:mousedown2': 'move-to-mouse-position',
           'at:alt+mousedown0': 'move-annotation',
@@ -123,8 +116,6 @@ export function getDefaultRenderedDataPanelBindings() {
           'at:touchhold1': 'move-to-mouse-position',
           'at:touchtap1x2': 'select',
           'at:touchtap2x3': 'snap',
-          'at:control+keyz': 'switch-to-tool-draw-mode',
-          'at:control+keyx': 'switch-to-tool-edit-mode',
         },
         {
           label: 'All Data Panels',
@@ -154,78 +145,12 @@ export function getDefaultSliceViewPanelBindings() {
     defaultSliceViewPanelBindings = EventActionMap.fromObject(
         {
           'at:mousedown0': {action: 'translate-via-mouse-drag', stopPropagation: true},
-          // 'at:shift+mousedown0': {action: 'rotate-via-mouse-drag', stopPropagation: true},
+          'at:shift+mousedown0': {action: 'rotate-via-mouse-drag', stopPropagation: true},
           'at:touchtranslate1': 'translate-z-via-touchtranslate',
         },
         {parents: [[getDefaultRenderedDataPanelBindings(), Number.NEGATIVE_INFINITY]]});
   }
   return defaultSliceViewPanelBindings;
-}
-
-export let polygonDrawModeBindings: EventActionMap|undefined;
-export function getPolygonDrawModeBindings() {
-  if (polygonDrawModeBindings === undefined) {
-    polygonDrawModeBindings = EventActionMap.fromObject(
-      {
-        'at:mousedown0': 'annotate',
-        'at:mousedown2': 'complete-annotation',
-        'at:keyz': 'undo-annotation',
-        'at:control+keyc': 'clone-polygon-annotation',
-      }
-    );
-  }
-  return polygonDrawModeBindings;
-}
-
-
-export let polygonEditModeBindings: EventActionMap|undefined;
-export function getPolygonEditModeBindings() {
-  if (polygonEditModeBindings === undefined) {
-    polygonEditModeBindings = EventActionMap.fromObject(
-      {
-        'at:mousedown0': 'move-polygon-vertex',
-        'at:control+alt+mousedown0': 'add-vertex-polygon',
-        'at:control+alt+mousedown2': 'delete-vertex-polygon',
-        // 'at:control+shift+mousedown0': 'delete-polygon',
-        'at:shift+mousedown0': 'move-polygon-annotation',
-        'at:keyr': 'rotate-polygon-z+',
-        'at:keye': 'rotate-polygon-z-',
-        'control+equal': 'scale-polygon-enlarge',
-        'control+shift+equal': 'scale-polygon-enlarge',
-        'control+minus': 'scale-polygon-shrink',
-        'control+shift-minus': 'scale-polygon-shrink',
-        'at:touchrotate': 'rotate-polygon-via-touchrotate',
-        'at:touchpinch': 'zoom-polygon-via-touchpinch',
-        'at:control+keyc': 'clone-polygon-annotation',
-      }
-    );
-  }
-  return polygonEditModeBindings;
-}
-
-export let pointDrawModeBindings: EventActionMap|undefined;
-export function getPointDrawModeBindings() {
-  if (pointDrawModeBindings === undefined) {
-    pointDrawModeBindings = EventActionMap.fromObject(
-      {
-        'at:mousedown0': 'annotate',
-      }
-    );
-  }
-  return pointDrawModeBindings;
-}
-
-
-export let pointEditModeBindings: EventActionMap|undefined;
-export function getPointEditModeBindings() {
-  if (pointEditModeBindings === undefined) {
-    pointEditModeBindings = EventActionMap.fromObject(
-      {
-        'at:mousedown0': 'move-point-annotation',
-      }
-    );
-  }
-  return pointEditModeBindings;
 }
 
 export function setDefaultInputEventBindings(inputEventBindings: InputEventBindings) {
@@ -234,28 +159,4 @@ export function setDefaultInputEventBindings(inputEventBindings: InputEventBindi
       getDefaultSliceViewPanelBindings(), Number.NEGATIVE_INFINITY);
   inputEventBindings.perspectiveView.addParent(
       getDefaultPerspectivePanelBindings(), Number.NEGATIVE_INFINITY);
-}
-
-export function setPolygonDrawModeInputEventBindings<T extends RefCounted> (bindingsRef: T, 
-  inputEventBindings: InputEventBindings) {
-  bindingsRef.registerDisposer(inputEventBindings.sliceView.addParent(getPolygonDrawModeBindings(), Number.NEGATIVE_INFINITY+1));
-  bindingsRef.registerDisposer(inputEventBindings.perspectiveView.addParent(getPolygonDrawModeBindings(), Number.NEGATIVE_INFINITY+1));
-}
-
-export function setPolygonEditModeInputEventBindings<T extends RefCounted> (bindingsRef: T,
-  inputEventBindings: InputEventBindings) {
-  bindingsRef.registerDisposer(inputEventBindings.sliceView.addParent(getPolygonEditModeBindings(), Number.NEGATIVE_INFINITY+1));
-  bindingsRef.registerDisposer(inputEventBindings.perspectiveView.addParent(getPolygonEditModeBindings(), Number.NEGATIVE_INFINITY+1));
-}
-
-export function setPointDrawModeInputEventBindings<T extends RefCounted> (bindingsRef: T, 
-  inputEventBindings: InputEventBindings) {
-  bindingsRef.registerDisposer(inputEventBindings.sliceView.addParent(getPointDrawModeBindings(), Number.NEGATIVE_INFINITY+1));
-  bindingsRef.registerDisposer(inputEventBindings.perspectiveView.addParent(getPointDrawModeBindings(), Number.NEGATIVE_INFINITY+1));
-}
-
-export function setPointEditModeInputEventBindings<T extends RefCounted> (bindingsRef: T,
-  inputEventBindings: InputEventBindings) {
-  bindingsRef.registerDisposer(inputEventBindings.sliceView.addParent(getPointEditModeBindings(), Number.NEGATIVE_INFINITY+1));
-  bindingsRef.registerDisposer(inputEventBindings.perspectiveView.addParent(getPointEditModeBindings(), Number.NEGATIVE_INFINITY+1));
 }

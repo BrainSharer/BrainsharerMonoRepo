@@ -24,14 +24,15 @@ import weakref
 
 import numpy as np
 import tornado.httpserver
-import tornado.ioloop
 import tornado.netutil
+import tornado.platform.asyncio
 import tornado.web
 
 from . import local_volume, static
 from . import skeleton
 from .json_utils import json_encoder_default, encode_json
 from .random_token import make_random_token
+from .trackable_state import ConcurrentModificationError
 
 INFO_PATH_REGEX = r'^/neuroglancer/info/(?P<token>[^/]+)$'
 SKELETON_INFO_PATH_REGEX = r'^/neuroglancer/skeletoninfo/(?P<token>[^/]+)$'
@@ -64,7 +65,7 @@ _IS_GOOGLE_COLAB = 'google.colab' in sys.modules
 def _get_server_url(bind_address: str, port: int) -> str:
     if _IS_GOOGLE_COLAB:
         return _get_colab_server_url(port)
-    return _get_regular_url(bind_address, port)
+    return _get_regular_server_url(bind_address, port)
 
 
 def _get_regular_server_url(bind_address: str, port: int) -> str:
@@ -260,10 +261,19 @@ class SetStateHandler(BaseRequestHandler):
             self.send_error(404)
             return
         msg = json.loads(self.request.body)
+        prev_generation = msg['pg']
         generation = msg['g']
         state = msg['s']
         client_id = msg['c']
-        viewer.set_state(state, f'{client_id}/{generation}')
+        try:
+            new_generation = viewer.set_state(state, f'{client_id}/{generation}', existing_generation=prev_generation)
+            self.set_header('Content-type', 'application/json')
+            self.finish(json.dumps({"g": new_generation}))
+        except ConcurrentModificationError:
+            self.set_status(412)
+            self.set_header('Content-type', 'application/json')
+            raw_state, generation = viewer.shared_state.raw_state_and_generation
+            self.finish(json.dumps({"s": raw_state, "g": generation}))
 
 
 class CredentialsHandler(BaseRequestHandler):
@@ -439,15 +449,15 @@ def start():
         # Workaround https://bugs.python.org/issue37373
         # https://www.tornadoweb.org/en/stable/index.html#installation
         if sys.platform == 'win32' and sys.version_info >= (3, 8):
-            import asyncio
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         done = threading.Event()
 
         def start_server():
             global global_server
-            ioloop = tornado.ioloop.IOLoop()
+            ioloop = tornado.platform.asyncio.AsyncIOLoop()
             ioloop.make_current()
+            asyncio.set_event_loop(ioloop.asyncio_loop)
             global_server = Server(ioloop=ioloop, **global_server_args)
             done.set()
             ioloop.start()

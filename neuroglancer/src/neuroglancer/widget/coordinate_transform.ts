@@ -40,8 +40,12 @@ function updateInputFieldWidth(element: HTMLInputElement, value: string = elemen
 
 const singletonClassName = 'neuroglancer-coordinate-space-transform-singleton';
 
-function formatBounds(lower: number, upper: number) {
+function formatBounds(lower: number, upper: number, voxelCenterAtIntegerCoordinates: boolean) {
   let lowerString: string;
+  if (voxelCenterAtIntegerCoordinates) {
+    lower += 0.5;
+    upper += 0.5;
+  }
   if (lower === Number.NEGATIVE_INFINITY) {
     lowerString = '(-∞,';
   } else {
@@ -114,48 +118,6 @@ function updateCoordinateSpaceScales(
     scaleElements: HTMLInputElement[], modified: boolean[],
     watchable: WatchableValueInterface<CoordinateSpace>): boolean {
   const scalesAndUnits = scaleElements.map(x => parseScale(x.value));
-  if (scalesAndUnits.includes(undefined)) {
-    return false;
-  }
-  const newScales = Float64Array.from(scalesAndUnits, x => x!.scale);
-  const newUnits = Array.from(scalesAndUnits, x => x!.unit);
-  const existing = watchable.value;
-  const {scales, units, rank} = existing;
-  for (let i = 0; i < rank; ++i) {
-    if (!modified[i]) {
-      newScales[i] = scales[i];
-      newUnits[i] = units[i];
-    }
-  }
-  if (arraysEqual(scales, newScales) && arraysEqual(units, newUnits)) return false;
-  const timestamps = existing.timestamps.map(
-      (t, i) => (newScales[i] === scales[i] && newUnits[i] === units[i]) ? t : Date.now());
-  const newSpace = makeCoordinateSpace({
-    valid: existing.valid,
-    rank: existing.rank,
-    scales: newScales,
-    units: newUnits,
-    timestamps,
-    ids: existing.ids,
-    names: existing.names,
-    boundingBoxes: existing.boundingBoxes,
-    coordinateArrays: existing.coordinateArrays,
-  });
-  watchable.value = newSpace;
-  return true;
-}
-
-/**
- * Takes new scales and units and modifies the coordinate space resolution.
- * @param scalesAndUnits New scales and units (new resolution).
- * @param modified  An array with each index true or false indicating whether new
- *  resolution needs to be added to the corresponding dimension.
- * @param watchable A watchable value which contains the coordinate space of neuroglancer.
- * @returns returns a boolean indicating whether the coordinate space has been updated or not.
- */
-export function updateCoordinateSpaceScaleValues(
-  scalesAndUnits: ({scale: number; unit: string;} | undefined)[], modified: boolean[],
-  watchable: WatchableValueInterface<CoordinateSpace>): boolean {
   if (scalesAndUnits.includes(undefined)) {
     return false;
   }
@@ -947,7 +909,11 @@ export class CoordinateSpaceTransformWidget extends RefCounted {
       names: inputNames,
       scales: inputScales,
       units: inputUnits,
-      bounds: {lowerBounds: inputLowerBounds, upperBounds: inputUpperBounds}
+      bounds: {
+        lowerBounds: inputLowerBounds,
+        upperBounds: inputUpperBounds,
+        voxelCenterAtIntegerCoordinates: inputVoxelCenterAtIntegerCoordinates,
+      }
     } = inputSpace;
     for (let inputDim = 0; inputDim < rank; ++inputDim) {
       const inputScaleElement = inputScaleElements[inputDim];
@@ -967,7 +933,9 @@ export class CoordinateSpaceTransformWidget extends RefCounted {
         dimensionNameString = `singleton dimension`;
         inputScaleElement.title = `Set extent of ${dimensionNameString}`;
       }
-      const {lower, upper} = formatBounds(inputLowerBounds[inputDim], inputUpperBounds[inputDim]);
+      const {lower, upper} = formatBounds(
+          inputLowerBounds[inputDim], inputUpperBounds[inputDim],
+          inputVoxelCenterAtIntegerCoordinates[inputDim]);
       const elements = inputBoundsElements[inputDim];
       elements.lower.textContent = lower;
       elements.lower.title = `Lower bound of ${dimensionNameString}`;
@@ -986,7 +954,11 @@ export class CoordinateSpaceTransformWidget extends RefCounted {
       names,
       units: outputUnits,
       scales: outputScales,
-      bounds: {lowerBounds: outputLowerBounds, upperBounds: outputUpperBounds}
+      bounds: {
+        lowerBounds: outputLowerBounds,
+        upperBounds: outputUpperBounds,
+        voxelCenterAtIntegerCoordinates: outputVoxelCenterAtIntegerCoordinates
+      }
     } = transform.outputSpace;
     const {outputScaleElements, outputBoundsElements, outputScaleSuggestionElements} = this;
     for (let outputDim = 0; outputDim < rank; ++outputDim) {
@@ -1000,8 +972,9 @@ export class CoordinateSpaceTransformWidget extends RefCounted {
       const titlePrefix =
           `Change coordinates of ${isLocalDimension(name) ? 'local' : 'global'} dimension ${name}`;
       scaleElement.title = `${titlePrefix} (does not rescale the source)`;
-      const {lower, upper} =
-          formatBounds(outputLowerBounds[outputDim], outputUpperBounds[outputDim]);
+      const {lower, upper} = formatBounds(
+          outputLowerBounds[outputDim], outputUpperBounds[outputDim],
+          outputVoxelCenterAtIntegerCoordinates[outputDim]);
       const elements = outputBoundsElements[outputDim];
       elements.lower.textContent = lower;
       elements.upper.textContent = upper;

@@ -151,10 +151,7 @@ class LayerListItem extends RefCounted {
     const deleteButton = makeDeleteButton({
       title: 'Delete layer',
       onClick: () => {
-        const deleteConfirmText = `Are you sure you want to delete the annotation layer ?\nAnnotation layer name: ${this.layer.name}`;
-        if(confirm(deleteConfirmText)) {
-          deleteLayer(this.layer);
-        }
+        deleteLayer(this.layer);
       }
     });
     deleteButton.classList.add('neuroglancer-layer-list-panel-item-delete');

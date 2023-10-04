@@ -33,7 +33,7 @@ import {DisplayContext, TrackableWindowedViewport} from 'neuroglancer/display_co
 import {HelpPanelState, InputEventBindingHelpDialog} from 'neuroglancer/help/input_event_bindings';
 import {addNewLayer, LayerManager, LayerSelectedValues, MouseSelectionState, SelectedLayerState, TopLevelLayerListSpecification, TrackableDataSelectionState} from 'neuroglancer/layer';
 import {RootLayoutContainer} from 'neuroglancer/layer_groups_layout';
-import {DisplayPose, NavigationState, OrientationState, Position, TrackableCrossSectionZoom, TrackableDepthRange, TrackableDisplayDimensions, TrackableProjectionZoom, TrackableRelativeDisplayScales, WatchableDisplayDimensionRenderInfo} from 'neuroglancer/navigation_state';
+import {CoordinateSpacePlaybackVelocity, DisplayPose, NavigationState, OrientationState, PlaybackManager, Position, TrackableCrossSectionZoom, TrackableDepthRange, TrackableDisplayDimensions, TrackableProjectionZoom, TrackableRelativeDisplayScales, WatchableDisplayDimensionRenderInfo} from 'neuroglancer/navigation_state';
 import {overlaysOpen} from 'neuroglancer/overlay';
 import {allRenderLayerRoles, RenderLayerRole} from 'neuroglancer/renderlayer';
 import {StatusMessage} from 'neuroglancer/status';
@@ -46,7 +46,7 @@ import {SelectionDetailsPanel} from 'neuroglancer/ui/selection_details';
 import {SidePanelManager} from 'neuroglancer/ui/side_panel';
 import {StateEditorDialog} from 'neuroglancer/ui/state_editor';
 import {StatisticsDisplayState, StatisticsPanel} from 'neuroglancer/ui/statistics';
-import {ToolBinder} from 'neuroglancer/ui/tool';
+import {GlobalToolBinder, LocalToolBinder} from 'neuroglancer/ui/tool';
 import {ViewerSettingsPanel, ViewerSettingsPanelState} from 'neuroglancer/ui/viewer_settings';
 import {AutomaticallyFocusedElement} from 'neuroglancer/util/automatic_focus';
 import {TrackableRGB} from 'neuroglancer/util/color';
@@ -67,16 +67,8 @@ import {makeIcon} from 'neuroglancer/widget/icon';
 import {MousePositionWidget, PositionWidget} from 'neuroglancer/widget/position_widget';
 import {TrackableScaleBarOptions} from 'neuroglancer/widget/scale_bar';
 import {RPC} from 'neuroglancer/worker_rpc';
-import {StateLoader} from 'neuroglancer/services/state_loader';
-import {UserLoader} from 'neuroglancer/services/user_loader';
-import {UrlHashBinding} from 'neuroglancer/ui/url_hash_binding';
-import { ToolMode, MultiStepAnnotationTool, PlaceCellTool, PlaceComTool, PlacePolygonTool, PlaceVolumeTool } from './ui/annotations';
-import { PolygonOptionsDialog } from './ui/polygon_options';
-import { AnnotationUserLayer } from './annotation/user_layer';
-import { AnnotationStateLoader } from './services/annotation_state_loader';
 
-
-declare var NEUROGLANCER_OVERRIDE_DEFAULT_VIEWER_OPTIONS: any
+declare var NEUROGLANCER_OVERRIDE_DEFAULT_VIEWER_OPTIONS: any;
 
 interface CreditLink {
   url: string;
@@ -84,8 +76,6 @@ interface CreditLink {
 }
 
 declare var NEUROGLANCER_CREDIT_LINK: CreditLink|CreditLink[]|undefined;
-
-const WIKI_ADDRESS="https://github.com/ActiveBrainAtlas2/neuroglancer/wiki";
 
 export class DataManagementContext extends RefCounted {
   worker: Worker;
@@ -190,6 +180,7 @@ class TrackableViewerState extends CompoundTrackable {
     this.add('relativeDisplayScales', viewer.relativeDisplayScales);
     this.add('displayDimensions', viewer.displayDimensions);
     this.add('position', viewer.position);
+    this.add('velocity', viewer.velocity);
     this.add('crossSectionOrientation', viewer.crossSectionOrientation);
     this.add('crossSectionScale', viewer.crossSectionScale);
     this.add('crossSectionDepth', viewer.crossSectionDepthRange);
@@ -221,6 +212,7 @@ class TrackableViewerState extends CompoundTrackable {
     this.add('layerListPanel', viewer.layerListPanelState);
     this.add('partialViewport', viewer.partialViewport);
     this.add('selectedStateServer', viewer.selectedStateServer);
+    this.add('toolBindings', viewer.toolBinder);
   }
 
   restoreState(obj: any) {
@@ -265,6 +257,7 @@ export class Viewer extends RefCounted implements ViewerState {
   title = new TrackableValue<string|undefined>(undefined, verifyString);
   coordinateSpace = new TrackableCoordinateSpace();
   position = this.registerDisposer(new Position(this.coordinateSpace));
+  velocity = this.registerDisposer(new CoordinateSpacePlaybackVelocity(this.coordinateSpace));
   relativeDisplayScales =
       this.registerDisposer(new TrackableRelativeDisplayScales(this.coordinateSpace));
   displayDimensions = this.registerDisposer(new TrackableDisplayDimensions(this.coordinateSpace));
@@ -312,7 +305,6 @@ export class Viewer extends RefCounted implements ViewerState {
       new TrackableDataSelectionState(this.coordinateSpace, this.layerSelectedValues));
   selectedStateServer = new TrackableValue<string>('', verifyString);
   layerListPanelState = new LayerListPanelState();
-  public annotationsSavedState = new TrackableBoolean(true, true);
 
   resetInitiated = new NullarySignal();
 
@@ -336,8 +328,6 @@ export class Viewer extends RefCounted implements ViewerState {
   dataSourceProvider: Borrowed<DataSourceProviderRegistry>;
 
   uiConfiguration: ViewerUIConfiguration;
-  urlHashBinding: UrlHashBinding;
-  stateLoader: StateLoader;
 
   private makeUiControlVisibilityState(key: keyof ViewerUIOptions) {
     const showUIControls = this.uiConfiguration.showUIControls;
@@ -413,7 +403,7 @@ export class Viewer extends RefCounted implements ViewerState {
     this.layerSpecification = new TopLevelLayerListSpecification(
         this.display, this.dataSourceProvider, this.layerManager, this.chunkManager,
         this.selectionDetailsState, this.selectedLayer, this.navigationState.coordinateSpace,
-        this.navigationState.pose.position, this.toolBinder);
+        this.navigationState.pose.position, this.globalToolBinder);
 
     this.registerDisposer(display.updateStarted.add(() => {
       this.onUpdateDisplay();
@@ -469,12 +459,8 @@ export class Viewer extends RefCounted implements ViewerState {
     this.registerDisposer(setupPositionDropHandlers(element, this.navigationState.position));
 
     this.state = new TrackableViewerState(this);
-    const {crossSectionDepthRange} = this;
-    const {coordinateSpace} = this;
-    this.registerDisposer(this.coordinateSpace.changed.add(() => {
-      const {scales} = coordinateSpace.value;
-      crossSectionDepthRange.value = (scales[2])/(2*scales[0]);
-    }));
+
+    this.registerDisposer(new PlaybackManager(this.display, this.position, this.velocity));
   }
 
   private updateShowBorders() {
@@ -501,7 +487,10 @@ export class Viewer extends RefCounted implements ViewerState {
     topRow.style.alignItems = 'stretch';
 
     const positionWidget = this.registerDisposer(new PositionWidget(
-        this.navigationState.position, this.layerSpecification.coordinateSpaceCombiner));
+        this.navigationState.position, this.layerSpecification.coordinateSpaceCombiner, {
+          velocity: this.velocity,
+          getToolBinder: () => this.toolBinder,
+        }));
     this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
         this.uiControlVisibility.showLocation, positionWidget.element));
     topRow.appendChild(positionWidget.element);
@@ -531,8 +520,8 @@ export class Viewer extends RefCounted implements ViewerState {
       }
     }
 
-    const annotationToolStatus =
-        this.registerDisposer(new AnnotationToolStatusWidget(this.selectedLayer, this.toolBinder));
+    const annotationToolStatus = this.registerDisposer(
+        new AnnotationToolStatusWidget(this.selectedLayer, this.globalToolBinder));
     topRow.appendChild(annotationToolStatus.element);
     this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
         this.uiControlVisibility.showAnnotationToolStatus, annotationToolStatus.element));
@@ -596,29 +585,10 @@ export class Viewer extends RefCounted implements ViewerState {
       topRow.appendChild(button.element);
     }
 
-    /* START OF CHANGE: Add state loader */
-    this.stateLoader = new StateLoader(this);
-    const userLoader = new UserLoader();
-    const annotationStateLoader = new AnnotationStateLoader(this.annotationsSavedState);
-    topRow.appendChild(userLoader.element);
-    topRow.appendChild(annotationStateLoader.element);
-    topRow.appendChild(this.stateLoader.element);
-    /* END OF CHANGE: Add state loader */
-
     {
       const button = makeIcon({text: '{}', title: 'Edit JSON state'});
       this.registerEventListener(button, 'click', () => {
         this.editJsonState();
-      });
-      this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
-          this.uiControlVisibility.showEditStateButton, button));
-      topRow.appendChild(button);
-    }
-
-    {
-      const button = makeIcon({text: '△', title: 'Edit Polygon Configuration'});
-      this.registerEventListener(button, 'click', () => {
-        this.editPolygonOptions();
       });
       this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
           this.uiControlVisibility.showEditStateButton, button));
@@ -637,16 +607,6 @@ export class Viewer extends RefCounted implements ViewerState {
       this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
           this.uiControlVisibility.showHelpButton, button.element));
       topRow.appendChild(button.element);
-    }
-
-    {
-      const button = makeIcon({text: 'Wiki', title: 'Wiki'});
-      this.registerEventListener(button, 'click', () => {
-        this.showWiki();
-      });
-      this.registerDisposer(new ElementVisibilityFromTrackableBoolean(
-          this.uiControlVisibility.showHelpButton, button));
-      topRow.appendChild(button);
     }
 
     {
@@ -676,8 +636,8 @@ export class Viewer extends RefCounted implements ViewerState {
         new SidePanelManager(this.display, this.layout.element, this.visibility));
     this.registerDisposer(this.sidePanelManager.registerPanel({
       location: this.layerListPanelState.location,
-      makePanel: () =>
-          new LayerListPanel(this.sidePanelManager, this.layerSpecification, this.layerListPanelState),
+      makePanel: () => new LayerListPanel(
+          this.sidePanelManager, this.layerSpecification, this.layerListPanelState),
     }));
     this.registerDisposer(
         new LayerSidePanelManager(this.sidePanelManager, this.selectedLayer.addRef()));
@@ -708,7 +668,7 @@ export class Viewer extends RefCounted implements ViewerState {
               ['3-D projection view', inputEventBindings.perspectiveView]
             ],
             this.layerManager,
-            this.toolBinder,
+            this.globalToolBinder,
         );
       },
     }));
@@ -753,7 +713,7 @@ export class Viewer extends RefCounted implements ViewerState {
       });
     }
 
-    for (const action of ['select']) {
+    for (const action of ['select', 'star']) {
       this.bindAction(action, () => {
         this.mouseState.updateUnconditionally();
         this.layerManager.invokeAction(action);
@@ -791,8 +751,6 @@ export class Viewer extends RefCounted implements ViewerState {
       });
     }
 
-    // Annotation related actions
-
     this.bindAction('annotate', () => {
       const selectedLayer = this.selectedLayer.layer;
       if (selectedLayer === undefined) {
@@ -805,189 +763,7 @@ export class Viewer extends RefCounted implements ViewerState {
             JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
         return;
       }
-      roundViewerZPosition();
       userLayer.tool.value.trigger(this.mouseState);
-    });
-
-    this.bindAction('switch-to-tool-draw-mode', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-
-      if (!(userLayer instanceof AnnotationUserLayer)) return;
-
-      if (userLayer.tool.value instanceof PlaceVolumeTool) {
-        const volumeTool = <PlaceVolumeTool>userLayer.tool.value;
-        if (volumeTool.mode !== ToolMode.DRAW) {
-          userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            ToolMode.DRAW, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            ToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
-        }
-      }
-      else if (userLayer.tool.value instanceof PlaceComTool) {
-        const comTool = <PlaceComTool>userLayer.tool.value;
-        if (comTool.mode !== ToolMode.DRAW) {
-          userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ToolMode.DRAW, comTool.sessionWidgetDiv, comTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
-        }
-      }
-      else if (userLayer.tool.value instanceof PlaceCellTool) {
-        const cellTool = <PlaceCellTool>userLayer.tool.value;
-        if (cellTool.mode !== ToolMode.DRAW) {
-          userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            ToolMode.DRAW, cellTool.sessionWidgetDiv, cellTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            ToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
-        }
-      }
-    });
-
-    this.bindAction('switch-to-tool-edit-mode', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-
-      if (!(userLayer instanceof AnnotationUserLayer)) return;
-
-      if (userLayer.tool.value instanceof PlaceVolumeTool) {
-        const volumeTool = <PlaceVolumeTool>userLayer.tool.value;
-        if (volumeTool.mode !== ToolMode.EDIT) {
-          userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            ToolMode.EDIT, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceVolumeTool(userLayer, {}, volumeTool.session.value, 
-            ToolMode.NOOP, volumeTool.sessionWidgetDiv, volumeTool.icon.value);
-        }
-      } else if (userLayer.tool.value instanceof PlaceComTool) {
-        const comTool = <PlaceComTool>userLayer.tool.value;
-        if (comTool.mode !== ToolMode.EDIT) {
-          userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ToolMode.EDIT, comTool.sessionWidgetDiv, comTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceComTool(userLayer, {}, comTool.session.value, 
-            ToolMode.NOOP, comTool.sessionWidgetDiv, comTool.icon.value);
-        }
-      } else if (userLayer.tool.value instanceof PlaceCellTool) {
-        const cellTool = <PlaceCellTool>userLayer.tool.value;
-        if (cellTool.mode !== ToolMode.EDIT) {
-          userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            ToolMode.EDIT, cellTool.sessionWidgetDiv, cellTool.icon.value);
-        }
-        else {
-          userLayer.tool.value = new PlaceCellTool(userLayer, {}, cellTool.session.value, 
-            ToolMode.NOOP, cellTool.sessionWidgetDiv, cellTool.icon.value);
-        }
-      }
-    });
-
-    this.bindAction('add-vertex-polygon', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null || userLayer.tool.value === undefined) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-
-      if (!(userLayer.tool.value instanceof PlacePolygonTool || userLayer.tool.value instanceof PlaceVolumeTool)) {
-        StatusMessage.showTemporaryMessage(`Please select polygon or volume tool in edit mode to perform this operation`);
-        return;
-      }
-
-      roundViewerZPosition();
-      userLayer.tool.value.addVertexPolygon(this.mouseState);
-    });
-
-    this.bindAction('delete-vertex-polygon', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null || userLayer.tool.value === undefined) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-
-      if (!(userLayer.tool.value instanceof PlacePolygonTool || userLayer.tool.value instanceof PlaceVolumeTool)) {
-        StatusMessage.showTemporaryMessage(`Please select polygon tool in edit mode to perform this operation`);
-        return;
-      }
-
-      userLayer.tool.value.deleteVertexPolygon(this.mouseState);
-    });
-
-    this.bindAction('complete-annotation', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null || userLayer.tool.value === undefined) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-      if(!(userLayer.tool.value instanceof MultiStepAnnotationTool)) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${JSON.stringify(selectedLayer.name)}) does not have annotation tool with complete step.`);
-        return;
-      }
-
-      roundViewerZPosition();
-      (<MultiStepAnnotationTool>userLayer.tool.value).complete();
-    });
-
-    this.bindAction('undo-annotation', () => {
-      const selectedLayer = this.selectedLayer.layer;
-      if (selectedLayer === undefined) {
-        StatusMessage.showTemporaryMessage('The annotate command requires a layer to be selected.');
-        return;
-      }
-      const userLayer = selectedLayer.layer;
-      if (userLayer === null || userLayer.tool.value === undefined) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${
-            JSON.stringify(selectedLayer.name)}) does not have an active annotation tool.`);
-        return;
-      }
-      if(!(userLayer.tool.value instanceof MultiStepAnnotationTool)) {
-        StatusMessage.showTemporaryMessage(`The selected layer (${JSON.stringify(selectedLayer.name)}) does not have annotation tool with complete step.`);
-        return;
-      }
-      (<MultiStepAnnotationTool>userLayer.tool.value).undo(this.mouseState);
     });
 
     this.bindAction('toggle-axis-lines', () => this.showAxisLines.toggle());
@@ -1003,32 +779,27 @@ export class Viewer extends RefCounted implements ViewerState {
 
   private toolInputEventMapBinder = (inputEventMap: EventActionMap, context: RefCounted) => {
     context.registerDisposer(
-          this.inputEventBindings.sliceView.addParent(inputEventMap, Number.POSITIVE_INFINITY));
-    context.registerDisposer(this.inputEventBindings.perspectiveView.addParent(
-          inputEventMap, Number.POSITIVE_INFINITY));
+        this.inputEventBindings.sliceView.addParent(inputEventMap, Number.POSITIVE_INFINITY));
+    context.registerDisposer(
+        this.inputEventBindings.perspectiveView.addParent(inputEventMap, Number.POSITIVE_INFINITY));
   };
 
-  private toolBinder = this.registerDisposer(new ToolBinder(this.toolInputEventMapBinder));
+  private globalToolBinder =
+      this.registerDisposer(new GlobalToolBinder(this.toolInputEventMapBinder));
+
+  public toolBinder = this.registerDisposer(new LocalToolBinder(this, this.globalToolBinder));
 
   activateTool(uppercase: string) {
-    this.toolBinder.activate(uppercase);
-  }
-
-  showWiki() {
-    window.open(WIKI_ADDRESS)
+    this.globalToolBinder.activate(uppercase);
   }
 
   editJsonState() {
     new StateEditorDialog(this);
   }
 
-  editPolygonOptions() {
-    new PolygonOptionsDialog();
-  }
-
   showStatistics(value: boolean|undefined = undefined) {
     if (value === undefined) {
-      value = !this.statisticsDisplayState.location.value;
+      value = !this.statisticsDisplayState.location.visible;
     }
     this.statisticsDisplayState.location.visible = value;
   }
@@ -1051,29 +822,4 @@ export class Viewer extends RefCounted implements ViewerState {
       }
     }
   }
-}
-
-/**
- * Fetches the viewer and rounds the z-coordinate of viewer to integral value of z-coordinate + 0.5
- * This is required to make sure all annotations are drawn with z-values of integral + 0.5.
- */
-export function roundViewerZPosition() {
-  //@ts-ignore
-  const viewer = window['viewer'];
-  const newPoint = new Float32Array(viewer.position.value);
-  roundZCoordinate(newPoint);
-  viewer.position.value = newPoint;
-}
-
-/**
- * Takes a point and rounds the points z-value to integral value of z + 0.5
- * @param point Input (x,y,z) point to be rounded.
- */
-export function roundZCoordinate(point: Float32Array) {
-  if (point.length == 3) {
-    point[2] = Math.floor(point[2]) + 0.5;
-  } else if (point.length == 4) {
-    point[3] = Math.floor(point[3]) + 0.5;
-  }
-  return point;
 }

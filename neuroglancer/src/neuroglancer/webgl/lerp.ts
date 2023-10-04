@@ -18,7 +18,7 @@
  * @file Defines lerp/invlerp functionality for all supported data types.
  */
 
-import {DataType} from 'neuroglancer/util/data_type';
+import {DataType, DATA_TYPE_SIGNED} from 'neuroglancer/util/data_type';
 import {DataTypeInterval} from 'neuroglancer/util/lerp';
 import {Uint64} from 'neuroglancer/util/uint64';
 import {ShaderBuilder, ShaderCodePart, ShaderProgram} from 'neuroglancer/webgl/shader';
@@ -66,17 +66,23 @@ struct Uint64LerpParameters {
   ],
 };
 
-
-function getFloatInvlerpImpl(dataType: DataType) {
-  const shaderDataType = getShaderType(dataType);
-  let code = `
-float computeInvlerp(${shaderDataType} inputValue, vec2 p) {
-  float outputValue = float(toRaw(inputValue));
+const glsl_computeInvlerpFloat = `
+float computeInvlerp(float inputValue, vec2 p) {
+  float outputValue = inputValue;
   outputValue = (outputValue - p[0]) * p[1];
   return outputValue;
 }
 `;
-  return [dataTypeShaderDefinition[dataType], code];
+
+
+function getIntFloatInvlerpImpl(dataType: DataType) {
+  const shaderDataType = getShaderType(dataType);
+  let code = `
+float computeInvlerp(${shaderDataType} inputValue, vec2 p) {
+  return computeInvlerp(float(toRaw(inputValue)), p);
+}
+`;
+  return [dataTypeShaderDefinition[dataType], glsl_computeInvlerpFloat, code];
 }
 
 function getInt32InvlerpImpl(dataType: DataType) {
@@ -87,8 +93,7 @@ function getInt32InvlerpImpl(dataType: DataType) {
     dataTypeShaderDefinition[dataType],
     glsl_dataTypeLerpParameters[dataType],
     `
-float computeInvlerp(${shaderDataType} inputValue, ${pType} p) {
-  ${scalarType} v = toRaw(inputValue);
+float computeInvlerp(${scalarType} v, ${pType} p) {
   uint x;
   if (v >= p.offset) {
     x = uint(v - p.offset);
@@ -99,16 +104,19 @@ float computeInvlerp(${shaderDataType} inputValue, ${pType} p) {
   x >>= p.shift;
   return float(x) * p.multiplier;
 }
+float computeInvlerp(${shaderDataType} inputValue, ${pType} p) {
+  return computeInvlerp(toRaw(inputValue), p);
+}
 `,
   ];
 }
 
 export const glsl_dataTypeComputeInvlerp: Record<DataType, ShaderCodePart> = {
-  [DataType.UINT8]: getFloatInvlerpImpl(DataType.UINT8),
-  [DataType.INT8]: getFloatInvlerpImpl(DataType.INT8),
-  [DataType.UINT16]: getFloatInvlerpImpl(DataType.UINT16),
-  [DataType.INT16]: getFloatInvlerpImpl(DataType.INT16),
-  [DataType.FLOAT32]: getFloatInvlerpImpl(DataType.FLOAT32),
+  [DataType.UINT8]: getIntFloatInvlerpImpl(DataType.UINT8),
+  [DataType.INT8]: getIntFloatInvlerpImpl(DataType.INT8),
+  [DataType.UINT16]: getIntFloatInvlerpImpl(DataType.UINT16),
+  [DataType.INT16]: getIntFloatInvlerpImpl(DataType.INT16),
+  [DataType.FLOAT32]: glsl_computeInvlerpFloat,
   [DataType.UINT32]: getInt32InvlerpImpl(DataType.UINT32),
   [DataType.INT32]: getInt32InvlerpImpl(DataType.INT32),
   [DataType.UINT64]: [
@@ -247,18 +255,28 @@ function defineLerpUniforms(
 }
 
 export function defineInvlerpShaderFunction(
-    builder: ShaderBuilder, name: string, dataType: DataType, clamp = false): ShaderCodePart {
-  return [
-    dataTypeShaderDefinition[dataType],
-    defineLerpUniforms(builder, name, dataType),
-    glsl_dataTypeComputeInvlerp[dataType],
-    `
-float ${name}(${getShaderType(dataType)} inputValue) {
+  builder: ShaderBuilder, name: string, dataType: DataType, clamp = false): ShaderCodePart {
+  const shaderType = getShaderType(dataType);
+  let code = `
+float ${name}(${shaderType} inputValue) {
   float v = computeInvlerp(inputValue, uLerpParams_${name});
   ${!clamp ? '' : 'v = clamp(v, 0.0, 1.0);'}
   return v;
 }
-`,
+`;
+  if (dataType !== DataType.UINT64 && dataType !== DataType.FLOAT32) {
+    const scalarType = DATA_TYPE_SIGNED[dataType] ? 'int' : 'uint';
+    code += `
+float ${name}(${scalarType} inputValue) {
+  return ${name}(${shaderType}(inputValue));
+}
+`;
+  }
+  return [
+    dataTypeShaderDefinition[dataType],
+    defineLerpUniforms(builder, name, dataType),
+    glsl_dataTypeComputeInvlerp[dataType],
+    code,
   ];
 }
 
@@ -322,94 +340,5 @@ export function enableLerpShaderFunction(
       gl.uniform3ui(bLocation, lower.low, lower.high, shift);
       gl.uniform1f(shader.uniform(`uLerpScalar_${name}`), scalar);
     }
-  }
-}
-
-export const defaultDataTypeRange: Record<DataType, DataTypeInterval> = {
-  [DataType.UINT8]: [0, 0xff],
-  [DataType.INT8]: [-0x80, 0x7f],
-  [DataType.UINT16]: [0, 0xffff],
-  [DataType.INT16]: [-0x8000, 0x7fff],
-  [DataType.UINT32]: [0, 0xffffffff],
-  [DataType.INT32]: [-0x80000000, 0x7fffffff],
-  [DataType.UINT64]: [Uint64.ZERO, new Uint64(0xffffffff, 0xffffffff)],
-  [DataType.FLOAT32]: [0, 1],
-};
-
-export function computeLerp(range: DataTypeInterval, dataType: DataType, value: number): number|
-    Uint64 {
-  if (typeof range[0] === 'number') {
-    const minValue = range[0] as number;
-    const maxValue = range[1] as number;
-    let result = minValue * (1 - value) + maxValue * value;
-    if (dataType !== DataType.FLOAT32) {
-      const dataTypeRange = defaultDataTypeRange[dataType];
-      result = Math.round(result);
-      result = Math.max(dataTypeRange[0] as number, result);
-      result = Math.min(dataTypeRange[1] as number, result);
-    }
-    return result;
-  } else {
-    let minValue = range[0] as Uint64;
-    let maxValue = range[1] as Uint64;
-    if (Uint64.compare(minValue, maxValue) > 0) {
-      [minValue, maxValue] = [maxValue, minValue];
-      value = 1 - value;
-    }
-    const scalar = Uint64.subtract(tempUint64, maxValue, minValue).toNumber();
-    const result = new Uint64();
-    if (value <= 0) {
-      tempUint64.setFromNumber(scalar * -value);
-      Uint64.subtract(result, minValue, Uint64.min(tempUint64, minValue));
-    } else if (value >= 1) {
-      tempUint64.setFromNumber(scalar * (value - 1));
-      Uint64.add(result, maxValue, tempUint64);
-      if (Uint64.less(result, maxValue)) {
-        result.low = result.high = 0xffffffff;
-      }
-    } else {
-      tempUint64.setFromNumber(scalar * value);
-      Uint64.add(result, minValue, tempUint64);
-      if (Uint64.less(result, minValue)) {
-        result.low = result.high = 0xffffffff;
-      }
-    }
-    return result;
-  }
-}
-
-export function getIntervalBoundsEffectiveFraction(dataType: DataType, interval: DataTypeInterval) {
-  switch (dataType) {
-    case DataType.FLOAT32:
-      return 1;
-    case DataType.UINT64: {
-      const diff =
-          Uint64.absDifference(tempUint64, interval[0] as Uint64, interval[1] as Uint64).toNumber();
-      return diff / (diff + 1);
-    }
-    default: {
-      const diff = Math.abs((interval[0] as number) - (interval[1] as number));
-      return diff / (diff + 1);
-    }
-  }
-}
-
-export function computeInvlerp(range: DataTypeInterval, value: number|Uint64): number {
-  if (typeof value === 'number') {
-    const minValue = range[0] as number;
-    const maxValue = range[1] as number;
-    return (value - minValue) / (maxValue - minValue);
-  } else {
-    const minValue = range[0] as Uint64;
-    const maxValue = range[1] as Uint64;
-    let numerator: number;
-    if (Uint64.compare(value, minValue) < 0) {
-      numerator = -Uint64.subtract(tempUint64, minValue, value).toNumber();
-    } else {
-      numerator = Uint64.subtract(tempUint64, value, minValue).toNumber();
-    }
-    let denominator = Uint64.absDifference(tempUint64, maxValue, minValue).toNumber();
-    if (Uint64.compare(minValue, maxValue) > 0) denominator *= -1;
-    return numerator / denominator;
   }
 }

@@ -1,8 +1,8 @@
 import './user_loader.css';
 import { makeIcon } from 'neuroglancer/widget/icon';
 import { registerEventListener } from 'neuroglancer/util/disposable';
-import { database, dbRef, userDataRef } from 'neuroglancer/services/firebase';
-import { child, get, off, ref, update, } from "firebase/database";
+import { database, userDataRef } from 'neuroglancer/services/firebase';
+import { off, ref, update, } from "firebase/database";
 import { fetchOk } from 'neuroglancer/util/http_request';
 import { urlParams } from 'neuroglancer/services/state_loader';
 import { StatusMessage } from 'neuroglancer/status';
@@ -26,7 +26,7 @@ export class UserLoader {
     private googleLoginButton: HTMLElement;
     private localLoginButton: HTMLElement;
     private logoutButton: HTMLElement;
-    private users: string[];
+    // private users: string[];
     private user: User;
 
     constructor() {
@@ -56,20 +56,20 @@ export class UserLoader {
                     StatusMessage.showTemporaryMessage('You are not logged in.');
                     this.notLoggedIn();
                 } else {
-                    this.loggedIn(stateID);
+                    this.loggedIn();
                 }
-                this.userList.classList.add('user-list');
+                // this.userList.classList.add('user-list');
                 if (AppSettings.DISPLAY_GOOGLE) {
                     this.element.appendChild(this.googleLoginButton);
                 }
                 this.element.appendChild(this.localLoginButton);
-                this.element.appendChild(this.userList);
-                this.element.appendChild(this.logoutButton);
+                // this.element.appendChild(this.userList);
+                // this.element.appendChild(this.logoutButton);
             });
         }
     }
 
-
+    /*
     private updateUserList(snapshot: any) {
         this.users = [];
         snapshot.forEach((childSnapshot: { val: () => ActiveUser; }) => {
@@ -94,20 +94,10 @@ export class UserLoader {
         this.userList = newList;
     }
 
-    private notLoggedIn() {
-        this.googleLoginButton.style.removeProperty('display');
-        this.localLoginButton.style.removeProperty('display');
-        this.userList.style.display = 'none';
-        this.logoutButton.style.display = 'none';
-        //TODO fixme migrate web 8 -> 9 userDataRef.off("child_changed");
-        off(userDataRef, "child_changed");
-    }
-
     private loggedIn(stateID: string) {
         this.googleLoginButton.style.display = 'none';
         this.localLoginButton.style.display = 'none';
         this.userList.style.removeProperty('display');
-
         if (urlParams.multiUserMode) {
             this.logoutButton.style.removeProperty('display');
             updateUser(stateID, this.user.user_id, this.user.username);
@@ -126,6 +116,22 @@ export class UserLoader {
             userDiv.style.color = 'lightblue';
             this.userList.append(userDiv);
         }
+    }
+    */
+    private loggedIn() {
+        this.googleLoginButton.style.display = 'none';
+        this.localLoginButton.style.display = 'none';
+        this.userList.style.removeProperty('display');
+    }
+
+
+    private notLoggedIn() {
+        this.googleLoginButton.style.removeProperty('display');
+        this.localLoginButton.style.removeProperty('display');
+        this.userList.style.display = 'none';
+        this.logoutButton.style.display = 'none';
+        //TODO fixme migrate web 8 -> 9 userDataRef.off("child_changed");
+        off(userDataRef, "child_changed");
     }
 
     private googleLogin() {

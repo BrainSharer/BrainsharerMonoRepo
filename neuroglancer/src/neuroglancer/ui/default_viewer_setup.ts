@@ -25,7 +25,6 @@ declare var NEUROGLANCER_DEFAULT_STATE_FRAGMENT: string|undefined;
 
 /**
  * Sets up the default neuroglancer viewer.
- new UrlHashBinding(viewer.state, viewer.dataSourceProvider.credentialsManager));
  */
 export function setupDefaultViewer() {
   let viewer = (<any>window)['viewer'] = makeDefaultViewer();
@@ -37,7 +36,6 @@ export function setupDefaultViewer() {
             NEUROGLANCER_DEFAULT_STATE_FRAGMENT :
             undefined
       }));
-  viewer.urlHashBinding = hashBinding;
   viewer.registerDisposer(hashBinding.parseError.changed.add(() => {
     const {value} = hashBinding.parseError;
     if (value !== undefined) {

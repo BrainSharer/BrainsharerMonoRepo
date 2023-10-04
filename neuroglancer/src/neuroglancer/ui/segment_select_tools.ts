@@ -21,7 +21,7 @@
 
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import {removeChildren} from 'neuroglancer/util/dom';
-import {makeToolActivationStatusMessageWithHeader, registerLayerTool, Tool, ToolActivation} from 'neuroglancer/ui/tool';
+import {makeToolActivationStatusMessageWithHeader, registerTool, LayerTool, ToolActivation} from 'neuroglancer/ui/tool';
 import {ActionEvent, EventActionMap, Modifiers} from 'neuroglancer/util/event_action_map';
 import {startRelativeMouseDrag} from 'neuroglancer/util/mouse_drag';
 import {globalModifiers} from 'neuroglancer/util/keyboard_bindings';
@@ -39,7 +39,7 @@ enum ToolState {
   DESELECT,
 };
 
-export class SelectSegmentsTool extends Tool<SegmentationUserLayer> {
+export class SelectSegmentsTool extends LayerTool<SegmentationUserLayer> {
   constructor(layer: SegmentationUserLayer) {
     super(layer);
   }
@@ -90,13 +90,14 @@ export class SelectSegmentsTool extends Tool<SegmentationUserLayer> {
       const {segmentSelectionState} = layer.displayState;
       if (segmentSelectionState.hasSelectedSegment) {
         const segment = segmentSelectionState.selectedSegment;
-        const {visibleSegments} = layer.displayState.segmentationGroupState.value;
+        const {selectedSegments, visibleSegments} = layer.displayState.segmentationGroupState.value;
         switch (currentState) {
           case ToolState.SELECT:
+            selectedSegments.add(segment);
             visibleSegments.add(segment);
             break;
           case ToolState.DESELECT:
-            visibleSegments.delete(segment);
+            selectedSegments.delete(segment);
             break;
         }
       }
@@ -151,7 +152,7 @@ export class SelectSegmentsTool extends Tool<SegmentationUserLayer> {
 }
 
 export function registerSegmentSelectTools() {
-  registerLayerTool(SegmentationUserLayer, SELECT_SEGMENTS_TOOLS_ID, layer => {
+  registerTool(SegmentationUserLayer, SELECT_SEGMENTS_TOOLS_ID, layer => {
     return new SelectSegmentsTool(layer);
   });
 }

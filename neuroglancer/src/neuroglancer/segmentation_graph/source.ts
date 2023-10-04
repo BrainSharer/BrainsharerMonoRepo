@@ -14,17 +14,42 @@
  * limitations under the License.
  */
 
+import {ChunkManager} from 'neuroglancer/chunk_manager/frontend';
+import {RenderLayer} from 'neuroglancer/renderlayer';
 import {VisibleSegmentsState} from 'neuroglancer/segmentation_display_state/base';
+import {SegmentationDisplayState3D} from 'neuroglancer/segmentation_display_state/frontend';
+import {VisibleSegmentEquivalencePolicy} from 'neuroglancer/segmentation_graph/segment_id';
+import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import {WatchableValueInterface} from 'neuroglancer/trackable_value';
 import {Disposer, Owned, RefCounted} from 'neuroglancer/util/disposable';
 import {Uint64} from 'neuroglancer/util/uint64';
+import {DependentViewContext, DependentViewWidget} from 'neuroglancer/widget/dependent_view_widget';
+import {Tab} from 'neuroglancer/widget/tab_view';
+
+export class SegmentationGraphSourceTab extends Tab {
+  constructor(public layer: SegmentationUserLayer) {
+    super();
+    const {element} = this;
+    element.appendChild(
+      this.registerDisposer(new DependentViewWidget(
+                                layer.displayState.segmentationGroupState.value.graph,
+                                (graph, parent, context) => {
+                                  if (graph?.tabContents) {
+                                    parent.appendChild(graph.tabContents(layer, context, this));
+                                  }
+                                }))
+        .element);
+
+  }
+}
 
 export abstract class SegmentationGraphSource {
-  abstract connect(segmentsState: VisibleSegmentsState): Owned<SegmentationGraphSourceConnection>;
+  abstract connect(layer: SegmentationUserLayer): Owned<SegmentationGraphSourceConnection>;
   abstract merge(a: Uint64, b: Uint64): Promise<Uint64>;
   abstract split(include: Uint64, exclude: Uint64): Promise<{include: Uint64, exclude: Uint64}>;
   abstract trackSegment(id: Uint64, callback: (id: Uint64|null) => void): () => void;
-  abstract get highBitRepresentative(): boolean;
+  abstract get visibleSegmentEquivalencePolicy(): VisibleSegmentEquivalencePolicy;
+  tabContents?(layer: SegmentationUserLayer, context: DependentViewContext, tab: SegmentationGraphSourceTab): HTMLDivElement;
 }
 
 export interface ComputedSplit {
@@ -44,6 +69,16 @@ export abstract class SegmentationGraphSourceConnection<
     super();
   }
   abstract computeSplit(include: Uint64, exclude: Uint64): ComputedSplit|undefined;
+
+  createRenderLayers(
+      chunkManager: ChunkManager,
+      displayState: SegmentationDisplayState3D,
+      localPosition: WatchableValueInterface<Float32Array>): RenderLayer[] {
+    chunkManager;
+    displayState;
+    localPosition;
+    return [];
+  };
 }
 
 export function trackWatchableValueSegment(
@@ -85,10 +120,3 @@ export function trackWatchableValueSegment(
   };
   return disposer;
 }
-
-// Returns `true` if `segmentId` is a base segment id, rather than a segment id added to the graph.
-export function isBaseSegmentId(segmentId: Uint64) {
-  return (segmentId.high >>> 31) ? false : true;
-}
-
-export const UNKNOWN_NEW_SEGMENT_ID = new Uint64(0xffffffff, 0xffffffff);

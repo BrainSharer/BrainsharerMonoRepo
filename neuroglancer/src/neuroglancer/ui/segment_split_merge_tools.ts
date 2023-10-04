@@ -17,11 +17,11 @@
 import './segment_split_merge_tools.css';
 
 import {augmentSegmentId, bindSegmentListWidth, makeSegmentWidget, registerCallbackWhenSegmentationDisplayStateChanged, resetTemporaryVisibleSegmentsState, Uint64MapEntry} from 'neuroglancer/segmentation_display_state/frontend';
-import {isBaseSegmentId} from 'neuroglancer/segmentation_graph/source';
+import {isBaseSegmentId, VisibleSegmentEquivalencePolicy} from 'neuroglancer/segmentation_graph/segment_id';
 import {SegmentationUserLayer} from 'neuroglancer/segmentation_user_layer';
 import {StatusMessage} from 'neuroglancer/status';
 import {WatchableValue} from 'neuroglancer/trackable_value';
-import {makeToolActivationStatusMessageWithHeader, registerLayerTool, Tool, ToolActivation} from 'neuroglancer/ui/tool';
+import {LayerTool, makeToolActivationStatusMessageWithHeader, registerTool, ToolActivation} from 'neuroglancer/ui/tool';
 import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
 import {removeChildren} from 'neuroglancer/util/dom';
 import {EventActionMap} from 'neuroglancer/util/keyboard_bindings';
@@ -41,7 +41,7 @@ const SPLIT_SEGMENTS_INPUT_EVENT_MAP = EventActionMap.fromObject({
   'at:shift?+mousedown2': {action: 'set-anchor'},
 });
 
-export class MergeSegmentsTool extends Tool<SegmentationUserLayer> {
+export class MergeSegmentsTool extends LayerTool<SegmentationUserLayer> {
   lastAnchorBaseSegment = new WatchableValue<Uint64|undefined>(undefined);
 
   constructor(layer: SegmentationUserLayer) {
@@ -57,7 +57,12 @@ export class MergeSegmentsTool extends Tool<SegmentationUserLayer> {
       const mappedAnchorSegment = segmentEquivalences.get(anchorSegment);
       if (!Uint64.equal(segmentSelectionState.selectedSegment, mappedAnchorSegment)) return;
       const base = segmentSelectionState.baseSelectedSegment;
-      if (segmentEquivalences.disjointSets.highBitRepresentative.value && !isBaseSegmentId(base)) {
+      const isBase = isBaseSegmentId(base);
+      // TODO: This would ideally rely on a separate HIGH_BIT_REPRESENTATIVE flag,
+      // but it nonetheless still works correctly for nggraph and local equivalences.
+      const equivalencePolicy = segmentEquivalences.disjointSets.visibleSegmentEquivalencePolicy.value;
+      if ((equivalencePolicy & VisibleSegmentEquivalencePolicy.NONREPRESENTATIVE_EXCLUDED && isBase) ||
+          (equivalencePolicy & VisibleSegmentEquivalencePolicy.REPRESENTATIVE_EXCLUDED && !isBase)) {
         return;
       }
       this.lastAnchorBaseSegment.value = base.clone();
@@ -210,7 +215,7 @@ export class MergeSegmentsTool extends Tool<SegmentationUserLayer> {
   }
 }
 
-export class SplitSegmentsTool extends Tool<SegmentationUserLayer> {
+export class SplitSegmentsTool extends LayerTool<SegmentationUserLayer> {
   toJSON() {
     return ANNOTATE_SPLIT_SEGMENTS_TOOL_ID;
   }
@@ -272,7 +277,7 @@ export class SplitSegmentsTool extends Tool<SegmentationUserLayer> {
       let otherSegmentAugmented: Uint64MapEntry|undefined;
       const updateTemporaryState = () => {
         const {segmentEquivalences} = segmentationGroupState;
-        const {graphConnection} = this.layer;
+        const {graphConnection: {value: graphConnection}} = this.layer;
         if (!anchorSegmentValid || graphConnection === undefined) {
           resetTemporaryVisibleSegmentsState(segmentationGroupState);
           return;
@@ -386,11 +391,11 @@ export class SplitSegmentsTool extends Tool<SegmentationUserLayer> {
 }
 
 export function registerSegmentSplitMergeTools() {
-  registerLayerTool(SegmentationUserLayer, ANNOTATE_MERGE_SEGMENTS_TOOL_ID, layer => {
+  registerTool(SegmentationUserLayer, ANNOTATE_MERGE_SEGMENTS_TOOL_ID, layer => {
     return new MergeSegmentsTool(layer);
   });
 
-  registerLayerTool(SegmentationUserLayer, ANNOTATE_SPLIT_SEGMENTS_TOOL_ID, layer => {
+  registerTool(SegmentationUserLayer, ANNOTATE_SPLIT_SEGMENTS_TOOL_ID, layer => {
     return new SplitSegmentsTool(layer);
   });
 }

@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
+import {VisibleSegmentEquivalencePolicy} from 'neuroglancer/segmentation_graph/segment_id';
 import {SharedDisjointUint64Sets} from 'neuroglancer/shared_disjoint_sets';
 import {SharedWatchableValue} from 'neuroglancer/shared_watchable_value';
+import {Uint64OrderedSet} from 'neuroglancer/uint64_ordered_set';
 import {Uint64Set} from 'neuroglancer/uint64_set';
 import {RefCounted} from 'neuroglancer/util/disposable';
 import {Uint64} from 'neuroglancer/util/uint64';
 
 export interface VisibleSegmentsState {
   visibleSegments: Uint64Set;
+  selectedSegments: Uint64OrderedSet;
   segmentEquivalences: SharedDisjointUint64Sets;
 
   // Specifies a temporary/alternative set of segments/equivalences to use for display purposes,
@@ -32,14 +35,14 @@ export interface VisibleSegmentsState {
   useTemporarySegmentEquivalences: SharedWatchableValue<boolean>;
 }
 
-export const VISIBLE_SEGMENTS_STATE_PROPERTIES: (keyof VisibleSegmentsState)[] = [
+export const VISIBLE_SEGMENTS_STATE_PROPERTIES = [
   'visibleSegments',
   'segmentEquivalences',
   'temporaryVisibleSegments',
   'temporarySegmentEquivalences',
   'useTemporaryVisibleSegments',
   'useTemporarySegmentEquivalences',
-];
+] as const;
 
 export function onVisibleSegmentsStateChanged(
     context: RefCounted, state: VisibleSegmentsState, callback: () => void) {
@@ -81,17 +84,24 @@ export function forEachVisibleSegment(
     state: VisibleSegmentsState, callback: (objectId: Uint64, rootObjectId: Uint64) => void) {
   const visibleSegments = getVisibleSegments(state);
   const segmentEquivalences = getSegmentEquivalences(state);
-  const highBitRepresentative = segmentEquivalences.disjointSets.highBitRepresentative.value;
-  for (let rootObjectId of visibleSegments) {
-    // TODO(jbms): Remove this check if logic is added to ensure that it always holds.
-    if (!segmentEquivalences.disjointSets.isMinElement(rootObjectId)) {
-      continue;
-    }
-    for (let objectId of segmentEquivalences.setElements(rootObjectId)) {
-      if (highBitRepresentative && isHighBitSegment(objectId)) {
+  const equivalencePolicy = segmentEquivalences.disjointSets.visibleSegmentEquivalencePolicy.value;
+  for (let rootObjectId of visibleSegments.unsafeKeys()) {
+    if (equivalencePolicy & VisibleSegmentEquivalencePolicy.NONREPRESENTATIVE_EXCLUDED) {
+      const rootObjectId2 = segmentEquivalences.get(rootObjectId);
+      callback(rootObjectId, rootObjectId2);
+    } else {
+      // TODO(jbms): Remove this check if logic is added to ensure that it always holds.
+      if (!segmentEquivalences.disjointSets.isMinElement(rootObjectId)) {
         continue;
       }
-      callback(objectId, rootObjectId);
+      for (let objectId of segmentEquivalences.setElements(rootObjectId)) {
+        if (equivalencePolicy & VisibleSegmentEquivalencePolicy.REPRESENTATIVE_EXCLUDED &&
+            equivalencePolicy & VisibleSegmentEquivalencePolicy.MAX_REPRESENTATIVE &&
+            isHighBitSegment(objectId)) {
+          continue;
+        }
+        callback(objectId, rootObjectId);
+      }
     }
   }
 }

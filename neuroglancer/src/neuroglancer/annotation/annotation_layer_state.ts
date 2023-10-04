@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {AnnotationSource} from 'neuroglancer/annotation';
+import {AnnotationPropertySpec, AnnotationSource, propertyTypeDataType} from 'neuroglancer/annotation';
 import {MultiscaleAnnotationSource} from 'neuroglancer/annotation/frontend_source';
 import {LayerDataSource} from 'neuroglancer/layer_data_source';
 import {ChunkTransformParameters, getChunkTransformParameters, RenderLayerTransformOrError} from 'neuroglancer/render_coordinate_transform';
@@ -29,6 +29,7 @@ import {vec3} from 'neuroglancer/util/geom';
 import {WatchableMap} from 'neuroglancer/util/watchable_map';
 import {makeTrackableFragmentMain, makeWatchableShaderError} from 'neuroglancer/webgl/dynamic_shader';
 import {getFallbackBuilderState, parseShaderUiControls, ShaderControlState} from 'neuroglancer/webgl/shader_ui_controls';
+import { DataType } from '../util/data_type';
 
 export class AnnotationHoverState extends WatchableValue<
     {id: string, partIndex: number, annotationLayerState: AnnotationLayerState}|undefined> {}
@@ -80,48 +81,35 @@ export class WatchableAnnotationRelationshipStates extends
   }
 }
 
-/* START OF CHANGE: Point Annotation Marker Size */
 const DEFAULT_FRAGMENT_MAIN = `
-#uicontrol float com_vertex_size slider(min=0, max=10, default=1)
-#uicontrol float com_vertex_border_width slider(min=0, max=5, default=1)
-#uicontrol float com_opacity slider(min=0, max=1, default=1)
-#uicontrol float cell_vertex_size slider(min=0, max=10, default=1)
-#uicontrol float cell_vertex_border_width slider(min=0, max=5, default=1)
-#uicontrol float cell_opacity slider(min=0, max=1, default=1)
-#uicontrol float polygon_vertex_size slider(min=0, max=10, default=7)
-#uicontrol float polygon_vertex_border_width slider(min=0, max=5, default=3)
-#uicontrol float polygon_opacity slider(min=0, max=1, default=1)
-#uicontrol float polygon_line_width slider(min=0, max=5, default=1)
 void main() {
-  setColor(prop_color());
-  setVisibility(prop_visibility());
-  setEndpointVisibility(prop_visibility());
-  setComVisibility(prop_visibility());
-  setCellVisibility(prop_visibility());
-  setCellMarkerSize(cell_vertex_size);
-  setCellMarkerBorderWidth(cell_vertex_border_width);
-  setCellOpacity(cell_opacity);
-  setComMarkerSize(com_vertex_size);
-  setComMarkerBorderWidth(com_vertex_border_width);
-  setComOpacity(com_opacity);
-  setEndpointMarkerSize(polygon_vertex_size);
-  setEndpointMarkerBorderWidth(polygon_vertex_border_width);
-  setEndpointOpacity(polygon_opacity);
-  setLineOpacity(polygon_opacity);
-  setLineWidth(polygon_line_width);
+  setColor(defaultColor());
 }
 `;
-/* END OF CHANGE: Point Annotation Marker Size */
 
 export class AnnotationDisplayState extends RefCounted {
+  annotationProperties = new WatchableValue<AnnotationPropertySpec[]|undefined>(undefined);
   shader = makeTrackableFragmentMain(DEFAULT_FRAGMENT_MAIN);
-  shaderControls = new ShaderControlState(this.shader);
+  shaderControls = new ShaderControlState(
+      this.shader, makeCachedLazyDerivedWatchableValue(annotationProperties => {
+        const properties = new Map<string, DataType>();
+        if (annotationProperties === undefined) {
+          return null;
+        }
+        for (const property of annotationProperties) {
+          const dataType = propertyTypeDataType[property.type];
+          if (dataType === undefined) continue;
+          properties.set(property.identifier, dataType);
+        }
+        return {properties};
+      }, this.annotationProperties));
   fallbackShaderControls =
       new WatchableValue(getFallbackBuilderState(parseShaderUiControls(DEFAULT_FRAGMENT_MAIN)));
   shaderError = makeWatchableShaderError();
   color = new TrackableRGB(vec3.fromValues(1, 1, 0));
   relationshipStates = this.registerDisposer(new WatchableAnnotationRelationshipStates());
   ignoreNullSegmentFilter = new TrackableBoolean(true);
+  disablePicking = new WatchableValue(false);
   displayUnfiltered = makeCachedLazyDerivedWatchableValue((map, ignoreNullSegmentFilter) => {
     for (const state of map.values()) {
       if (state.showMatches.value) {
@@ -148,6 +136,7 @@ export class AnnotationLayerState extends RefCounted {
   subsourceId: string;
   subsourceIndex: number;
   displayState: AnnotationDisplayState;
+  subsubsourceId?: string;
 
   readonly chunkTransform: WatchableValueInterface<ValueOrError<ChunkTransformParameters>>;
 
@@ -159,6 +148,7 @@ export class AnnotationLayerState extends RefCounted {
     dataSource: LayerDataSource,
     subsourceId: string,
     subsourceIndex: number,
+    subsubsourceId?: string,
     role?: RenderLayerRole,
   }) {
     super();
@@ -180,6 +170,7 @@ export class AnnotationLayerState extends RefCounted {
     this.dataSource = options.dataSource;
     this.subsourceId = options.subsourceId;
     this.subsourceIndex = options.subsourceIndex;
+    this.subsubsourceId = options.subsubsourceId;
   }
 
   get sourceIndex() {

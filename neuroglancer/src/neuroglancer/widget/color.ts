@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
+import {WatchableValueInterface} from 'neuroglancer/trackable_value';
 import {parseRGBColorSpecification, serializeColor} from 'neuroglancer/util/color';
+import {hsvToRgb, rgbToHsv} from 'neuroglancer/util/colorspace';
 import {RefCounted} from 'neuroglancer/util/disposable';
-import {removeFromParent} from 'neuroglancer/util/dom';
-import { hsvToRgb, rgbToHsv } from '../util/colorspace';
 import {vec3} from 'neuroglancer/util/geom';
-import { WatchableValueInterface } from '../trackable_value';
 
 export class ColorWidget<Color extends vec3|undefined = vec3> extends RefCounted {
   element = document.createElement('input');
@@ -62,41 +61,5 @@ export class ColorWidget<Color extends vec3|undefined = vec3> extends RefCounted
     temp[0] = hue / 256;
     hsvToRgb(temp, temp[0], temp[1], temp[2]);
     this.model.value = temp as Color;
-  }
-}
-
-/**
- * AnnotationColorWidget creates an color HTML element for 
- * selecting the color while annotating.
- */
-export class AnnotationColorWidget extends RefCounted {
-  element = document.createElement('input');
-
-  constructor() {
-    super();
-    const {element} = this;
-    element.classList.add('neuroglancer-color-widget');
-    element.type = 'color';
-  }
-  /**
-   * Sets the color of the widget element
-   * @param color input color to be set
-   */
-  setColor(color: string) {
-    this.element.value = color;
-  }
-  /**
-   * 
-   * @returns returns the element color
-   */
-  getColor() {
-    return this.element.value;
-  }
-  /**
-   * Delets the element from the HTML element it was embedded in.
-   */
-  disposed() {
-    removeFromParent(this.element);
-    super.disposed();
   }
 }

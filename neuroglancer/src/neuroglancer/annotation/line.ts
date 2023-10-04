@@ -26,9 +26,8 @@ import {defineLineShader, drawLines, initializeLineShader} from 'neuroglancer/we
 import {ShaderBuilder, ShaderProgram} from 'neuroglancer/webgl/shader';
 import {defineVectorArrayVertexShaderInput} from 'neuroglancer/webgl/shader_lib';
 import {defineVertexId, VertexIdHelper} from 'neuroglancer/webgl/vertex_id';
-import { arraysEqual } from '../util/array';
 
-export const FULL_OBJECT_PICK_OFFSET = 0;
+const FULL_OBJECT_PICK_OFFSET = 0;
 const ENDPOINTS_PICK_OFFSET = FULL_OBJECT_PICK_OFFSET + 1;
 const PICK_IDS_PER_INSTANCE = ENDPOINTS_PICK_OFFSET + 2;
 
@@ -38,8 +37,6 @@ void setEndpointMarkerSize(float startSize, float endSize) {}
 void setEndpointMarkerBorderWidth(float startSize, float endSize) {}
 void setEndpointMarkerColor(vec4 startColor, vec4 endColor) {}
 void setEndpointMarkerBorderColor(vec4 startColor, vec4 endColor) {}
-void setEndpointOpacity(float opacity) {}
-void setEndpointVisibility(float visibility) {}
 `);
 }
 
@@ -47,8 +44,6 @@ function defineNoOpLineSetters(builder: ShaderBuilder) {
   builder.addVertexCode(`
 void setLineWidth(float width) {}
 void setLineColor(vec4 startColor, vec4 endColor) {}
-void setLineOpacity(float opacity) {}
-void setVisibility(float visibility) {}
 `);
 }
 
@@ -70,26 +65,16 @@ class RenderHelper extends AnnotationRenderHelper {
         this.defineShader(builder);
         defineLineShader(builder);
         builder.addVarying(`highp float[${rank}]`, 'vModelPosition');
-        builder.addVarying(`highp float`, 'vLineOpacity');
-        builder.addVarying(`highp float`, 'vVisibility');
         builder.addVertexCode(`
 float ng_LineWidth;
-float ng_Visibility;
 `);
         defineNoOpEndpointMarkerSetters(builder);
         builder.addVertexCode(`
 void setLineWidth(float width) {
   ng_LineWidth = width;
 }
-void setLineOpacity(float opacity) {
-  vLineOpacity = opacity;
-}
 void setLineColor(vec4 startColor, vec4 endColor) {
   vColor = mix(startColor, endColor, getLineEndpointCoefficient());
-}
-void setVisibility(float visibility) {
-  vVisibility = visibility;
-  ng_Visibility = visibility;
 }
 `);
         builder.setVertexMain(`
@@ -99,25 +84,18 @@ for (int i = 0; i < ${rank}; ++i) {
   vModelPosition[i] = mix(modelPositionA[i], modelPositionB[i], getLineEndpointCoefficient());
 }
 ng_LineWidth = 1.0;
-ng_Visibility = 1.0;
-vLineOpacity = 1.0;
 vColor = vec4(0.0, 0.0, 0.0, 0.0);
-vVisibility = 1.0;
 ${this.invokeUserMain}
-if (ng_Visibility == 1.0) {
-  emitLine(uModelViewProjection * vec4(projectModelVectorToSubspace(modelPositionA), 1.0),
-          uModelViewProjection * vec4(projectModelVectorToSubspace(modelPositionB), 1.0),
-          ng_LineWidth);
-}
+emitLine(uModelViewProjection * vec4(projectModelVectorToSubspace(modelPositionA), 1.0),
+         uModelViewProjection * vec4(projectModelVectorToSubspace(modelPositionB), 1.0),
+         ng_LineWidth);
 ${this.setPartIndex(builder)};
 `);
         builder.setFragmentMain(`
 float clipCoefficient = getSubspaceClipCoefficient(vModelPosition);
-if (vVisibility == 1.0) {
-  emitAnnotation(vec4(vColor.rgb, vColor.a * getLineAlpha() *
-                                  ${this.getCrossSectionFadeFactor()} *
-                                  clipCoefficient * vLineOpacity));
-}
+emitAnnotation(vec4(vColor.rgb, vColor.a * getLineAlpha() *
+                                ${this.getCrossSectionFadeFactor()} *
+                                clipCoefficient));
 `);
       });
 
@@ -127,14 +105,11 @@ if (vVisibility == 1.0) {
         this.defineShader(builder);
         defineCircleShader(builder, this.targetIsSliceView);
         builder.addVarying('highp float', 'vClipCoefficient');
-        builder.addVarying('highp float', 'vEndpointOpacity');
-        builder.addVarying('highp float', 'vEndpointVisibility');
         builder.addVarying('highp vec4', 'vBorderColor');
         defineNoOpLineSetters(builder);
         builder.addVertexCode(`
 float ng_markerDiameter;
 float ng_markerBorderWidth;
-float ng_endPointVisibility;
 int getEndpointIndex() {
   return gl_VertexID / ${VERTICES_PER_CIRCLE};
 }
@@ -150,13 +125,6 @@ void setEndpointMarkerColor(vec4 startColor, vec4 endColor) {
 void setEndpointMarkerBorderColor(vec4 startColor, vec4 endColor) {
   vBorderColor = mix(startColor, endColor, float(getEndpointIndex()));
 }
-void setEndpointOpacity(float opacity) {
-  vEndpointOpacity = opacity;
-}
-void setEndpointVisibility(float visibility) {
-  ng_endPointVisibility = visibility;
-  vEndpointVisibility = visibility;
-}
 `);
         builder.setVertexMain(`
 float modelPosition[${rank}] = getVertexPosition0();
@@ -164,25 +132,19 @@ float modelPositionB[${rank}] = getVertexPosition1();
 for (int i = 0; i < ${rank}; ++i) {
   modelPosition[i] = mix(modelPosition[i], modelPositionB[i], float(getEndpointIndex()));
 }
-vEndpointOpacity = 1.0;
 vClipCoefficient = getSubspaceClipCoefficient(modelPosition);
 vColor = vec4(0.0, 0.0, 0.0, 0.0);
 vBorderColor = vec4(0.0, 0.0, 0.0, 1.0);
-ng_markerDiameter = 7.0;
-ng_markerBorderWidth = 3.0;
+ng_markerDiameter = 5.0;
+ng_markerBorderWidth = 1.0;
 ${this.invokeUserMain}
-if (ng_endPointVisibility == 1.0) {
-  emitCircle(uModelViewProjection * vec4(projectModelVectorToSubspace(modelPosition), 1.0), ng_markerDiameter, ng_markerBorderWidth);
-}
+emitCircle(uModelViewProjection * vec4(projectModelVectorToSubspace(modelPosition), 1.0), ng_markerDiameter, ng_markerBorderWidth);
 ${this.setPartIndex(builder, 'uint(getEndpointIndex()) + 1u')};
 `);
         builder.setFragmentMain(`
 vec4 color = getCircleColor(vColor, vBorderColor);
 color.a *= vClipCoefficient;
-color.a *= vEndpointOpacity;
-if (vEndpointVisibility == 1.0) {
-  emitAnnotation(color);
-}
+emitAnnotation(color);
 `);
       });
 
@@ -193,7 +155,7 @@ if (vEndpointVisibility == 1.0) {
       const binder = shader.vertexShaderInputBinders['VertexPosition'];
       binder.enable(1);
       this.gl.bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, context.buffer.buffer);
-      binder.bind(this.serializedBytesPerAnnotation, context.bufferOffset);
+      binder.bind(this.geometryDataStride, context.bufferOffset);
       const {vertexIdHelper} = this;
       vertexIdHelper.enable();
       callback(shader);
@@ -285,41 +247,3 @@ registerAnnotationTypeRenderHandler<Line>(AnnotationType.LINE, {
     return baseLine;
   }
 });
-
-/**
- * 
- * @param partIndex the part of the annotation that is picked with mouse
- * @returns returns true if the part index indicates a corner is picked.
- */
-export function isCornerPicked(partIndex: number) : boolean {
-  return partIndex === FULL_OBJECT_PICK_OFFSET + 1 || partIndex === FULL_OBJECT_PICK_OFFSET + 2
-}
-
-/**
- * Finds which part index is picked based on the annotation and the point.
- * @param annotation The line annotation for which part index needs to be found based on point.
- * @param point Input point of the line.
- * @returns part index corresponding to the point.
- */
-export function getPointPartIndex(annotation: Line, point: Float32Array) : number {
-  if (arraysEqual(annotation.pointA, point)) return FULL_OBJECT_PICK_OFFSET + 1;
-  if (arraysEqual(annotation.pointB, point)) return FULL_OBJECT_PICK_OFFSET + 2;
-  return -1;
-}
-
-/**
- * Finds the point corresponding to the part index picked.
- * @param annotation Annotation for which the point needs to be found.
- * @param partIndex input part index
- * @returns undefined if the part index is valid otherwise 
- * returns the point corresponding to the part index.
- */
-export function getEndPointBasedOnPartIndex(annotation: Line, partIndex: number) : Float32Array|undefined {
-  if (partIndex === FULL_OBJECT_PICK_OFFSET + 1) {
-    return annotation.pointA;
-  }
-  else if (partIndex === FULL_OBJECT_PICK_OFFSET + 2) {
-    return annotation.pointB;
-  }
-  return undefined;
-}

@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * Modified by UCSD.
  */
 
 import {TypedArray} from 'neuroglancer/util/array';
@@ -67,7 +66,7 @@ export function createHomogeneousScaleMatrix<T extends TypedArray>(
 }
 
 export function createHomogeneousTranslationMatrix<T extends TypedArray>(
-  c: { new(length: number): T }, translation: ArrayLike<number>, square = true): T {
+    c: {new (length: number): T}, translation: ArrayLike<number>, square = true): T {
   const rank = translation.length;
   const stride = square ? rank + 1 : rank;
   const m = createIdentity(c, stride, rank + 1);
@@ -261,48 +260,27 @@ transformVector<Out extends TypedArray, Matrix extends TypedArray, Vector extend
 }
 
 export function permuteRows<Output extends TypedArray, Input extends TypedArray>(
-  output: Output, outputStride: number, input: Input, inputStride: number,
-  outputToInputRow: ReadonlyArray<number>, cols: number) {
-const rows = outputToInputRow.length;
-for (let outRow = 0; outRow < rows; ++outRow) {
-  const inRow = outputToInputRow[outRow];
-  for (let col = 0; col < cols; ++col) {
-    output[col * outputStride + outRow] = input[col * inputStride + inRow];
+    output: Output, outputStride: number, input: Input, inputStride: number,
+    outputToInputRow: ReadonlyArray<number>, cols: number) {
+  const rows = outputToInputRow.length;
+  for (let outRow = 0; outRow < rows; ++outRow) {
+    const inRow = outputToInputRow[outRow];
+    for (let col = 0; col < cols; ++col) {
+      output[col * outputStride + outRow] = input[col * inputStride + inRow];
+    }
   }
-}
-return output;
+  return output;
 }
 
 export function permuteCols<Output extends TypedArray, Input extends TypedArray>(
-  output: Output, outputStride: number, input: Input, inputStride: number,
-  outputToInputCol: ReadonlyArray<number>, rows: number) {
-const cols = outputToInputCol.length;
-for (let outCol = 0; outCol < cols; ++outCol) {
-  const inCol = outputToInputCol[outCol];
-  for (let row = 0; row < rows; ++row) {
-    output[outCol * outputStride + row] = input[inCol * inputStride + row];
-  }
-}
-return output;
-}
-
-/**
- * Convert a transformation matrix of rank 3 to a new transformation matrix with a higher rank.
- * Only the values in the upper left corner are retained in this process
- * @param matrix: old transformation matrix
- * @param newRank: new rank, should be larger than 3
- */
- export function dimensionTransform(matrix: Float64Array, newRank: number) {
-  const oldRank = 3;
-
-  const newMatrix = createIdentity(Float64Array, (newRank + 1));
-  for (let i = 0; i < oldRank; i++) {
-    newMatrix[newRank * (newRank + 1) + i] = matrix[oldRank * (oldRank + 1) + i];
-    for (let j = 0; j < oldRank; j++) {
-      newMatrix[i * (newRank + 1) + j] = matrix[i * (oldRank + 1) + j];
+    output: Output, outputStride: number, input: Input, inputStride: number,
+    outputToInputCol: ReadonlyArray<number>, rows: number) {
+  const cols = outputToInputCol.length;
+  for (let outCol = 0; outCol < cols; ++outCol) {
+    const inCol = outputToInputCol[outCol];
+    for (let row = 0; row < rows; ++row) {
+      output[outCol * outputStride + row] = input[inCol * inputStride + row];
     }
   }
-
-  return newMatrix;
+  return output;
 }
-/* END OF CHANGE: matrix functions */

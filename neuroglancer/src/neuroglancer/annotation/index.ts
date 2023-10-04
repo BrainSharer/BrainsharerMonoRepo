@@ -51,10 +51,6 @@ export enum AnnotationType {
   LINE,
   AXIS_ALIGNED_BOUNDING_BOX,
   ELLIPSOID,
-  POLYGON,
-  VOLUME,
-  COM,
-  CELL
 }
 
 export const annotationTypes = [
@@ -62,10 +58,6 @@ export const annotationTypes = [
   AnnotationType.LINE,
   AnnotationType.AXIS_ALIGNED_BOUNDING_BOX,
   AnnotationType.ELLIPSOID,
-  AnnotationType.POLYGON,
-  AnnotationType.VOLUME,
-  AnnotationType.COM,
-  AnnotationType.CELL,
 ];
 
 export interface AnnotationPropertySpecBase {
@@ -87,6 +79,18 @@ export interface AnnotationNumericPropertySpec extends AnnotationPropertySpecBas
   max?: number;
   step?: number;
 }
+
+export const propertyTypeDataType: Record<AnnotationPropertySpec['type'], DataType|undefined> = {
+  'float32': DataType.FLOAT32,
+  'uint32': DataType.UINT32,
+  'int32': DataType.INT32,
+  'uint16': DataType.UINT16,
+  'int16': DataType.INT16,
+  'uint8': DataType.UINT8,
+  'int8': DataType.INT8,
+  'rgb': undefined,
+  'rgba': undefined,
+};
 
 export type AnnotationPropertySpec = AnnotationColorPropertySpec|AnnotationNumericPropertySpec;
 
@@ -285,43 +289,16 @@ export const annotationPropertyTypeHandlers:
       },
     };
 
-/**
- * Function takes an annotation and returns True if the type of annotation is collection otherwise false
- * @param annotation Input annotation
- * @returns boolean indicating whether the annotation is of type collection or not.
- */
-export function isTypeCollection(annotation: Annotation) : boolean {
-  return annotation.type === AnnotationType.POLYGON || annotation.type === AnnotationType.VOLUME;
-}
-
-/**
- * Returns if the annotation's children are dummy annotation. (Ex: In case of polygon annotation, the line segments are dummy annotation.) 
- * @param annotation Input annotation element.
- * @returns boolean indicating if the child annotations are dummy or not.
- */
-export function isChildDummyAnnotation(annotation: Annotation) : boolean {
-  return annotation.type === AnnotationType.POLYGON;
-}
-
-/**
- * Returns if the annotation is dummy annotation. (Ex: In case of polygon annotation, the line segments are dummy annotation.) 
- * @param annotation Input annotation element.
- * @returns boolean indicating if the annotation is dummy or not.
- */
-export function isDummyAnnotation(annotation: Annotation) : boolean {
-  return annotation.type === AnnotationType.LINE && 
-  (annotation.parentAnnotationId !== null || annotation.parentAnnotationId !== undefined);
-}
 // Maximum stride value supported by WebGL.
 const MAX_BUFFER_STRIDE = 255;
 
 export function getPropertyOffsets(
-  rank: number, firstGroupInitialOffset: number,
-  propertySpecs: readonly Readonly<AnnotationPropertySpec>[]): {
-    serializedBytes: number,
-    offsets: { group: number, offset: number }[],
-    propertyGroupBytes: number[],
-  } {
+    rank: number, firstGroupInitialOffset: number,
+    propertySpecs: readonly Readonly<AnnotationPropertySpec>[]): {
+  serializedBytes: number,
+  offsets: {group: number, offset: number}[],
+  propertyGroupBytes: number[],
+} {
   let serializedBytes = 0;
   const numProperties = propertySpecs.length;
   const permutation = new Array<number>(numProperties);
@@ -330,10 +307,10 @@ export function getPropertyOffsets(
     permutation[i] = i;
   }
   const getAlignment = (i: number) =>
-    annotationPropertyTypeHandlers[propertySpecs[i].type].alignment(rank);
+      annotationPropertyTypeHandlers[propertySpecs[i].type].alignment(rank);
   permutation.sort((i, j) => getAlignment(j) - getAlignment(i));
   let propertyGroupIndex = 0;
-  const offsets = new Array<{ group: number, offset: number }>(numProperties);
+  const offsets = new Array<{group: number, offset: number}>(numProperties);
   let propertyGroupOffset = firstGroupInitialOffset;
   const nextPropertyGroup = () => {
     propertyGroupOffset += (4 - (propertyGroupOffset % 4)) % 4;
@@ -360,12 +337,13 @@ export function getPropertyOffsets(
       // Property does not fit.
       nextPropertyGroup();
     }
-    offsets[propertyIndex] = { offset: propertyGroupOffset, group: propertyGroupIndex };
+    offsets[propertyIndex] = {offset: propertyGroupOffset, group: propertyGroupIndex};
     propertyGroupOffset += numBytes;
   }
   nextPropertyGroup();
-  return { serializedBytes, offsets, propertyGroupBytes };
+  return {serializedBytes, offsets, propertyGroupBytes};
 }
+
 export class AnnotationPropertySerializer {
   serializedBytes: number;
   serialize:
@@ -419,17 +397,18 @@ export class AnnotationPropertySerializer {
 }
 
 export function makeAnnotationPropertySerializers(
-  rank: number, propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
+    rank: number, propertySpecs: readonly Readonly<AnnotationPropertySpec>[]) {
   const serializers: AnnotationPropertySerializer[] = [];
   for (const annotationType of annotationTypes) {
     const handler = annotationTypeHandlers[annotationType];
     serializers[annotationType] =
-      new AnnotationPropertySerializer(rank, handler.serializedBytes(rank), propertySpecs);
+        new AnnotationPropertySerializer(rank, handler.serializedBytes(rank), propertySpecs);
   }
   return serializers;
 }
 
-export function formatNumericProperty(property: AnnotationNumericPropertySpec, value: number): string {
+export function formatNumericProperty(
+    property: AnnotationNumericPropertySpec, value: number): string {
   const formattedValue = property.type === 'float32' ? value.toPrecision(6) : value.toString();
   const {enumValues, enumLabels} = property;
   if (enumValues !== undefined) {
@@ -441,7 +420,8 @@ export function formatNumericProperty(property: AnnotationNumericPropertySpec, v
   return formattedValue;
 }
 
-export function formatAnnotationPropertyValue(property: AnnotationPropertySpec, value: any): string {
+export function formatAnnotationPropertyValue(
+    property: AnnotationPropertySpec, value: any): string {
   switch (property.type) {
     case 'rgb':
       return serializeColor(unpackRGB(value));
@@ -544,7 +524,6 @@ export interface AnnotationBase {
 
   relatedSegments?: Uint64[][];
   properties: any[];
-  parentAnnotationId?: string;
 }
 
 export interface Line extends AnnotationBase {
@@ -570,49 +549,7 @@ export interface Ellipsoid extends AnnotationBase {
   type: AnnotationType.ELLIPSOID;
 }
 
-/**
- * An interface to indicate a collection annotation.
- * Collection annotation contains child collection of annotations.
- * Eg: Polygon (group of line segments), Volume (group of polygons)
- */
-export interface Collection extends AnnotationBase {
-  source: Float32Array;
-  childAnnotationIds: string[];
-  childrenVisible: boolean;
-}
-
-/**
- * An interface to indicate Polygon annotation. Inherits collection interface.
- */
-export interface Polygon extends Collection {
-  type: AnnotationType.POLYGON;
-}
-
-/**
- * An interface to indicate Volume annotation. Inherits collection interface.
- */
-export interface Volume extends Collection {
-  type: AnnotationType.VOLUME;
-}
-
-/**
- * An interface to indicate Centre of Mass annotation.
- */
-export interface Com extends AnnotationBase {
-  point: Float32Array;
-  type: AnnotationType.COM;
-}
-
-/**
- * An interface to indicate Cell annotation.
- */
-export interface Cell extends AnnotationBase {
-  point: Float32Array;
-  category?: string|undefined;
-  type: AnnotationType.CELL;
-}
-
-export type Annotation = Line|Point|AxisAlignedBoundingBox|Ellipsoid|Polygon|Volume|Com|Cell;
+export type Annotation = Line|Point|AxisAlignedBoundingBox|Ellipsoid;
 
 export interface AnnotationTypeHandler<T extends Annotation = Annotation> {
   icon: string;
@@ -656,7 +593,7 @@ function deserializeFloatVector(
 
 function deserializeTwoFloatVectors(
     buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, vecA: Float32Array,
-  vecB: Float32Array) {
+    vecB: Float32Array) {
   offset = deserializeFloatVector(buffer, offset, isLittleEndian, rank, vecA);
   offset = deserializeFloatVector(buffer, offset, isLittleEndian, rank, vecB);
   return offset;
@@ -799,148 +736,6 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
       callback(annotation.radii, true);
     },
   },
-  [AnnotationType.POLYGON]: {
-    icon: '△',
-    description: 'Polygon',
-    toJSON: (annotation: Polygon) => {
-      return {
-        source: Array.from(annotation.source),
-        childAnnotationIds: annotation.childAnnotationIds,
-        childrenVisible: annotation.childrenVisible,
-      }
-    },
-    restoreState: (annotation: Polygon, obj: any, rank: number) => {
-      annotation.source = verifyObjectProperty(
-          obj, 'source', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-
-      if(!obj.hasOwnProperty('childAnnotationIds')) {
-        annotation.childAnnotationIds = [];
-      }
-      else {
-        annotation.childAnnotationIds = verifyObjectProperty(
-            obj, 'childAnnotationIds', verifyStringArray);
-      }
-
-      annotation.childrenVisible = false;
-
-    },
-    serializedBytes: rank => rank * 4,
-    serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, annotation: Polygon) => {
-      serializeFloatVector(buffer, offset, isLittleEndian, rank, annotation.source);
-    },
-    deserialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, id: string): Polygon => {
-      const source = new Float32Array(rank);
-      deserializeFloatVector(buffer, offset, isLittleEndian, rank, source);
-      return {type: AnnotationType.POLYGON, source, id, properties: [], childAnnotationIds: [], childrenVisible: false};
-    },
-    visitGeometry(annotation: Polygon, callback) {
-      callback(annotation.source, false);
-    },
-  },
-  [AnnotationType.VOLUME]: {
-    icon: 'ⅴ',
-    description: 'Volume',
-    toJSON: (annotation: Volume) => {
-      return {
-        source: Array.from(annotation.source),
-        childAnnotationIds: annotation.childAnnotationIds,
-        childrenVisible: annotation.childrenVisible,
-      }
-    },
-    restoreState: (annotation: Volume, obj: any, rank: number) => {
-      annotation.source = verifyObjectProperty(
-          obj, 'source', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-
-      if(!obj.hasOwnProperty('childAnnotationIds')) {
-        annotation.childAnnotationIds = [];
-      }
-      else {
-        annotation.childAnnotationIds = verifyObjectProperty(
-            obj, 'childAnnotationIds', verifyStringArray);
-      }
-
-      annotation.childrenVisible = true;
-
-      if(obj.hasOwnProperty('childrenVisible')) {
-        let value = verifyObjectProperty(
-            obj, 'childrenVisible', verifyBoolean);
-        console.log("polygon property", value);
-        annotation.childrenVisible = value;
-      }
-    },
-    serializedBytes: rank => rank * 4,
-    serialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, annotation: Volume) => {
-      serializeFloatVector(buffer, offset, isLittleEndian, rank, annotation.source);
-    },
-    deserialize: (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, id: string): Volume => {
-      const source = new Float32Array(rank);
-      deserializeFloatVector(buffer, offset, isLittleEndian, rank, source);
-      return {type: AnnotationType.VOLUME, source, id, properties: [], childAnnotationIds: [], childrenVisible: false};
-    },
-    visitGeometry(annotation: Volume, callback) {
-      callback(annotation.source, false);
-    },
-  },
-  [AnnotationType.COM]: {
-    icon: 'COM',
-    description: 'COM',
-    toJSON: (annotation: Com) => {
-      return {
-        point: Array.from(annotation.point),
-      };
-    },
-    restoreState: (annotation: Com, obj: any, rank: number) => {
-      annotation.point = verifyObjectProperty(
-          obj, 'point', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-    },
-    serializedBytes: rank => rank * 4,
-    serialize:
-        (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number,
-         annotation: Com) => {
-          serializeFloatVector(buffer, offset, isLittleEndian, rank, annotation.point);
-        },
-    deserialize:
-        (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, id: string):
-            Com => {
-              const point = new Float32Array(rank);
-              deserializeFloatVector(buffer, offset, isLittleEndian, rank, point);
-              return {type: AnnotationType.COM, point, id, properties: []};
-            },
-    visitGeometry(annotation: Com, callback) {
-      callback(annotation.point, false);
-    },
-  },
-  [AnnotationType.CELL]: {
-    icon: 'CELL',
-    description: 'Cell',
-    toJSON: (annotation: Cell) => {
-      return {
-        point: Array.from(annotation.point),
-        category: annotation.category
-      };
-    },
-    restoreState: (annotation: Cell, obj: any, rank: number) => {
-      annotation.point = verifyObjectProperty(
-          obj, 'point', x => parseFixedLengthArray(new Float32Array(rank), x, verifyFiniteFloat));
-      annotation.category = verifyObjectProperty(obj, 'category', verifyOptionalString);
-    },
-    serializedBytes: rank => rank * 4,
-    serialize:
-        (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number,
-         annotation: Cell) => {
-          serializeFloatVector(buffer, offset, isLittleEndian, rank, annotation.point);
-        },
-    deserialize:
-        (buffer: DataView, offset: number, isLittleEndian: boolean, rank: number, id: string):
-            Cell => {
-              const point = new Float32Array(rank);
-              deserializeFloatVector(buffer, offset, isLittleEndian, rank, point);
-              return {type: AnnotationType.CELL, point, id, properties: []};
-            },
-    visitGeometry(annotation: Cell, callback) {
-      callback(annotation.point, false);
-    },
-  },
 };
 
 export interface AnnotationSchema {
@@ -954,7 +749,6 @@ export function annotationToJson(annotation: Annotation, schema: AnnotationSchem
   result.type = AnnotationType[annotation.type].toLowerCase();
   result.id = annotation.id;
   result.description = annotation.description || undefined;
-  result.parentAnnotationId = annotation.parentAnnotationId || undefined;
   const {relatedSegments} = annotation;
   if (relatedSegments !== undefined && relatedSegments.some(x => x.length !== 0)) {
     result.segments = relatedSegments.map(segments => segments.map(x => x.toString()));
@@ -1045,134 +839,29 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return true;
   }
 
-  add(ann: Annotation, commit: boolean = true, parentRef?: AnnotationReference, index?: number): AnnotationReference {
+  add(annotation: Annotation, commit: boolean = true): AnnotationReference {
     this.ensureUpdated();
-    // Fixes bug: https://github.com/ActiveBrainAtlas2/activebrainatlasadmin/issues/130
-    const annotation: Annotation = this.roundZCoordinateBasedOnAnnotation(ann);
     if (!annotation.id) {
       annotation.id = makeAnnotationId();
     } else if (this.annotationMap.has(annotation.id)) {
-      console.log("annootation id already exists");
       throw new Error(`Annotation id already exists: ${JSON.stringify(annotation.id)}.`);
     }
-    if(parentRef && isTypeCollection(parentRef.value!)) {
-      annotation.parentAnnotationId = parentRef.id;
-      let parAnnotation = <Collection>parentRef.value!;
-      if (index === undefined) index = parAnnotation.childAnnotationIds.length;
-      parAnnotation.childAnnotationIds.splice(index, 0, annotation.id);
-      parAnnotation = this.getUpdatedSourceVertex(parAnnotation);
-      this.update(parentRef, <Annotation>parAnnotation);
-    }
     this.annotationMap.set(annotation.id, annotation);
-    this.changed.dispatch();
-    if (!annotation.parentAnnotationId) {
-      this.childAdded.dispatch(annotation);
-    }
-    if (isTypeCollection(annotation)) {
-      const collection = <Collection>annotation;
-      if (collection.childrenVisible) {
-        for (let childId of collection.childAnnotationIds) {
-          this.getAllAnnsUnderRootToDisplay(childId, true);
-        }
-      } else {
-        const annList = this.getAllAnnsUnderRoot(collection.id);
-        annList.shift(); // remove current annotation from list
-        for (let ann of annList) {
-          this.childDeleted.dispatch(ann.id);
-        }
-      }
-    }
     if (!commit) {
       this.pending.add(annotation.id);
     }
-    let reference = this.getReference(annotation.id);
-    return reference;
-  }
-
-  /**
-   * Takes a color, description and category and updates all CELL annotations with the color matching description and category.
-   * @param color New color for Cell annotations
-   * @param description Description of cells that need to be updated
-   * @param category Category of cells that need to be updated
-   * @returns void
-   */
-  updateCellColors(color: number, description: string, category: string): void {
-    for(const [id, ann] of this.annotationMap) {
-      if (ann.type === AnnotationType.CELL && ann.description === description && ann.category === category) {
-        const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-        const newAnn = {...ann};
-        if (newAnn.properties.length <= colorIdx) return;
-        newAnn.properties[colorIdx] = color;
-        this.update(this.getReference(id), newAnn);
-      }
+    this.changed.dispatch();
+    this.childAdded.dispatch(annotation);
+    if (commit) {
+      this.childCommitted.dispatch(annotation.id);
     }
-  }
-
-  /**
-   * Takes a color, description and updates all COM annotations with the color matching description.
-   * @param color New color for COM annotations
-   * @param description Description of COMs that need to be updated
-   * @returns void
-   */
-  updateCOMColors(color: number, description: string): void {
-    for(const [id, ann] of this.annotationMap) {
-      if (ann.type === AnnotationType.COM && ann.description === description) {
-        const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-        const newAnn = {...ann};
-        if (newAnn.properties.length <= colorIdx) return;
-        newAnn.properties[colorIdx] = color;
-        this.update(this.getReference(id), newAnn);
-      }
-    }
-  }
-
-  roundZCoordinateBasedOnAnnotation(ann: Annotation): Annotation {
-    switch (ann.type) {
-      case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
-        return {...ann, pointA: this.roundZCoordinate(ann.pointA), pointB: this.roundZCoordinate(ann.pointB)};
-      case AnnotationType.CELL:
-        return {...ann, point: this.roundZCoordinate(ann.point)};
-      case AnnotationType.COM:
-        return {...ann, point: this.roundZCoordinate(ann.point)};
-      case AnnotationType.ELLIPSOID:
-        return {...ann, center: this.roundZCoordinate(ann.center)};
-      case AnnotationType.LINE:
-        return {...ann, pointA: this.roundZCoordinate(ann.pointA), pointB: this.roundZCoordinate(ann.pointB)};
-      case AnnotationType.POINT:
-        return {...ann, point: this.roundZCoordinate(ann.point)};
-      case AnnotationType.POLYGON:
-        return {...ann, source: this.roundZCoordinate(ann.source)};
-      case AnnotationType.VOLUME:
-        return {...ann, source: this.roundZCoordinate(ann.source)};
-    }
-    return ann;
-  }
-
-  /**
-   * Takes a point (x,y,z) coordinate as input and assigns the z value to integral part of z + 0.5
-   * This is required for fixing the bug: https://github.com/ActiveBrainAtlas2/activebrainatlasadmin/issues/130
-   * @param point Input point to be rounded off
-   * @returns Rounded point
-   */
-  roundZCoordinate(point: Float32Array): Float32Array {
-    if (point.length == 3) {
-      point[2] = Math.floor(point[2]) + 0.5;
-    } else if (point.length == 4) {
-      point[3] = Math.floor(point[3]) + 0.5;
-    }
-    return point;
+    return this.getReference(annotation.id);
   }
 
   commit(reference: AnnotationReference): void {
     this.ensureUpdated();
     const id = reference.id;
     this.pending.delete(id);
-    if(reference.value!.type == AnnotationType.POLYGON) {
-      const ann = <Polygon>reference.value!;
-      ann.childAnnotationIds.forEach((childAnnotationId) => {
-        this.pending.delete(childAnnotationId);
-      });
-    }
     this.changed.dispatch();
     this.childCommitted.dispatch(id);
   }
@@ -1182,35 +871,10 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     if (reference.value === null) {
       throw new Error(`Annotation already deleted.`);
     }
-    // Fixes bug: https://github.com/ActiveBrainAtlas2/activebrainatlasadmin/issues/130
-    annotation = this.roundZCoordinateBasedOnAnnotation(annotation);
     reference.value = annotation;
     this.annotationMap.set(annotation.id, annotation);
-    if (annotation.parentAnnotationId) {
-      const parentRef = this.getReference(annotation.parentAnnotationId);
-      if (parentRef.value && isTypeCollection(parentRef.value)) {
-        let parAnnotation = <Collection>parentRef.value;
-        parAnnotation = this.getUpdatedSourceVertex(parAnnotation);
-        this.update(parentRef, <Annotation>parAnnotation);
-      }
-      parentRef.dispose();
-    }
     reference.changed.dispatch();
     this.changed.dispatch();
-    if (isTypeCollection(annotation)) {
-      const collection = <Collection>annotation;
-      if (collection.childrenVisible) {
-        for (let childId of collection.childAnnotationIds) {
-          this.getAllAnnsUnderRootToDisplay(childId, true);
-        }
-      } else {
-        const annList = this.getAllAnnsUnderRoot(collection.id);
-        annList.shift(); // remove current annotation from list
-        for (let ann of annList) {
-          this.childDeleted.dispatch(ann.id);
-        }
-      }
-    }
     this.childUpdated.dispatch(annotation);
   }
 
@@ -1224,46 +888,9 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return this.annotationMap.get(id);
   }
 
-  delete(reference: AnnotationReference, fromParent: boolean = false) {
+  delete(reference: AnnotationReference) {
     if (reference.value === null) {
       return;
-    }
-    if (reference.value!.parentAnnotationId) {
-      const parentRef = this.getReference(reference.value!.parentAnnotationId);
-      if (parentRef.value && isChildDummyAnnotation(parentRef.value) && !fromParent) {
-        parentRef.dispose();
-        // StatusMessage.showTemporaryMessage('Cannot delete child annotations');
-        console.log('Cannot delete child annotations');
-        return;
-      }
-      if (parentRef.value && isTypeCollection(parentRef.value)) {
-        let parAnnotation = <Collection>parentRef.value;
-        const index = parAnnotation.childAnnotationIds.indexOf(reference.value!.id, 0);
-        if (index > -1) {
-          parAnnotation.childAnnotationIds.splice(index, 1);
-        }
-        parAnnotation = this.getUpdatedSourceVertex(parAnnotation);
-        this.update(parentRef, <Annotation>parAnnotation);
-      }
-      parentRef.dispose();
-    }
-    if(isTypeCollection(reference.value!)) {
-      const annotation = <Collection>reference.value;
-      const allAnnsUnderRoot = this.getAllAnnsUnderRoot(annotation.id);
-      for (let idx = 1; idx < allAnnsUnderRoot.length; idx++) {
-        const ann = allAnnsUnderRoot[idx];
-        const ref = this.getReference(ann.id);
-        ref.value = null;
-        this.annotationMap.delete(ref.id);
-        this.pending.delete(ref.id);
-        ref.changed.dispatch();
-        this.changed.dispatch();
-        this.childDeleted.dispatch(ref.id);
-      }
-      // const childAnnotationIds = Object.assign([], annotation.childAnnotationIds);
-      // childAnnotationIds.forEach((childId) => {
-      //   this.delete(this.getReference(childId), true);
-      // });
     }
     reference.value = null;
     this.annotationMap.delete(reference.id);
@@ -1287,236 +914,6 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     return existing;
   }
 
-  /**
-   * Takes an annotation id as input and returns the parent if the annotation type is line and parent is polygon.
-   * @param id annotation id
-   * @returns Returns parent annotation id if annotation type is line otherwise returns the current id.
-   */
-  getNonDummyAnnotationReference(id: AnnotationId): AnnotationReference {
-    const reference = this.getReference(id);
-    if (!reference.value) return reference;
-
-    const annotation = reference.value;
-    if (annotation.parentAnnotationId) {
-      const parentRef = this.getReference(annotation.parentAnnotationId);
-      if (parentRef.value && isChildDummyAnnotation(parentRef.value)) {
-        reference.dispose();
-        parentRef.dispose();
-        return this.getNonDummyAnnotationReference(annotation.parentAnnotationId);
-      }
-      parentRef.dispose();
-    }
-    
-    return reference;
-  }
-
-  /**
-   * Takes an annotation id as input and finds the top most ancestor of it.
-   * @param id annotation id input
-   * @returns Reference to the top most ancestor of it.
-   */
-  getTopMostAnnotationReference(id: AnnotationId): AnnotationReference {
-    const reference = this.getReference(id);
-    if (!reference.value) return reference;
-
-    const annotation = reference.value;
-    if (annotation.parentAnnotationId) {
-      const parentId = annotation.parentAnnotationId;
-      reference.dispose();
-      return this.getTopMostAnnotationReference(parentId);
-    }
-    
-    return reference;
-  }
-
-  /**
-   * Update the source vertex if child's source vertex gets updated.
-   * @param ann Annotation which needs to be updated.
-   * @returns a new annotation with updated source vertex.
-   */
-  getUpdatedSourceVertex(ann: Collection) : Collection {
-    if (ann.childAnnotationIds.length === 0) return ann;
-    const reference = this.getReference(ann.childAnnotationIds[0]);
-    if (ann.type === AnnotationType.POLYGON) {
-      const line = <Line>reference.value;
-      if (!line) {
-        reference.dispose();
-        return ann;
-      }
-      const newAnn = {...ann, source: line.pointA};
-      reference.dispose();
-      return newAnn;
-    } else {
-      const polygon = <Polygon>reference.value;
-      if (!polygon) {
-        reference.dispose();
-        return ann;
-      }
-      const newAnn = {...ann, source: polygon.source};
-      reference.dispose();
-      return newAnn;
-    }
-  }
-
-  /**
-   * Takes a annotation reference and update the color of that annotation.
-   * @param reference 
-   * @param color 
-   * @returns void
-   */
-  updateColor(reference: AnnotationReference, color: number) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value};
-    const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-    if (newAnn.properties.length <= colorIdx) return;
-    newAnn.properties[colorIdx] = color;
-    this.update(reference, newAnn);
-
-    if (isTypeCollection(newAnn)) {
-      const collection = <Collection>newAnn;
-      for (let i = 0; i < collection.childAnnotationIds.length; i++) {
-        const childRef = this.getReference(collection.childAnnotationIds[i]);
-        this.updateColor(childRef, color);
-        childRef.dispose();
-      }
-    }
-  }
-  /**
-   * Takes a annotation reference and update the visibility of that annotation.
-   * @param reference 
-   * @param visibility 
-   * @returns void
-   */
-   updateVisibility(reference: AnnotationReference, visibility: number) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value};
-    const visibilityIdx = this.properties.findIndex(x => x.identifier === 'visibility');
-    if (newAnn.properties.length <= visibilityIdx) return;
-    newAnn.properties[visibilityIdx] = visibility;
-    this.update(reference, newAnn);
-
-    if (isTypeCollection(newAnn)) {
-      const collection = <Collection>newAnn;
-      for (let i = 0; i < collection.childAnnotationIds.length; i++) {
-        const childRef = this.getReference(collection.childAnnotationIds[i]);
-        this.updateVisibility(childRef, visibility);
-        childRef.dispose();
-      }
-    }
-  }
-  /**
-   * Takes a annotation id and finds the visibility of that annotation.
-   * @param annotationId 
-   * @returns void
-   */
-   getVisibility(annotationId: string): number {
-    const reference = this.getReference(annotationId);
-    if (!reference.value) {
-      reference.dispose();
-      return 1.0;
-    }
-    const ann = reference.value;
-    const visibilityIdx = this.properties.findIndex(x => x.identifier === 'visibility');
-    if (ann.properties.length <= visibilityIdx) {
-      reference.dispose();
-      return 1.0;
-    }
-    return ann.properties[visibilityIdx];
-  }
-  /**
-   * Takes the annotation reference and updates its description with new string.
-   * @param reference 
-   * @param description 
-   * @returns 
-   */
-  updateDescription(reference: AnnotationReference, description: string|undefined) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value, description};
-    this.update(reference, newAnn);
-  }
-
-  /**
-   * Takes an annotation and returns all descendants under that annotation
-   * @param annotationId 
-   * @returns an array of descendants of this annotation.
-   */
-  private getAllAnnsUnderRoot(annotationId: AnnotationId) : Annotation[] {
-    const reference = this.getReference(annotationId);
-    let annotationList : Annotation[] = [];
-    if (!reference.value) {
-      reference.dispose();
-      return annotationList;
-    }
-    let annotation : Annotation | undefined;
-    annotation = reference.value;
-    annotationList.push(annotation);
-    if (isTypeCollection(annotation)) {
-      const collection = <Collection>annotation;
-      for (let i = 0; annotation && i < collection.childAnnotationIds!.length; i++) {
-        annotationList = [...annotationList, ...this.getAllAnnsUnderRoot(collection.childAnnotationIds[i])];
-      }
-    }
-    reference.dispose();
-    return annotationList;
-  }
-  /**
-   * Makes sure that all descendants under this annotation which need to be visible
-   * added to the annotations tab.
-   * @param annotationId annotation id of the input annotation
-   * @param visible if the current annotation is visible or not, default is false.
-   * @returns void
-   */
-  private getAllAnnsUnderRootToDisplay(annotationId: AnnotationId, visible: boolean = false) : void {
-    const reference = this.getReference(annotationId);
-    if (!reference.value) {
-      reference.dispose();
-      return;
-    }
-    let annotation : Annotation | undefined;
-    annotation = reference.value;
-    if (visible) {
-      this.childAdded.dispatch(annotation);
-    }
-    if (isTypeCollection(annotation)) {
-      const collection = <Collection>annotation;
-      for (let i = 0; annotation && i < collection.childAnnotationIds!.length; i++) {
-        this.getAllAnnsUnderRootToDisplay(collection.childAnnotationIds[i], collection.childrenVisible);
-      }
-    }
-    reference.dispose();
-    return;
-  }
-  /**
-   * Make all ancestors of the current annotation to be visible 
-   * in the annotations tab.
-   * @param annotationId 
-   * @returns void
-   */
-  makeAllParentsVisible(annotationId: AnnotationId) : void {
-    const reference = this.getReference(annotationId);
-    if (!reference.value) {
-      reference.dispose();
-      return;
-    }
-    const annotation = reference.value;
-    if (annotation.parentAnnotationId) {
-      this.makeAllParentsVisible(annotation.parentAnnotationId);
-      const parentRef = this.getReference(annotation.parentAnnotationId);
-      if (parentRef.value && isTypeCollection(parentRef.value)) {
-        const newParentAnn = <Collection>{...parentRef.value};
-        newParentAnn.childrenVisible = true;
-        parentRef.value = <Annotation>newParentAnn;
-        this.annotationMap.set(newParentAnn.id, <Annotation>newParentAnn);
-        parentRef.changed.dispatch();
-        for (let childId of newParentAnn.childAnnotationIds) {
-          this.getAllAnnsUnderRootToDisplay(childId, true);
-        }
-      }
-      parentRef.dispose();
-    }
-    reference.dispose();
-  }
-
   references = new Map<AnnotationId, Borrowed<AnnotationReference>>();
 
   protected ensureUpdated() {}
@@ -1526,7 +923,7 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     const result: any[] = [];
     const {pending} = this;
     for (const annotation of this) {
-      if (pending.has(annotation.id) && annotation.type != 4) {
+      if (pending.has(annotation.id)) {
         // Don't serialize uncommitted annotations.
         continue;
       }
@@ -1549,7 +946,7 @@ export class AnnotationSource extends RefCounted implements AnnotationSourceSign
     if (obj !== undefined) {
       parseArray(obj, x => {
         const annotation = restoreAnnotation(x, this);
-        this.add(annotation);
+        annotationMap.set(annotation.id, annotation);
       });
     }
     for (const reference of this.references.values()) {
@@ -1617,14 +1014,8 @@ export class LocalAnnotationSource extends AnnotationSource {
 
     for (const annotation of this.annotationMap.values()) {
       switch (annotation.type) {
-        case AnnotationType.CELL:
-        case AnnotationType.COM:
         case AnnotationType.POINT:
           annotation.point = mapVector(annotation.point);
-          break;
-        case AnnotationType.VOLUME:
-        case AnnotationType.POLYGON:
-          annotation.source = mapVector(annotation.source);
           break;
         case AnnotationType.LINE:
         case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
@@ -1641,7 +1032,6 @@ export class LocalAnnotationSource extends AnnotationSource {
       this.rank_ = sourceRank;
       this.annotationPropertySerializers =
           makeAnnotationPropertySerializers(this.rank_, this.properties);
-
     }
     this.changed.dispatch();
   }
@@ -1679,8 +1069,8 @@ export interface SerializedAnnotations {
 }
 
 function serializeAnnotations(
-  allAnnotations: Annotation[][],
-  propertySerializers: AnnotationPropertySerializer[]): SerializedAnnotations {
+    allAnnotations: Annotation[][],
+    propertySerializers: AnnotationPropertySerializer[]): SerializedAnnotations {
   let totalBytes = 0;
   const typeToOffset: number[] = [];
   for (const annotationType of annotationTypes) {
@@ -1698,7 +1088,7 @@ function serializeAnnotations(
   const isLittleEndian = ENDIANNESS === Endianness.LITTLE;
   for (const annotationType of annotationTypes) {
     const propertySerializer = propertySerializers[annotationType];
-    const { rank } = propertySerializer;
+    const {rank} = propertySerializer;
     const serializeProperties = propertySerializer.serialize;
     const annotations: Annotation[] = allAnnotations[annotationType];
     typeToIds[annotationType] = annotations.map(x => x.id);
@@ -1713,12 +1103,11 @@ function serializeAnnotations(
       serializeProperties(dataView, offset, i, count, isLittleEndian, annotation.properties);
     }
   }
-  return { data: new Uint8Array(data), typeToIds, typeToOffset, typeToIdMaps };
+  return {data: new Uint8Array(data), typeToIds, typeToOffset, typeToIdMaps};
 }
 
-
 export class AnnotationSerializer {
-  annotations: [Point[], Line[], AxisAlignedBoundingBox[], Ellipsoid[], Polygon[], Volume[], Com[], Cell[]] = [[], [], [], [], [], [], [], []];
+  annotations: [Point[], Line[], AxisAlignedBoundingBox[], Ellipsoid[]] = [[], [], [], []];
   constructor(public propertySerializers: AnnotationPropertySerializer[]) {}
   add(annotation: Annotation) {
     (<Annotation[]>this.annotations[annotation.type]).push(annotation);
@@ -1742,25 +1131,4 @@ export function fixAnnotationAfterStructuredCloning(obj: Annotation|null) {
     }
   }
   return obj;
-}
-
-export function getSortPoint(ann: Annotation): Float32Array {
-  switch (ann.type) {
-    case AnnotationType.AXIS_ALIGNED_BOUNDING_BOX:
-      return ann.pointA;
-    case AnnotationType.CELL:
-      return ann.point;
-    case AnnotationType.COM:
-      return ann.point;
-    case AnnotationType.ELLIPSOID:
-      return ann.center;
-    case AnnotationType.LINE:
-      return ann.pointA;
-    case AnnotationType.POINT:
-      return ann.point;
-    case AnnotationType.POLYGON:
-      return ann.source;
-    case AnnotationType.VOLUME:
-      return ann.source;
-  }
 }

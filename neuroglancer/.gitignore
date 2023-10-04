@@ -1,4 +1,3 @@
-src/neuroglancer/services/firebase.ts
 /node_modules/
 /dist/
 /trans
@@ -12,5 +11,6 @@ __pycache__
 tsconfig.tsbuildinfo
 /.eggs
 /.tox
-/.idea/
-./.env
+/.log
+*.so
+*.egg-info

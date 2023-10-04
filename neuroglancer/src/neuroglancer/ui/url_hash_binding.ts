@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode } from 'neuroglancer/ui/annotations';
+// import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef, updateHasVolumeTool } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -104,13 +104,15 @@ export class UrlHashBinding extends RefCounted {
             const urlString = JSON.stringify(cacheState.value)
             const urlData = JSON.parse(urlString);
             const { prevUrlString } = this;
+
             const sameUrl = prevUrlString === urlString || restoring_volumetool;
             restoring_volumetool = false;
-            if ((!sameUrl) && (this.stateData)) {
-                // updateUser(this.stateID, this.user.user_id, this.user.username);
-                this.stateData.neuroglancer_state = urlData;
+            //TODO if ((!sameUrl) && (this.stateData) || getVolumeToolUsed()) {
+            if ((!sameUrl) && (this.stateData) ) {
+                    this.stateData.neuroglancer_state = urlData;
                 this.updateStateData(this.stateData);
                 this.prevUrlString = urlString;
+                //TODO clearVolumeToolUsed();
             }
         }
     }
@@ -171,48 +173,68 @@ export class UrlHashBinding extends RefCounted {
         this.updateStateData(this.stateData);
         // updateUser(this.stateID, this.user.user_id, this.user.username);
         this.checkAndSetStateFromFirebase();
-        this.updateToolStateFromFirebase();
+        //TODO this.updateToolStateFromFirebase();
     }
 
+    /*
     private updateToolStateFromFirebase() {
         const stateRefCellSession = ref(database, `/test_annotations_tool/test/${this.stateID}`);
         onValue(stateRefCellSession, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalCellSession(snapshot.val());
         });
 
         const stateRefCellMode = ref(database, `/test_annotations_tool/mode/${this.stateID}`);
         onValue(stateRefCellMode , (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalCellMode(snapshot.val());
         });
 
         const stateRefComSession = ref(database, `/test_annotations_tool/com_session/${this.stateID}`);
         onValue(stateRefComSession, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalComSession(snapshot.val());
         });
 
         const stateRefComMode = ref(database, `/test_annotations_tool/com_mode/${this.stateID}`);
         onValue(stateRefComMode, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalComMode(snapshot.val());
         });
 
         const stateRefVolumeMode = ref(database, `/test_annotations_tool/volume_mode/${this.stateID}`);
         onValue(stateRefVolumeMode, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
             updateGlobalVolumeMode(snapshot.val());
         });
 
-
-        /*
-        const stateRefComSession = ref(database, `/test_annotations_tool/volume_session/${this.stateID}`);
-        onValue(stateRefComSession, (snapshot) => {
-            updateGlobalComSession(snapshot.val());
+        const stateRefVolumeRef = ref(database, `/test_annotations_tool/volume_ref/${this.stateID}`);
+        onValue(stateRefVolumeRef, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
+            updateVolumeRef(snapshot.val());
         });
 
-        const stateRefComMode = ref(database, `/test_annotations_tool/com_mode/${this.stateID}`);
-        onValue(stateRefComMode, (snapshot) => {
-            updateGlobalComMode(snapshot.val());
+        const stateRefVolumeHasVol = ref(database, `/test_annotations_tool/volume_had_vol/${this.stateID}`);
+        onValue(stateRefVolumeHasVol, (snapshot) => {
+            if (getInProgressAnnotation()) {
+                return;
+            }
+            updateHasVolumeTool(snapshot.val());
         });
-        */
     }
+    */
 
     /**
      * ActiveBrainAtlas fork:
@@ -223,12 +245,23 @@ export class UrlHashBinding extends RefCounted {
     private checkAndSetStateFromFirebase() {
         const stateRef = ref(database, `neuroglancer/${this.stateID}`);
         onValue(stateRef, (snapshot) => {
+            /** TODO 
+            if (getInProgressAnnotation()) {
+                return;
+            }
+            */
+            const date = new Date();
+            let start_time = date.getTime();
+            console.log("start_time: ", start_time);
             this.stateData = snapshot.val();
             const jsonStateUrl = this.stateData.neuroglancer_state;
             this.root.reset();
             verifyObject(jsonStateUrl);
             this.root.restoreState(jsonStateUrl);
             this.prevUrlString = JSON.stringify(jsonStateUrl);
+            let end_time = date.getTime();
+            console.log("end_time: ", end_time);
+            console.log("time to run reset: ", end_time - start_time);
         });
     }
 
@@ -244,9 +277,13 @@ export class UrlHashBinding extends RefCounted {
         }
         const updates: any = {};
         updates['/neuroglancer/' + this.stateID] = stateData;
+        //TODO updates[`/test_annotations_tool/volume_had_vol/${this.stateID}`] = getVolumeToolUsed();
         update(ref(database), updates)
             .then(() => {
                 console.log('Updating state data was OK');
+                const date = new Date();
+                let time = date.getTime();
+                console.log("Push to firebase at: ", time);
             })
             .catch((error) => {
                 console.error(error);

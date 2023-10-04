@@ -22,8 +22,8 @@ import {ChunkManager} from 'neuroglancer/chunk_manager/frontend';
 import {CoordinateSpace, CoordinateSpaceCombiner, CoordinateTransformSpecification, coordinateTransformSpecificationFromLegacyJson, emptyInvalidCoordinateSpace, isGlobalDimension, isLocalDimension, isLocalOrChannelDimension, TrackableCoordinateSpace} from 'neuroglancer/coordinate_transform';
 import {DataSourceProviderRegistry, DataSourceSpecification, DataSubsource, makeEmptyDataSourceSpecification} from 'neuroglancer/datasource';
 import {DisplayContext, RenderedPanel} from 'neuroglancer/display_context';
-import {LayerDataSource, layerDataSourceSpecificationFromJson, LoadedDataSubsource, LoadedLayerDataSource} from 'neuroglancer/layer_data_source';
-import {DisplayDimensions, Position, WatchableDisplayDimensionRenderInfo} from 'neuroglancer/navigation_state';
+import {LayerDataSource, layerDataSourceSpecificationFromJson, LoadedDataSubsource} from 'neuroglancer/layer_data_source';
+import {CoordinateSpacePlaybackVelocity, DisplayDimensions, PlaybackManager, Position, WatchableDisplayDimensionRenderInfo} from 'neuroglancer/navigation_state';
 import {RenderLayerTransform} from 'neuroglancer/render_coordinate_transform';
 import {RENDERED_VIEW_ADD_LAYER_RPC_ID, RENDERED_VIEW_REMOVE_LAYER_RPC_ID} from 'neuroglancer/render_layer_common';
 import {RenderLayer, RenderLayerRole, VisibilityTrackedRenderLayer} from 'neuroglancer/renderlayer';
@@ -34,7 +34,7 @@ import {registerNested, TrackableValueInterface, WatchableSet, WatchableValue, W
 import {LayerDataSourcesTab} from 'neuroglancer/ui/layer_data_sources_tab';
 import {SELECTED_LAYER_SIDE_PANEL_DEFAULT_LOCATION, UserLayerSidePanelsState} from 'neuroglancer/ui/layer_side_panel_state';
 import {DEFAULT_SIDE_PANEL_LOCATION, TrackableSidePanelLocation} from 'neuroglancer/ui/side_panel_location';
-import {LayerToolBinder, SelectedLegacyTool, ToolBinder} from 'neuroglancer/ui/tool';
+import {GlobalToolBinder, LocalToolBinder, SelectedLegacyTool} from 'neuroglancer/ui/tool';
 import {gatherUpdate} from 'neuroglancer/util/array';
 import {Borrowed, invokeDisposers, Owned, RefCounted} from 'neuroglancer/util/disposable';
 import {emptyToUndefined, parseArray, parseFixedLengthArray, verifyBoolean, verifyFiniteFloat, verifyInt, verifyObject, verifyObjectProperty, verifyOptionalObjectProperty, verifyOptionalString, verifyString} from 'neuroglancer/util/json';
@@ -53,6 +53,7 @@ import {RPC} from 'neuroglancer/worker_rpc';
 const TOOL_JSON_KEY = 'tool';
 const TOOL_BINDINGS_JSON_KEY = 'toolBindings';
 const LOCAL_POSITION_JSON_KEY = 'localPosition';
+const LOCAL_VELOCITY_JSON_KEY = 'localVelocity';
 const LOCAL_COORDINATE_SPACE_JSON_KEY = 'localDimensions';
 const SOURCE_JSON_KEY = 'source';
 const TRANSFORM_JSON_KEY = 'transform';
@@ -68,9 +69,12 @@ export interface UserLayerSelectionState {
 
   annotationId: string|undefined;
   annotationType: AnnotationType|undefined;
-  annotationSerialized: Uint8Array|undefined;
+  annotationBuffer: Uint8Array|undefined;
+  annotationIndex: number|undefined;
+  annotationCount: number|undefined;
   annotationSourceIndex: number|undefined;
   annotationSubsource: string|undefined;
+  annotationSubsubsourceId: string|undefined;
   annotationPartIndex: number|undefined;
 
   value: any;
@@ -86,6 +90,10 @@ export class LayerActionContext {
 export class UserLayer extends RefCounted {
   get localPosition() {
     return this.managedLayer.localPosition;
+  }
+
+  get localVelocity() {
+    return this.managedLayer.localVelocity;
   }
 
   get localCoordinateSpaceCombiner() {
@@ -116,7 +124,9 @@ export class UserLayer extends RefCounted {
     state.localCoordinateSpace = undefined;
     state.annotationId = undefined;
     state.annotationType = undefined;
-    state.annotationSerialized = undefined;
+    state.annotationBuffer = undefined;
+    state.annotationIndex = undefined;
+    state.annotationCount = undefined;
     state.annotationSourceIndex = undefined;
     state.annotationSubsource = undefined;
     state.annotationPartIndex = undefined;
@@ -213,7 +223,9 @@ export class UserLayer extends RefCounted {
     }
     dest.annotationId = source.annotationId;
     dest.annotationType = source.annotationType;
-    dest.annotationSerialized = source.annotationSerialized;
+    dest.annotationBuffer = source.annotationBuffer;
+    dest.annotationIndex = source.annotationIndex;
+    dest.annotationCount = source.annotationCount;
     dest.annotationSourceIndex = source.annotationSourceIndex;
     dest.annotationSubsource = source.annotationSubsource;
     dest.annotationPartIndex = source.annotationPartIndex;
@@ -232,7 +244,7 @@ export class UserLayer extends RefCounted {
   tabs = this.registerDisposer(new TabSpecification());
   panels = new UserLayerSidePanelsState(this);
   tool = this.registerDisposer(new SelectedLegacyTool(this));
-  toolBinder = new LayerToolBinder(this);
+  toolBinder = this.registerDisposer(new LocalToolBinder(this, this.manager.root.toolBinder));
 
   dataSourcesChanged = new NullarySignal();
   dataSources: LayerDataSource[] = [];
@@ -369,10 +381,11 @@ export class UserLayer extends RefCounted {
 
   restoreState(specification: any) {
     this.tool.restoreState(specification[TOOL_JSON_KEY]);
-    this.toolBinder.restoreState(specification[TOOL_BINDINGS_JSON_KEY]);
     this.panels.restoreState(specification);
     this.localCoordinateSpace.restoreState(specification[LOCAL_COORDINATE_SPACE_JSON_KEY]);
     this.localPosition.restoreState(specification[LOCAL_POSITION_JSON_KEY]);
+    this.localVelocity.restoreState(specification[LOCAL_VELOCITY_JSON_KEY]);
+    this.toolBinder.restoreState(specification[TOOL_BINDINGS_JSON_KEY]);
     if ((this.constructor as typeof UserLayer).supportsPickOption) {
       this.pick.restoreState(specification[PICK_JSON_KEY]);
     }
@@ -444,6 +457,7 @@ export class UserLayer extends RefCounted {
       [TOOL_BINDINGS_JSON_KEY]: this.toolBinder.toJSON(),
       [LOCAL_COORDINATE_SPACE_JSON_KEY]: this.localCoordinateSpace.toJSON(),
       [LOCAL_POSITION_JSON_KEY]: this.localPosition.toJSON(),
+      [LOCAL_VELOCITY_JSON_KEY]: this.localVelocity.toJSON(),
       [PICK_JSON_KEY]: this.pick.toJSON(),
       ...this.panels.toJSON(),
     };
@@ -481,6 +495,9 @@ export class ManagedUserLayer extends RefCounted {
   localCoordinateSpaceCombiner =
       new CoordinateSpaceCombiner(this.localCoordinateSpace, isLocalDimension);
   localPosition = this.registerDisposer(new Position(this.localCoordinateSpace));
+  localVelocity =
+      this.registerDisposer(new CoordinateSpacePlaybackVelocity(this.localCoordinateSpace));
+
 
   // Index of layer within root layer manager, counting only non-archived layers.  This is the layer
   // number shown in the layer bar and layer list panel.
@@ -565,6 +582,8 @@ export class ManagedUserLayer extends RefCounted {
   constructor(name: string, public manager: Borrowed<LayerListSpecification>) {
     super();
     this.name_ = name;
+    this.registerDisposer(
+        new PlaybackManager(this.manager.root.display, this.localPosition, this.localVelocity));
   }
 
   toJSON() {
@@ -635,28 +654,6 @@ export class LayerManager extends RefCounted {
   constructor() {
     super();
     this.layersChanged.add(this.scheduleRemoveLayersWithSingleRef);
-    this.layersChanged.add(this.setCoordinateSpaceToImageLayer.bind(this));
-  }
-  
-  /**
-   * This function is a utility to reset the resolution of neuroglancer whenever
-   * there is an addition of new image layer to the neuroglancer session.
-   */
-  private setCoordinateSpaceToImageLayer() {
-    //@ts-ignore
-    const coordinateSpace = <TrackableCoordinateSpace>(window['viewer'].coordinateSpace);
-    for (const layer of this.layerSet) {
-      if (layer.layer && layer.layer.type === 'image') {
-        if (layer.layer.dataSources.length > 0) {
-          const loadedDataSource = <LoadedLayerDataSource>(layer.layer.dataSources[0].loadState);
-          if (loadedDataSource !== undefined) {
-            const transform = loadedDataSource.transform;
-            coordinateSpace.value = transform.inputSpace.value;
-            break;
-          }
-        }
-      }
-    }
   }
 
   private scheduleRemoveLayersWithSingleRef =
@@ -900,7 +897,9 @@ export interface PickState {
   pickedAnnotationLayer: AnnotationLayerState|undefined;
   pickedAnnotationId: string|undefined;
   pickedAnnotationBuffer: ArrayBuffer|undefined;
-  pickedAnnotationBufferOffset: number|undefined;
+  pickedAnnotationBufferBaseOffset: number|undefined;
+  pickedAnnotationIndex: number|undefined;
+  pickedAnnotationCount: number|undefined;
   pickedAnnotationType: AnnotationType|undefined;
 }
 
@@ -917,7 +916,12 @@ export class MouseSelectionState implements PickState {
   pickedAnnotationLayer: AnnotationLayerState|undefined = undefined;
   pickedAnnotationId: string|undefined = undefined;
   pickedAnnotationBuffer: ArrayBuffer|undefined = undefined;
-  pickedAnnotationBufferOffset: number|undefined = undefined;
+  // Base offset into `pickedAnnotationBuffer` of the `pickedAnnotationCount` serialized annotations
+  // of `pickedAnnotationType`.
+  pickedAnnotationBufferBaseOffset: number|undefined = undefined;
+  // Index (out of a total of `pickedAnnotationCount`) of the picked annotation.
+  pickedAnnotationIndex: number|undefined = undefined;
+  pickedAnnotationCount: number|undefined = undefined;
   pickedAnnotationType: AnnotationType|undefined = undefined;
   pageX: number;
   pageY: number;
@@ -1183,7 +1187,7 @@ export class TrackableDataSelectionState extends RefCounted implements
   select() {
     const {pin} = this;
     this.location.visible = true;
-    pin.value = true;
+    pin.value = !pin.value;
     if (pin.value) {
       this.capture();
     }
@@ -1192,9 +1196,6 @@ export class TrackableDataSelectionState extends RefCounted implements
     const newValue = capturePersistentViewerSelectionState(this.layerSelectedValues);
     if (canRetain && newValue === undefined) return;
     this.value = newValue;
-  }
-  getCapturedState(): PersistentViewerSelectionState|undefined {
-    return capturePersistentViewerSelectionState(this.layerSelectedValues);
   }
   restoreState(obj: unknown) {
     if (obj === undefined) {
@@ -1459,13 +1460,6 @@ export class SelectedLayerState extends RefCounted implements Trackable {
     }
     this.layer_ = layer;
     if (layer !== undefined) {
-      const userLayer = layer.layer;
-      if (userLayer !== null) {
-        const tool = userLayer.tool.value;
-        if (tool !== undefined) {
-          tool.setActive(true);
-        }
-      }
       const layerDisposed = () => {
         this.layer_ = undefined;
         this.visible = false;
@@ -1813,7 +1807,7 @@ export class TopLevelLayerListSpecification extends LayerListSpecification {
       public selectionState: Borrowed<TrackableDataSelectionState>,
       public selectedLayer: Borrowed<SelectedLayerState>,
       public coordinateSpace: WatchableValueInterface<CoordinateSpace>,
-      public globalPosition: Borrowed<Position>, public toolBinder: Borrowed<ToolBinder>) {
+      public globalPosition: Borrowed<Position>, public toolBinder: Borrowed<GlobalToolBinder>) {
     super();
     this.registerDisposer(layerManager.layersChanged.add(this.changed.dispatch));
     this.registerDisposer(layerManager.specificationChanged.add(this.changed.dispatch));

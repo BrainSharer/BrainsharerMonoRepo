@@ -18,7 +18,7 @@
  * @file Defines facilities for GPU computation of empirical cumulative distribution functions.
  *
  * This is based on the technique described in
- * https://developer.amd.com/wordpress/media/2012/10/GPUHistogramGeneration_preprint.pdf
+ * http://shaderwrangler.com/publications/histogram/
  *
  * In particular, the "scatter" operation required to compute a histogram is performed by
  * rendering point primitives.
@@ -48,6 +48,7 @@ export class HistogramSpecifications extends RefCounted {
   frameNumber = -1;
   constructor(
       public channels: WatchableValueInterface<HistogramChannelSpecification[]>,
+      public properties: WatchableValueInterface<string[]>,
       public bounds: WatchableValueInterface<DataTypeInterval[]>,
       public visibility = new VisibilityPriorityAggregator()) {
     super();
@@ -55,7 +56,8 @@ export class HistogramSpecifications extends RefCounted {
 
   getFramebuffers(gl: GL) {
     const {framebuffers} = this;
-    while (framebuffers.length < this.channels.value.length) {
+    const count = this.bounds.value.length;
+    while (framebuffers.length < count) {
       const framebuffer = new FramebufferConfiguration(gl, {
         colorBuffers: makeTextureBuffers(
             gl, 1, WebGL2RenderingContext.R32F, WebGL2RenderingContext.RED,
@@ -64,6 +66,11 @@ export class HistogramSpecifications extends RefCounted {
       framebuffers.push(framebuffer);
     }
     return framebuffers;
+  }
+
+  get visibleHistograms(): number {
+    if (!this.visibility.visible) return 0;
+    return this.bounds.value.length;
   }
 
   disposed() {
@@ -83,7 +90,9 @@ const histogramSamplesPerInstance = 4096;
 // of the histogram but also slows down rendering.
 const histogramSamples = 2 ** 14;
 
-// Generates a histogram from a single-channel uint8 texture.
+/**
+ * Generates a histogram from a single-channel uint8 texture.
+ */
 export class TextureHistogramGenerator extends RefCounted {
   private shader = this.registerDisposer((() => {
     const builder = new ShaderBuilder(this.gl);

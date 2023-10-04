@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {Annotation, AnnotationId, AnnotationPropertySerializer, AnnotationPropertySpec, AnnotationReference, AnnotationSourceSignals, AnnotationType, annotationTypeHandlers, annotationTypes, Collection, fixAnnotationAfterStructuredCloning, isChildDummyAnnotation, isTypeCollection, makeAnnotationId, SerializedAnnotations} from 'neuroglancer/annotation';
+import {Annotation, AnnotationId, AnnotationPropertySerializer, AnnotationPropertySpec, AnnotationReference, AnnotationSourceSignals, AnnotationType, annotationTypeHandlers, annotationTypes, fixAnnotationAfterStructuredCloning, makeAnnotationId, makeAnnotationPropertySerializers, SerializedAnnotations} from 'neuroglancer/annotation';
 import {ANNOTATION_COMMIT_UPDATE_RESULT_RPC_ID, ANNOTATION_COMMIT_UPDATE_RPC_ID, ANNOTATION_GEOMETRY_CHUNK_SOURCE_RPC_ID, ANNOTATION_METADATA_CHUNK_SOURCE_RPC_ID, ANNOTATION_REFERENCE_ADD_RPC_ID, ANNOTATION_REFERENCE_DELETE_RPC_ID, ANNOTATION_SUBSET_GEOMETRY_CHUNK_SOURCE_RPC_ID, AnnotationGeometryChunkSpecification} from 'neuroglancer/annotation/base';
 import {getAnnotationTypeRenderHandler} from 'neuroglancer/annotation/type_handler';
 import {Chunk, ChunkManager, ChunkSource} from 'neuroglancer/chunk_manager/frontend';
@@ -229,9 +229,9 @@ export class AnnotationMetadataChunkSource extends ChunkSource {
 }
 
 function copyOtherAnnotations(
-  serializedAnnotations: SerializedAnnotations,
-  propertySerializers: AnnotationPropertySerializer[], excludedType: AnnotationType,
-  excludedTypeAdjustment: number): Uint8Array {
+    serializedAnnotations: SerializedAnnotations,
+    propertySerializers: AnnotationPropertySerializer[], excludedType: AnnotationType,
+    excludedTypeAdjustment: number): Uint8Array {
   const newData = new Uint8Array(serializedAnnotations.data.length + excludedTypeAdjustment);
   // Copy all other annotation types
   for (const otherType of annotationTypes) {
@@ -243,45 +243,45 @@ function copyOtherAnnotations(
       serializedAnnotations.typeToOffset![otherType] = newTypeOffset;
     }
     newData.set(
-      serializedAnnotations.data.subarray(
-        otherTypeOffset,
-        otherTypeOffset +
-        serializedAnnotations.typeToIds[otherType].length *
-        propertySerializers[otherType].serializedBytes),
-      newTypeOffset);
+        serializedAnnotations.data.subarray(
+            otherTypeOffset,
+            otherTypeOffset +
+                serializedAnnotations.typeToIds[otherType].length *
+                    propertySerializers[otherType].serializedBytes),
+        newTypeOffset);
   }
   return newData;
 }
 
 function copyAnnotationSlice(
-  serializedAnnotations: SerializedAnnotations,
-  propertySerializers: AnnotationPropertySerializer[], type: AnnotationType, dest: Uint8Array,
-  sourceBeginIndex: number, sourceEndIndex: number, destBeginIndex: number, destCount: number) {
+    serializedAnnotations: SerializedAnnotations,
+    propertySerializers: AnnotationPropertySerializer[], type: AnnotationType, dest: Uint8Array,
+    sourceBeginIndex: number, sourceEndIndex: number, destBeginIndex: number, destCount: number) {
   const typeOffset = serializedAnnotations.typeToOffset[type];
   let sourceGroupOffset = typeOffset;
   let destGroupOffset = typeOffset;
-  const { propertyGroupBytes } = propertySerializers[type];
+  const {propertyGroupBytes} = propertySerializers[type];
   const numGroups = propertyGroupBytes.length;
   const count = serializedAnnotations.typeToIds[type].length;
   for (let groupIndex = 0; groupIndex < numGroups; ++groupIndex) {
     const groupBytes = propertyGroupBytes[groupIndex];
     dest.set(
-      serializedAnnotations.data.subarray(
-        sourceGroupOffset + sourceBeginIndex * groupBytes,
-        sourceGroupOffset + sourceEndIndex * groupBytes),
-      destGroupOffset + destBeginIndex * groupBytes);
+        serializedAnnotations.data.subarray(
+            sourceGroupOffset + sourceBeginIndex * groupBytes,
+            sourceGroupOffset + sourceEndIndex * groupBytes),
+        destGroupOffset + destBeginIndex * groupBytes);
     sourceGroupOffset += groupBytes * count;
     destGroupOffset += groupBytes * destCount;
   }
 }
 
 export function updateAnnotation(
-  chunk: AnnotationGeometryData, annotation: Annotation,
-  propertySerializers: AnnotationPropertySerializer[]) {
+    chunk: AnnotationGeometryData, annotation: Annotation,
+    propertySerializers: AnnotationPropertySerializer[]) {
   // Find insertion point.
   const type = annotation.type;
-  const { rank } = propertySerializers[type];
-  const { serializedAnnotations } = chunk;
+  const {rank} = propertySerializers[type];
+  const {serializedAnnotations} = chunk;
   const ids = serializedAnnotations.typeToIds[type];
   const idMap = serializedAnnotations.typeToIdMaps[type];
   const handler = annotationTypeHandlers[type];
@@ -292,31 +292,31 @@ export function updateAnnotation(
     index = idMap.size;
     idMap.set(annotation.id, index);
     const newData =
-      copyOtherAnnotations(serializedAnnotations, propertySerializers, type, numBytes);
+        copyOtherAnnotations(serializedAnnotations, propertySerializers, type, numBytes);
     copyAnnotationSlice(
-      serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ 0,
-      /*sourceEndIndex=*/ index, /*destBeginIndex=*/ 0, /*destCount=*/ index + 1);
+        serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ 0,
+        /*sourceEndIndex=*/ index, /*destBeginIndex=*/ 0, /*destCount=*/ index + 1);
     ids.push(annotation.id);
     serializedAnnotations.data = newData;
   }
   const bufferOffset = serializedAnnotations.typeToOffset![type];
   const dv = new DataView(
-    serializedAnnotations.data.buffer, serializedAnnotations.data.byteOffset,
-    serializedAnnotations.data.byteLength);
+      serializedAnnotations.data.buffer, serializedAnnotations.data.byteOffset,
+      serializedAnnotations.data.byteLength);
   const isLittleEndian = ENDIANNESS === Endianness.LITTLE;
   const propertySerializer = propertySerializers[type];
   handler.serialize(
-    dv, bufferOffset + propertySerializer.propertyGroupBytes[0] * index, isLittleEndian, rank,
-    annotation);
+      dv, bufferOffset + propertySerializer.propertyGroupBytes[0] * index, isLittleEndian, rank,
+      annotation);
   propertySerializer.serialize(
-    dv, bufferOffset, index, ids.length, isLittleEndian, annotation.properties);
+      dv, bufferOffset, index, ids.length, isLittleEndian, annotation.properties);
   chunk.bufferValid = false;
 }
 
 export function deleteAnnotation(
-  chunk: AnnotationGeometryData, type: AnnotationType, id: AnnotationId,
-  propertySerializers: AnnotationPropertySerializer[]): boolean {
-  const { serializedAnnotations } = chunk;
+    chunk: AnnotationGeometryData, type: AnnotationType, id: AnnotationId,
+    propertySerializers: AnnotationPropertySerializer[]): boolean {
+  const {serializedAnnotations} = chunk;
   const idMap = serializedAnnotations.typeToIdMaps[type];
   const index = idMap.get(id);
   if (index === undefined) {
@@ -326,11 +326,11 @@ export function deleteAnnotation(
   const numBytes = propertySerializers[type].serializedBytes;
   const newData = copyOtherAnnotations(serializedAnnotations, propertySerializers, type, -numBytes);
   copyAnnotationSlice(
-    serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ 0,
-    /*sourceEndIndex=*/ index, /*destBeginIndex=*/ 0, /*destCount=*/ ids.length - 1);
+      serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ 0,
+      /*sourceEndIndex=*/ index, /*destBeginIndex=*/ 0, /*destCount=*/ ids.length - 1);
   copyAnnotationSlice(
-    serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ index + 1,
-    /*sourceEndIndex=*/ ids.length, /*destBeginIndex=*/ index, /*destCount=*/ ids.length - 1);
+      serializedAnnotations, propertySerializers, type, newData, /*sourceBeginIndex=*/ index + 1,
+      /*sourceEndIndex=*/ ids.length, /*destBeginIndex=*/ index, /*destCount=*/ ids.length - 1);
   ids.splice(index, 1);
   idMap.delete(id);
   for (let i = index, count = ids.length; i < count; ++i) {
@@ -389,7 +389,6 @@ export class MultiscaleAnnotationSource extends SharedObject implements
   readonly relationships: readonly string[];
   readonly properties: Readonly<AnnotationPropertySpec>[];
   readonly annotationPropertySerializers: AnnotationPropertySerializer[];
-
   constructor(public chunkManager: Borrowed<ChunkManager>, options: {
     rank: number,
     relationships: readonly string[],
@@ -565,169 +564,6 @@ export class MultiscaleAnnotationSource extends SharedObject implements
     return existing;
   }
 
-  /**
-   * Takes an annotation id as input and returns the parent if the annotation type is line and parent is polygon.
-   * @param id annotation id
-   * @returns Returns parent annotation id if annotation type is line otherwise returns the current id.
-   */
-  getNonDummyAnnotationReference(id: AnnotationId): AnnotationReference {
-    const reference = this.getReference(id);
-    if (!reference.value) return reference;
-
-    const annotation = reference.value;
-    if (annotation.parentAnnotationId) {
-      const parentRef = this.getReference(annotation.parentAnnotationId);
-      if (parentRef.value && isChildDummyAnnotation(parentRef.value)) {
-        reference.dispose();
-        parentRef.dispose();
-        return this.getNonDummyAnnotationReference(annotation.parentAnnotationId);
-      }
-      parentRef.dispose();
-    }
-    
-    return reference;
-  }
-
-  //@ts-ignore
-  makeAllParentsVisible(annotationId: AnnotationId) : void {
-    return; // TODO: to implement this
-  }
-
-  /**
-   * Takes an annotation id as input and finds the top most ancestor of it.
-   * @param id annotation id input
-   * @returns Reference to the top most ancestor of it.
-   */
-  getTopMostAnnotationReference(id: AnnotationId): AnnotationReference {
-    const reference = this.getReference(id);
-    if (!reference.value) return reference;
-
-    const annotation = reference.value;
-    if (annotation.parentAnnotationId) {
-      const parentId = annotation.parentAnnotationId;
-      reference.dispose();
-      return this.getTopMostAnnotationReference(parentId);
-    }
-    
-    return reference;
-  }
-  /**
-   * Takes a annotation reference and update the color of that annotation.
-   * @param reference 
-   * @param color 
-   * @returns void
-   */
-  updateColor(reference: AnnotationReference, color: number) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value};
-    const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-    if (newAnn.properties.length <= colorIdx) return;
-    newAnn.properties[colorIdx] = color;
-    this.update(reference, newAnn);
-
-    if (isTypeCollection(newAnn)) {
-      const collection = <Collection>newAnn;
-      for (let i = 0; i < collection.childAnnotationIds.length; i++) {
-        const childRef = this.getReference(collection.childAnnotationIds[i]);
-        this.updateColor(childRef, color);
-        childRef.dispose();
-      }
-    }
-  }
-  /**
-   * Takes a color, description and category and updates all CELL annotations with the color matching description and category.
-   * @param color New color for Cell annotations
-   * @param description Description of cells that need to be updated
-   * @param category Category of cells that need to be updated
-   * @returns void
-   */
-   updateCellColors(color: number, description: string, category: string): void {
-    for(const [id, ref] of this.references) {
-      const ann = ref.value;
-      if (ann === undefined || ann === null) continue;
-      if (ann.type === AnnotationType.CELL && ann.description === description && ann.category === category) {
-        const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-        const newAnn = {...ann};
-        if (newAnn.properties.length <= colorIdx) return;
-        newAnn.properties[colorIdx] = color;
-        this.update(this.getReference(id), newAnn);
-      }
-    }
-  }
-
-  /**
-   * Takes a color, description and updates all COM annotations with the color matching description.
-   * @param color New color for COM annotations
-   * @param description Description of COMs that need to be updated
-   * @returns void
-   */
-  updateCOMColors(color: number, description: string): void {
-    for(const [id, ref] of this.references) {
-      const ann = ref.value;
-      if (ann === undefined || ann === null) continue;
-      if (ann.type === AnnotationType.COM && ann.description === description) {
-        const colorIdx = this.properties.findIndex(x => x.identifier === 'color');
-        const newAnn = {...ann};
-        if (newAnn.properties.length <= colorIdx) return;
-        newAnn.properties[colorIdx] = color;
-        this.update(this.getReference(id), newAnn);
-      }
-    }
-  }
-  /**
-   * Takes a annotation reference and update the visibility of that annotation.
-   * @param reference 
-   * @param visibility 
-   * @returns void
-   */
-   updateVisibility(reference: AnnotationReference, visibility: number) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value};
-    const visibilityIdx = this.properties.findIndex(x => x.identifier === 'visibility');
-    if (newAnn.properties.length <= visibilityIdx) return;
-    newAnn.properties[visibilityIdx] = visibility;
-    this.update(reference, newAnn);
-
-    if (isTypeCollection(newAnn)) {
-      const collection = <Collection>newAnn;
-      for (let i = 0; i < collection.childAnnotationIds.length; i++) {
-        const childRef = this.getReference(collection.childAnnotationIds[i]);
-        this.updateVisibility(childRef, visibility);
-        childRef.dispose();
-      }
-    }
-  }
-  /**
-   * Takes a annotation id and finds the visibility of that annotation.
-   * @param annotationId 
-   * @returns void
-   */
-   getVisibility(annotationId: string): number {
-    const reference = this.getReference(annotationId);
-    if (!reference.value) {
-      reference.dispose();
-      return 1.0;
-    }
-    const ann = reference.value;
-    const visibilityIdx = this.properties.findIndex(x => x.identifier === 'visibility');
-    if (ann.properties.length <= visibilityIdx) {
-      reference.dispose();
-      return 1.0;
-    }
-    return ann.properties[visibilityIdx];
-  }
-  /**
-   * Takes the annotation reference and updates its description with new string.
-   * @param reference 
-   * @param description 
-   * @returns 
-   */
-  updateDescription(reference: AnnotationReference, description: string|undefined) {
-    if (!reference.value) return;
-    const newAnn = {...reference.value, description};
-    this.update(reference, newAnn);
-  }
-
   private forEachPossibleChunk(
       annotation: Annotation,
       callback: (chunk: AnnotationGeometryChunk|AnnotationSubsetGeometryChunk) => void) {
@@ -758,11 +594,6 @@ export class MultiscaleAnnotationSource extends SharedObject implements
         case AnnotationType.POINT:
           matrix.transformPoint(
               tempLower, source.multiscaleToChunkTransform, rank + 1, annotation.point, rank);
-          tempUpper.set(tempLower);
-          break;
-        case AnnotationType.POLYGON:
-          matrix.transformPoint(
-            tempLower, source.multiscaleToChunkTransform, rank + 1, annotation.source, rank);
           tempUpper.set(tempLower);
           break;
         case AnnotationType.LINE:
@@ -837,9 +668,9 @@ export class MultiscaleAnnotationSource extends SharedObject implements
       if (localUpdate.reference.value !== null) {
         localUpdate.reference.value!.id = newAnnotation.id;
         deleteAnnotation(
-            this.temporary.data!, localUpdate.type, id, this.annotationPropertySerializer);
+            this.temporary.data!, localUpdate.type, id, this.annotationPropertySerializers);
         updateAnnotation(
-            this.temporary.data!, localUpdate.reference.value!, this.annotationPropertySerializer);
+            this.temporary.data!, localUpdate.reference.value!, this.annotationPropertySerializers);
       }
       localUpdate.reference.changed.dispatch();
     }

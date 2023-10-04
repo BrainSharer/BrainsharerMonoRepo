@@ -434,11 +434,11 @@ export class StateLoader extends RefCounted {
             public: true
         };
 
-        const annotationSavedState = this.viewer.annotationsSavedState;
+        //TODO const annotationSavedState = this.viewer.annotationsSavedState;
 
         this.stateAPI.saveState(this.stateID, state).then(() => {
             StatusMessage.showTemporaryMessage(`The data was saved successfully.`);
-            annotationSavedState.value = true;
+            //TODO annotationSavedState.value = true;
         }).catch(err => {
             StatusMessage.showTemporaryMessage(`Internal error saving state: ` + err);
             console.log(err);
@@ -586,7 +586,7 @@ export class StateLoader extends RefCounted {
      * A method to reset the state from what is stored in the database.
      */
     private resetState() {
-        this.viewer.urlHashBinding.resetDatabaseState();
+        //TODO this.viewer.urlHashBinding.resetDatabaseState();
     }
 }
 

@@ -18,34 +18,19 @@ import 'neuroglancer/noselect.css';
 import './layer_bar.css';
 
 import svg_plus from 'ikonate/icons/plus.svg';
-import {DisplayContext} from 'neuroglancer/display_context';
-import {addNewLayer, deleteLayer, LayerListSpecification, makeLayer, ManagedUserLayer, SelectedLayerState} from 'neuroglancer/layer';
-import {LinkedViewerNavigationState} from 'neuroglancer/layer_group_viewer';
+import {addNewLayer, deleteLayer, makeLayer, ManagedUserLayer} from 'neuroglancer/layer';
+import {LayerGroupViewer} from 'neuroglancer/layer_group_viewer';
 import {NavigationLinkType} from 'neuroglancer/navigation_state';
 import {WatchableValueInterface} from 'neuroglancer/trackable_value';
 import {DropLayers, registerLayerBarDragLeaveHandler, registerLayerBarDropHandlers, registerLayerDragHandlers} from 'neuroglancer/ui/layer_drag_and_drop';
 import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
-import {Owned, RefCounted} from 'neuroglancer/util/disposable';
+import {RefCounted} from 'neuroglancer/util/disposable';
 import {removeFromParent} from 'neuroglancer/util/dom';
 import {preventDrag} from 'neuroglancer/util/drag_and_drop';
 import {makeCloseButton} from 'neuroglancer/widget/close_button';
 import {makeDeleteButton} from 'neuroglancer/widget/delete_button';
 import {makeIcon} from 'neuroglancer/widget/icon';
 import {PositionWidget} from 'neuroglancer/widget/position_widget';
-import { clearVolumeToolState } from 'neuroglancer/ui/annotations';
-
-export const defaultAnnotationPropertiesSchema = [
-  {
-    id: 'color',
-    type: 'rgb',
-    default: 'yellow'
-  },
-  {
-    id: 'visibility',
-    type: 'float32',
-    default: 1.0
-  }
-];
 
 
 class LayerWidget extends RefCounted {
@@ -107,12 +92,8 @@ class LayerWidget extends RefCounted {
     });
     const deleteElement = makeDeleteButton();
     deleteElement.title = 'Delete this layer';
-    const deleteConfirmText = `Are you sure you want to delete the annotation layer ?\nAnnotation layer name: ${this.layer.name}`;
     deleteElement.addEventListener('click', (event: MouseEvent) => {
-      if(confirm(deleteConfirmText)) {
-        clearVolumeToolState();
-        deleteLayer(this.layer);
-      }
+      deleteLayer(this.layer);
       event.stopPropagation();
     });
     element.appendChild(layerNumberElement);
@@ -122,8 +103,12 @@ class LayerWidget extends RefCounted {
     buttonContainer.appendChild(deleteElement);
     element.appendChild(labelElement);
     element.appendChild(valueContainer);
-    const positionWidget = this.registerDisposer(new PositionWidget(
-        layer.localPosition, layer.localCoordinateSpaceCombiner, {copyButton: false}));
+    const positionWidget = this.registerDisposer(
+        new PositionWidget(layer.localPosition, layer.localCoordinateSpaceCombiner, {
+          copyButton: false,
+          velocity: layer.localVelocity,
+          getToolBinder: () => layer.layer?.toolBinder
+        }));
     element.appendChild(positionWidget.element);
     positionWidget.element.addEventListener('click', (event: MouseEvent) => {
       event.stopPropagation();
@@ -181,7 +166,10 @@ export class LayerBar extends RefCounted {
   dropZone: HTMLDivElement;
   private layerWidgetInsertionPoint = document.createElement('div');
   private positionWidget = this.registerDisposer(new PositionWidget(
-      this.viewerNavigationState.position.value, this.manager.root.coordinateSpaceCombiner));
+      this.viewerNavigationState.position.value, this.manager.root.coordinateSpaceCombiner, {
+        velocity: this.viewerNavigationState.velocity.velocity,
+        getToolBinder: () => this.layerGroupViewer.toolBinder,
+      }));
   /**
    * For use within this module only.
    */
@@ -193,14 +181,27 @@ export class LayerBar extends RefCounted {
     return this.manager.layerManager;
   }
 
+  get manager() {
+    return this.layerGroupViewer.layerSpecification;
+  }
+
+  get display () {
+    return this.layerGroupViewer.display;
+  }
+
+  get selectedLayer() {
+    return this.layerGroupViewer.selectedLayer;
+  }
+
+  get viewerNavigationState() {
+    return this.layerGroupViewer.viewerNavigationState;
+  }
+
   constructor(
-      public display: DisplayContext, public manager: LayerListSpecification,
-      public viewerNavigationState: LinkedViewerNavigationState,
-      public selectedLayer: Owned<SelectedLayerState>, public getLayoutSpecForDrag: () => any,
+      public layerGroupViewer: LayerGroupViewer, public getLayoutSpecForDrag: () => any,
       public showLayerHoverValues: WatchableValueInterface<boolean>) {
     super();
-    this.registerDisposer(selectedLayer);
-    const {element} = this;
+    const {element, manager, selectedLayer} = this;
     element.className = 'neuroglancer-layer-panel';
     this.registerDisposer(manager.layerSelectedValues.changed.add(() => {
       this.handleLayerValuesChanged();
@@ -230,8 +231,7 @@ export class LayerBar extends RefCounted {
     const addLayer = (event: MouseEvent) => {
       if (event.ctrlKey || event.metaKey || event.type === 'contextmenu') {
         const layer = makeLayer(
-            this.manager, 'annotation', {type: 'annotation', 'source': 'local://annotations',
-            'annotationProperties': defaultAnnotationPropertiesSchema});;
+            this.manager, 'annotation', {type: 'annotation', 'source': 'local://annotations'});
         this.manager.add(layer);
         this.selectedLayer.layer = layer;
         this.selectedLayer.visible = true;
@@ -263,7 +263,7 @@ export class LayerBar extends RefCounted {
 
     // Ensure layer widgets are updated before WebGL drawing starts; we don't want the layout to
     // change after WebGL drawing or we will get flicker.
-    this.registerDisposer(display.updateStarted.add(() => this.updateLayers()));
+    this.registerDisposer(this.display.updateStarted.add(() => this.updateLayers()));
 
     this.registerDisposer(manager.chunkManager.layerChunkStatisticsUpdated.add(
         this.registerCancellable(animationFrameDebounce(() => this.updateChunkStatistics()))));

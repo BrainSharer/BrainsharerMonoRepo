@@ -20,12 +20,13 @@ import svg_arrowLeft from 'ikonate/icons/arrow-left.svg';
 import svg_arrowRight from 'ikonate/icons/arrow-right.svg';
 import {DisplayContext, IndirectRenderedPanel} from 'neuroglancer/display_context';
 import {WatchableValueInterface} from 'neuroglancer/trackable_value';
+import {ToolActivation} from 'neuroglancer/ui/tool';
 import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
 import {DataType} from 'neuroglancer/util/data_type';
-import {RefCounted} from 'neuroglancer/util/disposable';
-import {updateInputFieldWidth} from 'neuroglancer/util/dom';
+import {Owned, RefCounted} from 'neuroglancer/util/disposable';
+import {removeChildren, updateInputFieldWidth} from 'neuroglancer/util/dom';
 import {EventActionMap, registerActionListener} from 'neuroglancer/util/event_action_map';
-import {computeInvlerp, computeLerp, dataTypeCompare, DataTypeInterval, getClampedInterval, getClosestEndpoint, getIntervalBoundsEffectiveFraction, getIntervalBoundsEffectiveOffset, parseDataTypeValue} from 'neuroglancer/util/lerp';
+import {computeInvlerp, computeLerp, dataTypeCompare, DataTypeInterval, dataTypeIntervalEqual, getClampedInterval, getClosestEndpoint, getIntervalBoundsEffectiveFraction, getIntervalBoundsEffectiveOffset, parseDataTypeValue} from 'neuroglancer/util/lerp';
 import {MouseEventBinder} from 'neuroglancer/util/mouse_bindings';
 import {startRelativeMouseDrag} from 'neuroglancer/util/mouse_drag';
 import {Uint64} from 'neuroglancer/util/uint64';
@@ -42,16 +43,15 @@ import {InvlerpParameters} from 'neuroglancer/webgl/shader_ui_controls';
 import {getSquareCornersBuffer} from 'neuroglancer/webgl/square_corners_buffer';
 import {setRawTextureParameters} from 'neuroglancer/webgl/texture';
 import {makeIcon} from 'neuroglancer/widget/icon';
+import {LayerControlTool} from 'neuroglancer/widget/layer_control';
 import {LegendShaderOptions} from 'neuroglancer/widget/shader_controls';
 import {Tab} from 'neuroglancer/widget/tab_view';
-import {HistogramPanel} from 'neuroglancer/widget/histogram';
 
 const inputEventMap = EventActionMap.fromObject({
   'shift?+mousedown0': {action: 'set'},
   'shift?+alt+mousedown0': {action: 'adjust-window-via-drag'},
   'shift?+wheel': {action: 'zoom-via-wheel'},
 });
-
 
 export class CdfController<T extends RangeAndWindowIntervals> extends RefCounted {
   constructor(
@@ -66,10 +66,10 @@ export class CdfController<T extends RangeAndWindowIntervals> extends RefCounted
       const value = this.getTargetValue(mouseEvent);
       if (value === undefined) return;
       const clampedRange = getClampedInterval(bounds.window, bounds.range);
-      const endpoint = getClosestEndpoint(clampedRange, value);
+      const endpointIndex = getClosestEndpoint(clampedRange, value);
       const setEndpoint = (value: number|Uint64) => {
         const bounds = this.getModel();
-        this.setModel(getUpdatedRangeAndWindowParameters(bounds, 'range', endpoint, value));
+        this.setModel(getUpdatedRangeAndWindowParameters(bounds, 'range', endpointIndex, value));
       };
       setEndpoint(value);
       startRelativeMouseDrag(mouseEvent, (newEvent: MouseEvent) => {
@@ -86,6 +86,7 @@ export class CdfController<T extends RangeAndWindowIntervals> extends RefCounted
       const mouseEvent = actionEvent.detail;
       const initialRelativeX = this.getTargetFraction(mouseEvent);
       const initialValue = this.getWindowLerp(initialRelativeX);
+      // Index for bound being adjusted
       const endpointIndex = (initialRelativeX < 0.5) ? 0 : 1;
       const setEndpoint = (value: number|Uint64) => {
         const bounds = this.getModel();
@@ -126,11 +127,19 @@ export class CdfController<T extends RangeAndWindowIntervals> extends RefCounted
     });
   }
 
+  /**
+   * Get fraction of distance in x along bounding rect for a MouseEvent.
+   */
   getTargetFraction(event: MouseEvent) {
     const clientRect = this.element.getBoundingClientRect();
     return (event.clientX - clientRect.left) / clientRect.width;
   }
 
+  /**
+   * Interpolate a value along the model interval.
+   * @param relativeX Relative x coordinate within the interval.
+   * @returns Interpolated value.
+   */
   getWindowLerp(relativeX: number) {
     return computeLerp(this.getModel().window, this.dataType, relativeX);
   }
@@ -144,21 +153,36 @@ export class CdfController<T extends RangeAndWindowIntervals> extends RefCounted
 
 const histogramSamplerTextureUnit = Symbol('histogramSamplerTexture');
 
+/**
+ * An interval with coordinates `range` and endpoint values `window`.
+ * Can be thought of representing associated intervals in x (range) and y (window).
+ */
 export interface RangeAndWindowIntervals {
   range: DataTypeInterval;
   window: DataTypeInterval;
 }
 
+/**
+ * Update the value of one endpoint, and return new interval.
+ * @param existingBounds Initial bounds.
+ * @param boundType 'range' to update endpoint coordinates, 'window' to update endpoint values.
+ * @param endpointIndex Index of bound to update.
+ * @param newEndpoint New value of bound being updated.
+ * @param fitRangeInWindow
+ * @returns New bounds.
+ */
 export function getUpdatedRangeAndWindowParameters<T extends RangeAndWindowIntervals>(
     existingBounds: T, boundType: 'range'|'window', endpointIndex: number,
     newEndpoint: number|Uint64, fitRangeInWindow = false): T {
   const newBounds = {...existingBounds};
   const existingInterval = existingBounds[boundType];
   newBounds[boundType] = [existingInterval[0], existingInterval[1]] as DataTypeInterval;
+  // Update bound
   newBounds[boundType][endpointIndex] = newEndpoint;
   if (boundType === 'window' &&
       dataTypeCompare(newEndpoint, existingInterval[1 - endpointIndex]) * (2 * endpointIndex - 1) <
           0) {
+    // If new endpoint has gone past other bound, adjust other bound to match
     newBounds[boundType][1 - endpointIndex] = newEndpoint;
   }
   if (boundType === 'range' && fitRangeInWindow) {
@@ -180,6 +204,9 @@ export function getUpdatedRangeAndWindowParameters<T extends RangeAndWindowInter
 const NUM_HISTOGRAM_BINS_IN_RANGE = 254;
 const NUM_CDF_LINES = NUM_HISTOGRAM_BINS_IN_RANGE + 1;
 
+/**
+   * Panel that shows Cumulative Distribution Function (CDF) of visible data.
+   */
 class CdfPanel extends IndirectRenderedPanel {
   get drawOrder() {
     return 100;
@@ -507,8 +534,6 @@ export function adjustInvlerpBrightnessContrast(
 
 export class InvlerpWidget extends Tab {
   cdfPanel = this.registerDisposer(new CdfPanel(this));
-  histogramPanel = this.registerDisposer(new HistogramPanel(this, NUM_CDF_LINES, histogramSamplerTextureUnit));
-
   boundElements = {
     range: createRangeBoundInputs('range', this.dataType, this.trackable),
     window: createRangeBoundInputs('window', this.dataType, this.trackable),
@@ -548,7 +573,6 @@ export class InvlerpWidget extends Tab {
     this.invertArrows = [makeArrow(svg_arrowRight), makeArrow(svg_arrowLeft)];
     element.appendChild(boundElements.range.container);
     element.appendChild(this.cdfPanel.element);
-    element.appendChild(this.histogramPanel.element);
     element.classList.add('neuroglancer-invlerp-widget');
     element.appendChild(boundElements.window.container);
     this.updateView();
@@ -579,4 +603,84 @@ export class InvlerpWidget extends Tab {
     invertArrows[reversed ? 1 : 0].style.display = '';
     invertArrows[reversed ? 0 : 1].style.display = 'none';
   }
+}
+
+export class VariableDataTypeInvlerpWidget extends Tab {
+  invlerpWidget: Owned<InvlerpWidget>;
+  constructor(
+      visibility: WatchableVisibilityPriority, public display: DisplayContext,
+      public watchableDataType: WatchableValueInterface<DataType>,
+      public trackable: WatchableValueInterface<InvlerpParameters>,
+      public histogramSpecifications: HistogramSpecifications, public histogramIndex: number,
+      public legendShaderOptions: LegendShaderOptions|undefined) {
+    super(visibility);
+    this.invlerpWidget = this.makeInvlerpWidget();
+    this.registerDisposer(watchableDataType.changed.add(() => {
+      removeChildren(this.element);
+      this.invlerpWidget.dispose();
+      this.invlerpWidget = this.makeInvlerpWidget();
+    }));
+  }
+
+  get dataType() {
+    return this.watchableDataType.value;
+  }
+
+  disposed() {
+    this.invlerpWidget.dispose();
+    super.disposed();
+  }
+
+  private makeInvlerpWidget() {
+    const {dataType} = this;
+    const widget = new InvlerpWidget(
+        this.visibility, this.display, dataType, this.trackable, this.histogramSpecifications,
+        this.histogramIndex, this.legendShaderOptions);
+    this.element.appendChild(widget.element);
+    return widget;
+  }
+}
+
+const TOOL_INPUT_EVENT_MAP = EventActionMap.fromObject({
+  'at:shift+wheel': {action: 'adjust-contrast-via-wheel'},
+  'at:shift+mousedown0': {action: 'adjust-via-drag'},
+  'at:shift+mousedown2': {action: 'invert-range'},
+});
+
+export function activateInvlerpTool(
+    activation: ToolActivation<LayerControlTool>,
+    control: InvlerpWidget|VariableDataTypeInvlerpWidget) {
+  activation.bindInputEventMap(TOOL_INPUT_EVENT_MAP);
+  activation.bindAction<WheelEvent>('adjust-contrast-via-wheel', event => {
+    event.stopPropagation();
+    const zoomAmount = getWheelZoomAmount(event.detail);
+    adjustInvlerpContrast(control.dataType, control.trackable, zoomAmount);
+  });
+  activation.bindAction<MouseEvent>('adjust-via-drag', event => {
+    event.stopPropagation();
+    let baseScreenX = event.detail.screenX, baseScreenY = event.detail.screenY;
+    let baseRange = control.trackable.value.range;
+    let prevRange = baseRange;
+    let prevScreenX = baseScreenX, prevScreenY = baseScreenY;
+    startRelativeMouseDrag(event.detail, newEvent => {
+      const curRange = control.trackable.value.range;
+      const curScreenX = newEvent.screenX, curScreenY = newEvent.screenY;
+      if (!dataTypeIntervalEqual(control.dataType, curRange, prevRange)) {
+        baseRange = curRange;
+        baseScreenX = prevScreenX;
+        baseScreenY = prevScreenY;
+      }
+      adjustInvlerpBrightnessContrast(
+          control.dataType, control.trackable, baseRange,
+          (curScreenY - baseScreenY) * 2 / screen.height,
+          (curScreenX - baseScreenX) * 4 / screen.width);
+      prevRange = control.trackable.value.range;
+      prevScreenX = curScreenX;
+      prevScreenY = curScreenY;
+    });
+  });
+  activation.bindAction('invert-range', event => {
+    event.stopPropagation();
+    invertInvlerpRange(control.trackable);
+  });
 }

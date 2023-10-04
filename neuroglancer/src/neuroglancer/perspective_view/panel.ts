@@ -40,6 +40,7 @@ import {DepthStencilRenderbuffer, FramebufferConfiguration, makeTextureBuffers, 
 import {ShaderBuilder} from 'neuroglancer/webgl/shader';
 import {MultipleScaleBarTextures, ScaleBarOptions} from 'neuroglancer/widget/scale_bar';
 import {RPC, SharedObject} from 'neuroglancer/worker_rpc';
+import {PerspectiveViewAnnotationLayer} from 'neuroglancer/annotation/renderlayer';
 
 export interface PerspectiveViewerState extends RenderedDataViewerState {
   wireFrame: WatchableValueInterface<boolean>;
@@ -458,7 +459,13 @@ export class PerspectivePanel extends RenderedDataPanel {
     }
 
     let gl = this.gl;
-    this.offscreenFramebuffer.bind(width, height);
+    const disablePicking = () => {
+      gl.drawBuffers(this.offscreenFramebuffer.singleAttachmentList);
+    };
+    const bindFramebuffer = () => {
+      this.offscreenFramebuffer.bind(width, height);
+    };
+    bindFramebuffer();
     gl.disable(gl.SCISSOR_TEST);
 
     // Stencil buffer bit 0 indicates positions of framebuffer written by an opaque layer.
@@ -533,6 +540,8 @@ export class PerspectivePanel extends RenderedDataPanel {
       emitColor: true,
       emitPickID: true,
       alreadyEmittedPickID: false,
+      bindFramebuffer,
+      frameNumber: this.context.frameNumber,
     };
 
     mat4.copy(pickingData.invTransform, projectionParameters.invViewProjectionMat);
@@ -559,12 +568,20 @@ export class PerspectivePanel extends RenderedDataPanel {
 
     if (hasAnnotation) {
       // Render annotations with blending enabled.
+
       gl.enable(WebGL2RenderingContext.BLEND);
       gl.depthFunc(WebGL2RenderingContext.LEQUAL);
       gl.blendFunc(WebGL2RenderingContext.SRC_ALPHA, WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA);
       for (const [renderLayer, attachment] of visibleLayers) {
         if (renderLayer.isAnnotation) {
-          renderLayer.draw(renderContext, attachment);
+          const annotationRenderLayer = renderLayer as PerspectiveViewAnnotationLayer;
+          if (annotationRenderLayer.base.state.displayState.disablePicking.value) {
+            disablePicking();
+            annotationRenderLayer.draw(renderContext, attachment);
+            renderContext.bindFramebuffer();
+          } else {
+            annotationRenderLayer.draw(renderContext, attachment);
+          }
         }
       }
       gl.depthFunc(WebGL2RenderingContext.LESS);
@@ -587,7 +604,10 @@ export class PerspectivePanel extends RenderedDataPanel {
 
       // Compute accumulate and revealage textures.
       const {transparentConfiguration} = this;
-      transparentConfiguration.bind(width, height);
+      renderContext.bindFramebuffer = () => {
+        transparentConfiguration.bind(width, height);
+      };
+      renderContext.bindFramebuffer();
       this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT);
       renderContext.emitter = perspectivePanelEmitOIT;
@@ -613,7 +633,8 @@ export class PerspectivePanel extends RenderedDataPanel {
       gl.enable(WebGL2RenderingContext.DEPTH_TEST);
 
       // Restore framebuffer attachments.
-      this.offscreenFramebuffer.bind(width, height);
+      renderContext.bindFramebuffer = bindFramebuffer;
+      bindFramebuffer();
 
       // Do picking only rendering pass for transparent layers.
       gl.enable(WebGL2RenderingContext.STENCIL_TEST);

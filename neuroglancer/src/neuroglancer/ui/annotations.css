@@ -80,7 +80,6 @@
   margin-left: 1ch;
   align-self: start;
   visibility: hidden;
-  display: flex;
 }
 
 .neuroglancer-annotation-list-entry:hover > .neuroglancer-annotation-list-entry-delete {
@@ -276,10 +275,6 @@ input.neuroglancer-segment-list-entry-id {
 
 .neuroglancer-segment-list-entry-new > input[type="checkbox"] {
   visibility: hidden;
-}
-
-.neuroglancer-segment-list-entry-delete {
-  order: 0;
 }
 
 .neuroglancer-selection-annotation-status {
