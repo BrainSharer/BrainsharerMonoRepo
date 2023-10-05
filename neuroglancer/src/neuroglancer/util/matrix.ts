@@ -284,3 +284,24 @@ export function permuteCols<Output extends TypedArray, Input extends TypedArray>
   }
   return output;
 }
+
+/**
+ * Convert a transformation matrix of rank 3 to a new transformation matrix with a higher rank.
+ * Only the values in the upper left corner are retained in this process
+ * @param matrix: old transformation matrix
+ * @param newRank: new rank, should be larger than 3
+ */
+export function dimensionTransform(matrix: Float64Array, newRank: number) {
+  const oldRank = 3;
+
+  const newMatrix = createIdentity(Float64Array, (newRank + 1));
+  for (let i = 0; i < oldRank; i++) {
+    newMatrix[newRank * (newRank + 1) + i] = matrix[oldRank * (oldRank + 1) + i];
+    for (let j = 0; j < oldRank; j++) {
+      newMatrix[i * (newRank + 1) + j] = matrix[i * (oldRank + 1) + j];
+    }
+  }
+
+  return newMatrix;
+}
+/* END OF CHANGE: matrix functions */

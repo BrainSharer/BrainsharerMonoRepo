@@ -56,7 +56,7 @@ import {NullarySignal, Signal} from 'neuroglancer/util/signal';
 import {Uint64} from 'neuroglancer/util/uint64';
 import * as vector from 'neuroglancer/util/vector';
 import {makeAddButton} from 'neuroglancer/widget/add_button';
-import {ColorWidget} from 'neuroglancer/widget/color';
+import {AnnotationColorWidget, ColorWidget} from 'neuroglancer/widget/color';
 import {makeCopyButton} from 'neuroglancer/widget/copy_button';
 import {makeDeleteButton} from 'neuroglancer/widget/delete_button';
 import {DependentViewContext, DependentViewWidget} from 'neuroglancer/widget/dependent_view_widget';
@@ -182,6 +182,7 @@ export class AnnotationLayerView extends Tab {
           undefined;
   private previousHoverId: string|undefined = undefined;
   private previousHoverAnnotationLayerState: AnnotationLayerState|undefined = undefined;
+  private annotationColorPicker: AnnotationColorWidget|undefined = undefined;
 
   private virtualListSource: VirtualListSource = {
     length: 0,

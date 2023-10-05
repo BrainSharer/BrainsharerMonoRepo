@@ -342,3 +342,41 @@ export function enableLerpShaderFunction(
     }
   }
 }
+
+
+export function getIntervalBoundsEffectiveFraction(dataType: DataType, interval: DataTypeInterval) {
+  switch (dataType) {
+    case DataType.FLOAT32:
+      return 1;
+    case DataType.UINT64: {
+      const diff =
+          Uint64.absDifference(tempUint64, interval[0] as Uint64, interval[1] as Uint64).toNumber();
+      return diff / (diff + 1);
+    }
+    default: {
+      const diff = Math.abs((interval[0] as number) - (interval[1] as number));
+      return diff / (diff + 1);
+    }
+  }
+}
+
+
+export function computeInvlerp(range: DataTypeInterval, value: number|Uint64): number {
+  if (typeof value === 'number') {
+    const minValue = range[0] as number;
+    const maxValue = range[1] as number;
+    return (value - minValue) / (maxValue - minValue);
+  } else {
+    const minValue = range[0] as Uint64;
+    const maxValue = range[1] as Uint64;
+    let numerator: number;
+    if (Uint64.compare(value, minValue) < 0) {
+      numerator = -Uint64.subtract(tempUint64, minValue, value).toNumber();
+    } else {
+      numerator = Uint64.subtract(tempUint64, value, minValue).toNumber();
+    }
+    let denominator = Uint64.absDifference(tempUint64, maxValue, minValue).toNumber();
+    if (Uint64.compare(minValue, maxValue) > 0) denominator *= -1;
+    return numerator / denominator;
+  }
+}
