@@ -63,3 +63,4 @@ __pycache__/
 *migrations*
 .env
 db.sqlite3
+neuroglancer/node_modules
