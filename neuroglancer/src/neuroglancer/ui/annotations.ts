@@ -65,6 +65,10 @@ import {makeMoveToButton} from 'neuroglancer/widget/move_to_button';
 import {Tab} from 'neuroglancer/widget/tab_view';
 import {VirtualList, VirtualListSource} from 'neuroglancer/widget/virtual_list';
 
+import { urlParams } from 'neuroglancer/services/state_loader';
+import { updateRestoringVolumetool } from 'neuroglancer/ui/url_hash_binding';
+
+
 export class MergedAnnotationStates extends RefCounted implements
     WatchableValueInterface<readonly AnnotationLayerState[]> {
   changed = new NullarySignal();
@@ -1653,6 +1657,19 @@ export function UserLayerWithAnnotationsMixin<TBase extends {new (...args: any[]
             annotationLayer.addRef(), this.annotationProjectionRenderScaleHistogram);
         refCounted.registerDisposer(this.addRenderLayer(renderLayer));
         refCounted.registerDisposer(loadedSubsource.messages.addChild(renderLayer.messages));
+      }
+    
+
+      //@ts-ignore
+      const viewer = <Viewer>window['viewer'];
+      const annotationSavedState = viewer.annotationsSavedState;
+      state.source.registerDisposer(state.source.changed.add(() => {
+        annotationSavedState.value = false;
+      }));
+      if (has_volume_tool && urlParams.multiUserMode) {
+        console.log(this);
+        updateRestoringVolumetool();
+        this.tool.restoreState("annotateVolume");
       }
     }
 
