@@ -413,7 +413,8 @@ class Polygon(Annotation):
         return np.array([i.coord_start for i in self.childs])
 
     def get_section_direction(self, points):
-        """find the direction where the sections are made.  That direction would be whichever x,y,z direction that 
+        """find the direction where the sections are made.  
+        That direction would be whichever x,y,z direction that 
         always have the same orientation
         Args:
             points (list): list of x,y,z coordinates
@@ -433,9 +434,13 @@ class Polygon(Annotation):
         Returns:
             dict: dictionary of 2d contours indexed by section number
         """
+        print('get_section_and_2d_contours')
         points = self.to_numpy()
+        print('points', points.shape)
         section_direction = self.get_section_direction(points)
+        print('section_direction', section_direction)
         contours2d = points[:, [i for i in range(3) if i != section_direction]]
+        print('contours2d', contours2d.shape)
         section = np.unique(points[:, section_direction])[0]
         section = int(np.floor(section))
         return section, contours2d
