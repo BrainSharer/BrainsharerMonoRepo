@@ -440,36 +440,4 @@ class StructureCom(AnnotationAbstract):
 
 
 
-class BrainShape(AtlasModel):
-    """This class will hold the numpy data for a brain region."""
-    id = models.BigAutoField(primary_key=True)
-    animal = models.ForeignKey(Animal, models.CASCADE, null=True, db_column="prep_id", verbose_name="Animal")
-    brain_region = models.ForeignKey(BrainRegion, models.CASCADE, null=True, db_column="FK_structure_id",
-                               verbose_name="Brain region")
-    dimensions = models.CharField(max_length=50)
-    xoffset = models.FloatField(null=False)
-    yoffset = models.FloatField(null=False)
-    zoffset = models.FloatField(null=False)
-    numpy_data = models.TextField(verbose_name="Array (pickle)")
-    class Meta:
-        managed = False
-        db_table = 'brain_shape'
-        verbose_name = 'Brain shape data'
-        verbose_name_plural = 'Brain shape data'
-
-    def __str__(self):
-        return u'{} {}'.format(self.animal, self.brain_region)
-    
-    def midsection(self):
-        """This is a helper method to show what the mid part of a brain region will look like.
-        
-        :return: the HTML pointing to the thumbnail of the mid part of the brain region.
-        """
-        png = f'{self.brain_region.abbreviation}.png'
-        pngfile = f'https://activebrainatlas.ucsd.edu/data/{self.animal}/www/structures/{png}'
-        return mark_safe(
-        '<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(pngfile) )
-    
-    midsection.short_description = 'Midsection'
-
 
