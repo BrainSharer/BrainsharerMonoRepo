@@ -24,7 +24,7 @@ import { makeLayer, PersistentViewerSelectionState } from '../layer';
 import { Segmentation } from '../services/state';
 import { StateLoader } from '../services/state_loader';
 import { StatusMessage } from '../status';
-import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, ToolMode, updateHasVolumeTool, updateGlobalVolumeMode } from './annotations';
+import { updateVolumeRef, AnnotationLayerView, getLandmarkList, PlaceVolumeTool, UserLayerWithAnnotations, VolumeSession, updateHasVolumeTool } from './annotations';
 import { PolygonOptionsDialog } from './polygon_options';
 import { LegacyTool } from './tool';
 import { ref, update } from "firebase/database";
@@ -88,7 +88,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       button.textContent = 'Start new volume';
       button.addEventListener('click', () => {
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
-          undefined, ToolMode.DRAW, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton, false);
+          undefined, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton, false);
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         let color = (this.colorInput)? this.colorInput.value : undefined;
         let description = (this.landmarkDropdown)? this.landmarkDropdown.options[this.landmarkDropdown.selectedIndex].value : undefined;
@@ -108,8 +108,6 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         }
         updateHasVolumeTool();
 
-        updateGlobalVolumeMode(ToolMode.DRAW);
-
         if (reference === undefined || !reference.value) {
           StatusMessage.showTemporaryMessage("Failed to create new volume");
           this.annotationLayerView.layer.tool.value = undefined;
@@ -124,15 +122,6 @@ import { urlParams } from 'neuroglancer/services/state_loader';
 
           if(urlParams.multiUserMode) {
             const updates: any = {};
-            updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.DRAW;
-            update(ref(database), updates)
-                .then(() => {
-                    console.log('Successfully Published Volume Mode State to Firebase');
-                })
-                .catch((error) => {
-                    console.error(error);
-                });
-
             updates[`/test_annotations_tool/volume_ref/${urlParams.stateID}`] = reference.id;
             update(ref(database), updates)
                 .then(() => {
@@ -239,23 +228,10 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         }
 
         this.annotationLayerView.layer.tool.value = new PlaceVolumeTool(this.annotationLayerView.layer, {}, 
-          undefined, ToolMode.EDIT, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
-        updateGlobalVolumeMode(ToolMode.EDIT);
+          undefined, this.annotationLayerView.volumeSession, this.annotationLayerView.volumeButton);
 
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         volumeTool.session.value = <VolumeSession>{reference: reference};
-
-        if(urlParams.multiUserMode) {
-          const updates: any = {};
-          updates[`/test_annotations_tool/volume_mode/${urlParams.stateID}`] = ToolMode.EDIT;
-          update(ref(database), updates)
-              .then(() => {
-                  console.log('Successfully Published Cell Session State to Firebase');
-              })
-              .catch((error) => {
-                  console.error(error);
-              });
-        }
 
         this.dispose();
       });

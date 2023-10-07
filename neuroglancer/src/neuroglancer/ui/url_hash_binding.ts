@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-import { updateGlobalCellSession, updateGlobalCellMode, updateGlobalComSession, updateGlobalComMode, updateGlobalVolumeMode, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef } from 'neuroglancer/ui/annotations';
+import { updateGlobalCellSession, updateGlobalComSession, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -185,36 +185,12 @@ export class UrlHashBinding extends RefCounted {
             updateGlobalCellSession(snapshot.val());
         });
 
-        const stateRefCellMode = ref(database, `/test_annotations_tool/mode/${this.stateID}`);
-        onValue(stateRefCellMode , (snapshot) => {
-            if (getInProgressAnnotation()) {
-                return;
-            }
-            updateGlobalCellMode(snapshot.val());
-        });
-
         const stateRefComSession = ref(database, `/test_annotations_tool/com_session/${this.stateID}`);
         onValue(stateRefComSession, (snapshot) => {
             if (getInProgressAnnotation()) {
                 return;
             }
             updateGlobalComSession(snapshot.val());
-        });
-
-        const stateRefComMode = ref(database, `/test_annotations_tool/com_mode/${this.stateID}`);
-        onValue(stateRefComMode, (snapshot) => {
-            if (getInProgressAnnotation()) {
-                return;
-            }
-            updateGlobalComMode(snapshot.val());
-        });
-
-        const stateRefVolumeMode = ref(database, `/test_annotations_tool/volume_mode/${this.stateID}`);
-        onValue(stateRefVolumeMode, (snapshot) => {
-            if (getInProgressAnnotation()) {
-                return;
-            }
-            updateGlobalVolumeMode(snapshot.val());
         });
 
         const stateRefVolumeRef = ref(database, `/test_annotations_tool/volume_ref/${this.stateID}`);
