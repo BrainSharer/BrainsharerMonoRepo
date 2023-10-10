@@ -27,13 +27,12 @@ class VolumeMaker:
             vertices = np.array(contour_points) - origin[:2]
             contour_points = (vertices).astype(np.int32)
             volume_slice = np.zeros(section_size, dtype=np.uint8)
-            volume_slice = cv2.polylines(volume_slice, [contour_points], isClosed=True, color=1, thickness=1)
-            volume_slice = cv2.fillPoly(volume_slice, pts=[contour_points], color=1)
+            cv2.drawContours(volume_slice, [contour_points], -1, (1), thickness=-1)
             volume.append(volume_slice)
         volume = np.array(volume).astype(np.bool8)
         volume = np.swapaxes(volume, 0, 2)
-        #for _ in range(interpolate):
-        #    volume, origin = self.interpolate_volumes(volume, origin)
+        for _ in range(interpolate):
+            volume, _ = self.interpolate_volumes(volume, origin)
         self.origins[segment] = origin
         self.volumes[segment] = volume
 
@@ -54,7 +53,7 @@ class VolumeMaker:
         xspan = max_x - min_x
         yspan = max_y - min_y
         origin = np.array([min_x, min_y, min_z])
-        section_size = np.array([xspan, yspan]).astype(int)
+        section_size = np.array([yspan, xspan]).astype(int)
         return origin, section_size
 
 
@@ -63,8 +62,7 @@ class VolumeMaker:
         self.volumes = {}
         self.segments = self.aligned_contours.keys()
         for segment in self.segments:
-            self.calculate_origin_and_volume_for_one_segment(
-                segment, interpolate=interpolate)
+            self.calculate_origin_and_volume_for_one_segment(segment, interpolate=interpolate)
 
     def get_COM_in_pixels(self, structurei):
         com = np.array(center_of_mass(self.volumes[structurei]))
@@ -74,8 +72,7 @@ class VolumeMaker:
         sections = [int(section) for section in contour_for_segmenti]
         section_order = np.argsort(sections)
         keys = np.array(list(contour_for_segmenti.keys()))[section_order]
-        values = np.array(list(contour_for_segmenti.values()),
-                          dtype=object)[section_order]
+        values = np.array(list(contour_for_segmenti.values()), dtype=object)[section_order]
         return dict(zip(keys, values))
 
     def set_aligned_contours(self, contours):

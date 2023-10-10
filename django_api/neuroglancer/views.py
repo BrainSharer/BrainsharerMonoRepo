@@ -319,16 +319,16 @@ class ContoursToVolume(views.APIView):
         animal = neuroglancerState.animal
         state_json = neuroglancerState.neuroglancer_state
         layers = state_json['layers']
-        for layeri in layers:
-            if layeri['type'] == 'annotation':
-                layer = AnnotationLayer(layeri)
-                volume = layer.get_annotation_with_id(volume_id)
+        for layer in layers:
+            if layer['type'] == 'annotation':
+                annotation_layer = AnnotationLayer(layer)
+                volume = annotation_layer.get_annotation_with_id(volume_id)
                 if volume is not None:
                     break
         if volume is None:
             raise Exception(f'No volume was found with id={volume_id}' )
         
-        folder_name = make_volumes(volume, animal, 20)
+        folder_name = make_volumes(volume, animal, 32)
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
         if DEBUG:
             end_time = timer()
