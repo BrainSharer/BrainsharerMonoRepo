@@ -48,6 +48,7 @@ class AnnotationLayer:
                             'com': self.parse_point,
                             'line': self.parse_line,
         }
+
         start_time = timer()
         for annotation in self.annotations:
             annotations.append(function_mapping[annotation['type']](annotation))
@@ -434,13 +435,12 @@ class Polygon(Annotation):
         Returns:
             dict: dictionary of 2d contours indexed by section number
         """
-        print('get_section_and_2d_contours')
         points = self.to_numpy()
-        print('points', points.shape)
+        #print('points', points.shape)
         section_direction = self.get_section_direction(points)
-        print('section_direction', section_direction)
+        #print('section_direction', section_direction)
         contours2d = points[:, [i for i in range(3) if i != section_direction]]
-        print('contours2d', contours2d.shape)
+        #print('contours2d', contours2d.shape)
         section = np.unique(points[:, section_direction])[0]
         section = int(np.floor(section))
         return section, contours2d
@@ -478,6 +478,7 @@ class Volume(Annotation):
         volume_contours = {}
         for childi in self.childs:
             section, contours = childi.get_section_and_2d_contours()
+            print(section, contours.shape, contours.dtype)
             volume_contours[section] = contours/downsample_factor
         # assert len(self.childs) == len(volume_contours.keys())
         return self.description, volume_contours

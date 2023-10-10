@@ -4,7 +4,6 @@ is the 'V' in the MVC framework for the Neuroglancer app
 portion of the portal.
 """
 
-from collections import defaultdict
 from subprocess import check_output
 import os
 from time import sleep
@@ -21,8 +20,7 @@ import logging
 
 from neuroglancer.annotation_controller import create_polygons
 from neuroglancer.annotation_base import AnnotationBase
-from neuroglancer.annotation_layer import AnnotationLayer, random_string, create_point_annotation
-from neuroglancer.annotation_manager import DEBUG
+from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotation
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
@@ -33,6 +31,9 @@ from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
 from neuroglancer.tasks import upsert_annotations
 from neuroglancer.contours.create_contours import make_volumes
 from brainsharer.pagination import LargeResultsSetPagination
+from neuroglancer.models import DEBUG
+from timeit import default_timer as timer
+
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -311,6 +312,8 @@ class ContoursToVolume(views.APIView):
     def get(self, request, neuroglancer_state_id, volume_id):
         """Simpler version that does not use slurm or subprocess script
         """
+        if DEBUG:
+            start_time = timer()
 
         neuroglancerState = NeuroglancerState.objects.get(pk=neuroglancer_state_id)
         animal = neuroglancerState.animal
@@ -325,8 +328,13 @@ class ContoursToVolume(views.APIView):
         if volume is None:
             raise Exception(f'No volume was found with id={volume_id}' )
         
-        folder_name = make_volumes(volume, animal)
+        folder_name = make_volumes(volume, animal, 20)
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time),2)
+            print(f'Creating segmentation took {total_elapsed_time} seconds.')
+
         return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
 
 class SaveAnnotation(views.APIView):

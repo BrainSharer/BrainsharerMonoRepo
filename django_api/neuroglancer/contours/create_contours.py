@@ -5,6 +5,8 @@ from cloudvolume import CloudVolume
 from brain.models import ScanRun
 from neuroglancer.contours.volume_maker import VolumeMaker
 from neuroglancer.contours.ng_segment_maker import NgConverter
+from neuroglancer.models import DEBUG
+from timeit import default_timer as timer
 
 def downsample_contours(contours, downsample_factor):
     values = [i/downsample_factor for i in contours.values()]
@@ -22,21 +24,25 @@ def get_scales(animal, downsample_factor):
     return [int(downsample_factor*res*1000), int(downsample_factor*res*1000), int(zresolution*1000)]
 
 
-
-def make_volumes(volume, animal='DK55', downsample_factor=20):
+def make_volumes(volume, animal, downsample_factor):
     vmaker = VolumeMaker()
     structure, contours = volume.get_volume_name_and_contours()
     downsampled_contours = downsample_contours(contours, downsample_factor)
     vmaker.set_aligned_contours({structure: downsampled_contours})
-    vmaker.compute_origins_and_volumes_for_all_segments(interpolate=1)
+    vmaker.compute_origins_and_volumes_for_all_segments(interpolate=2)
+    print('make volumes 3')
     volume = (vmaker.volumes[structure]).astype(np.uint8)
+    print('make volumes 4')
     offset = list(vmaker.origins[structure])
     folder_name = f'{animal}_{structure}'
     path = '/var/www/brainsharer/structures'
     output_dir = os.path.join(path, folder_name)
     scales = get_scales(animal, downsample_factor)
-    print(scales)
+    print(f'pre offset={offset}')
+    print(f'pre scales ={scales}')
+    print(f'pre volume shape={volume.shape}')
     maker = NgConverter(volume=volume, scales=scales, offset=offset)
+    print('make volumes 5')
     segment_properties = {1:structure}
     maker.reset_output_path(output_dir)
     maker.init_precomputed(output_dir)
