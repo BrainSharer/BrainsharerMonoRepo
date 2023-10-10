@@ -37,7 +37,7 @@ import {RenderLayerRole} from 'neuroglancer/renderlayer';
 import {bindSegmentListWidth, registerCallbackWhenSegmentationDisplayStateChanged, SegmentationDisplayState, SegmentWidgetFactory} from 'neuroglancer/segmentation_display_state/frontend';
 import {ElementVisibilityFromTrackableBoolean} from 'neuroglancer/trackable_boolean';
 import {AggregateWatchableValue, makeCachedLazyDerivedWatchableValue, registerNested, WatchableValue, WatchableValueInterface} from 'neuroglancer/trackable_value';
-import {getDefaultAnnotationListBindings, setPointDrawModeInputEventBindings, setPointEditModeInputEventBindings, setPolygonDrawModeInputEventBindings, setPolygonEditModeInputEventBindings} from 'neuroglancer/ui/default_input_event_bindings';
+import {getDefaultAnnotationListBindings, setPointDrawModeInputEventBindings, setPolygonDrawModeInputEventBindings } from 'neuroglancer/ui/default_input_event_bindings';
 import {LegacyTool, registerLegacyTool} from 'neuroglancer/ui/tool';
 import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
 import {arraysEqual, ArraySpliceOp} from 'neuroglancer/util/array';
@@ -427,53 +427,17 @@ export class AnnotationLayerView extends Tab {
       if (this.layer.tool.value instanceof PlaceVolumeTool) {
         const iconDiv = this.layer.tool.value.icon.value;
         if (iconDiv === undefined) return;
-        switch (this.layer.tool.value.mode) {
-          case ToolMode.DRAW: {
-            iconDiv.style.backgroundColor = 'green';
-            break;
-          }
-          case ToolMode.EDIT: {
-            iconDiv.style.backgroundColor = 'red';
-            break;
-          }
-          default: {
-            iconDiv.style.backgroundColor = 'grey';
-          }
-        }
+        iconDiv.style.backgroundColor = 'green';
       }
       else if (this.layer.tool.value instanceof PlaceCellTool) {
         const iconDiv = this.layer.tool.value.icon.value;
         if (iconDiv === undefined) return;
-        switch (this.layer.tool.value.mode) {
-          case ToolMode.DRAW: {
-            iconDiv.style.backgroundColor = 'green';
-            break;
-          }
-          case ToolMode.EDIT: {
-            iconDiv.style.backgroundColor = 'red';
-            break;
-          }
-          default: {
-            iconDiv.style.backgroundColor = 'grey';
-          }
-        }
+        iconDiv.style.backgroundColor = 'green';
       }
       else if (this.layer.tool.value instanceof PlaceComTool) {
         const iconDiv = this.layer.tool.value.icon.value;
         if (iconDiv === undefined) return;
-        switch (this.layer.tool.value.mode) {
-          case ToolMode.DRAW: {
-            iconDiv.style.backgroundColor = 'green';
-            break;
-          }
-          case ToolMode.EDIT: {
-            iconDiv.style.backgroundColor = 'red';
-            break;
-          }
-          default: {
-            iconDiv.style.backgroundColor = 'grey';
-          }
-        }
+        iconDiv.style.backgroundColor = 'green';
       }
     };
     toolColorFunc = toolColorFunc.bind(this);
@@ -1614,29 +1578,22 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
   childTool: PlaceLineTool;
   sourceMouseState: MouseSelectionState;
   sourcePosition: Float32Array|undefined;
-  mode: ToolMode;
   bindingsRef: RefCounted|undefined;
   active: boolean;
   zCoordinate: number|undefined;
 
-  constructor(public layer: UserLayerWithAnnotations, options: any, mode: ToolMode = ToolMode.DRAW) {
+  constructor(public layer: UserLayerWithAnnotations, options: any) {
     super(layer, options);
-    this.mode = mode;
     this.active = true;
     this.childTool = new PlaceLineTool(layer, {...options, parent: this});
     this.bindingsRef = new RefCounted();
-    if (this.mode === ToolMode.DRAW) {
-      //@ts-ignore
-      setPolygonDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    } else {
-      //@ts-ignore
-      setPolygonEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    }
+    //@ts-ignore
+    setPolygonDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
   }
 
   restore_multi_user_drawing() {
-    const {annotationLayer, mode} = this;
-    if (annotationLayer === undefined || mode === ToolMode.EDIT) {
+    const {annotationLayer} = this;
+    if (annotationLayer === undefined) {
       // Not yet ready.
       return;
     }
@@ -1683,8 +1640,8 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
   trigger(mouseState: MouseSelectionState, parentRef?: AnnotationReference) {
     volume_tool_used = true;
     global_mouseState = mouseState;
-    const {annotationLayer, mode} = this;
-    if (annotationLayer === undefined || mode === ToolMode.EDIT) {
+    const {annotationLayer} = this;
+    if (annotationLayer === undefined) {
       // Not yet ready.
       return;
     }
@@ -1780,20 +1737,15 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     if (this.active !== _value) {
       this.active = _value;
       if (this.active) {
-        const {mode} = this;
-
         if (this.bindingsRef) {
           this.bindingsRef.dispose();
           this.bindingsRef = undefined;
         }
         this.bindingsRef = new RefCounted();
-        if (mode === ToolMode.DRAW && this.bindingsRef) {
+        if (this.bindingsRef) {
           //@ts-ignore
           setPolygonDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-        } else if (this.bindingsRef && mode === ToolMode.EDIT) {
-          //@ts-ignore
-          setPolygonEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-        }
+        } 
       }
       this.childTool.setActive(_value);
       super.setActive(_value);
@@ -1815,7 +1767,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    */
   complete(): boolean {
     volume_tool_used = true;
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
 
     if(inProgressAnnotation && urlParams.multiUserMode && this.inProgressAnnotation === undefined && annotationLayer != undefined) {
       global_sourceMouseState.unsnappedPosition = source_location;
@@ -1854,7 +1806,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
     this.sourcePosition = source_location;
     inProgressAnnotation = false;
     const state = this.inProgressAnnotation;
-    if(annotationLayer === undefined || state === undefined || mode === ToolMode.EDIT) {
+    if(annotationLayer === undefined || state === undefined) {
       return false;
     }
 
@@ -1886,10 +1838,10 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * Undo the last drawn polygon line segment.
    */
   undo(mouseState: MouseSelectionState): boolean {
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
     const state = this.inProgressAnnotation;
     
-    if(annotationLayer === undefined || state === undefined || mode === ToolMode.EDIT) {
+    if(annotationLayer === undefined || state === undefined) {
       return false;
     }
 
@@ -1941,13 +1893,12 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns true if last line was succesfully completed otherwise false.
    */
   private completeLastLine(): boolean {
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
     const {childTool} = this;
     const childState = childTool.inProgressAnnotation;
     const state = this.inProgressAnnotation;
 
-    if(annotationLayer === undefined || childTool === undefined || childState === undefined || state === undefined || mode == ToolMode
-      .EDIT) {
+    if(annotationLayer === undefined || childTool === undefined || childState === undefined || state === undefined) {
       return false;
     }
     const annotation = <Polygon>state.reference.value;
@@ -1970,8 +1921,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns 
    */
   addVertexPolygon(mouseState: MouseSelectionState) {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) return;
     const selectedAnnotationId = mouseState.pickedAnnotationId;
     const annotationLayer = mouseState.pickedAnnotationLayer;
     const pickedOffset = mouseState.pickedOffset;
@@ -2025,8 +1974,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * @returns 
    */
   deleteVertexPolygon(mouseState: MouseSelectionState) {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) return;
     const selectedAnnotationId = mouseState.pickedAnnotationId;
     const annotationLayer = mouseState.pickedAnnotationLayer;
     const pickedOffset = mouseState.pickedOffset;
@@ -2093,11 +2040,7 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
    * Get polygon description to be shown in top corner of annotation tab.
    */
   get description() {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) {
-      return `annotate polygon (draw mode)`;
-    }
-    return `annotate polygon (edit mode)`;
+    return `annotate polygon (draw mode)`;
   }
 
   toJSON() {
@@ -2105,15 +2048,6 @@ export class PlacePolygonTool extends PlaceCollectionAnnotationTool {
   }
 }
 PlacePolygonTool.prototype.annotationType = AnnotationType.POLYGON;
-
-/**
- * Enum to represent different types of tool modes (noop is view mode).
- */
-export enum ToolMode {
-  DRAW,
-  EDIT,
-  NOOP
-}
 
 export interface VolumeSession {
   reference: AnnotationReference;
@@ -2146,13 +2080,6 @@ export function getVolumeRef() {
   return volume_ref_id;
 }
 
-
-let volume_tool_mode: ToolMode = ToolMode.NOOP;
-
-export function updateGlobalVolumeMode(mode: ToolMode) {
-  volume_tool_mode = mode;
-}
-
 /**
  * This class is used to create the Volume annotation tool.
  */
@@ -2161,7 +2088,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   childTool: PlacePolygonTool|undefined;
   sourceMouseState: MouseSelectionState;
   sourcePosition: any;
-  mode: ToolMode;
   active: boolean;
   session: WatchableValue<VolumeSession|undefined> = new WatchableValue(undefined);
   sessionWidget: RefCounted|undefined;
@@ -2169,10 +2095,9 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   icon: WatchableValue<HTMLElement|undefined> = new WatchableValue(undefined);
 
   constructor(public layer: UserLayerWithAnnotations, options: any, session: VolumeSession|undefined = undefined,
-     mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
+     sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
-    this.mode = mode;
     const func = this.displayVolumeSession.bind(this);
     this.sessionWidgetDiv = sessionDiv;
     this.session.changed.add(() => func());
@@ -2180,11 +2105,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     this.active = true;
 
     if(restore_from_firebase && urlParams.multiUserMode) {
-      this.mode = volume_tool_mode;
       has_volume_tool = true;
     }
 
-    this.childTool = this.mode == ToolMode.NOOP ? undefined : new PlacePolygonTool(layer, {...options, parent: this}, this.mode);
+    this.childTool = new PlacePolygonTool(layer, {...options, parent: this});
 
     this.icon.changed.add(this.setIconColor.bind(this));
     this.icon.value = iconDiv;
@@ -2222,19 +2146,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   setIconColor() {
     const iconDiv = this.icon.value;
     if (iconDiv === undefined) return;
-    switch (this.mode) {
-      case ToolMode.DRAW: {
-        iconDiv.style.backgroundColor = 'green';
-        break;
-      }
-      case ToolMode.EDIT: {
-        iconDiv.style.backgroundColor = 'red';
-        break;
-      }
-      default: {
-        iconDiv.style.backgroundColor = 'grey';
-      }
-    }
+    iconDiv.style.backgroundColor = 'green';
   }
   /**
    * This function is called when the user tries to draw annotation
@@ -2243,10 +2155,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    */
   trigger(mouseState: MouseSelectionState) {
     console.log("volume tool trigger called");
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
     const {session} = this;
 
-    if (annotationLayer === undefined || mode !== ToolMode.DRAW || session.value === undefined || this.childTool === undefined) {
+    if (annotationLayer === undefined || session.value === undefined || this.childTool === undefined) {
       // Not yet ready.
       return;
     }
@@ -2321,10 +2233,10 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @returns true if the operation suceeded otherwise false.
    */
   complete(): boolean {
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
     const {session} = this;
 
-    if (annotationLayer === undefined || session.value === undefined || mode !== ToolMode.DRAW) {
+    if (annotationLayer === undefined || session.value === undefined) {
       return false;
     }
     if (!session.value.reference.value) return false;
@@ -2351,8 +2263,8 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * Undo the last drawn polygon line segment.
    */
   undo(mouseState: MouseSelectionState): boolean {
-    const {session, mode} = this;
-    if (session.value === undefined || !session.value.reference.value || mode !== ToolMode.DRAW || this.childTool === undefined) return false;
+    const {session} = this;
+    if (session.value === undefined || !session.value.reference.value || this.childTool === undefined) return false;
     
     return this.childTool.undo(mouseState);
   }
@@ -2362,8 +2274,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @returns 
    */
   addVertexPolygon(mouseState: MouseSelectionState) {
-    const {mode} = this;
-    if (mode !== ToolMode.EDIT) return;
     if (!this.validateSession(mouseState.pickedAnnotationId, mouseState.pickedAnnotationLayer)) return;
     if (this.childTool) this.childTool.addVertexPolygon(mouseState);
   }
@@ -2373,8 +2283,6 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
    * @returns 
    */
   deleteVertexPolygon(mouseState: MouseSelectionState) {
-    const {mode} = this;
-    if (mode !== ToolMode.EDIT) return;
     if (!this.validateSession(mouseState.pickedAnnotationId, mouseState.pickedAnnotationLayer)) return;
     if (this.childTool) this.childTool.deleteVertexPolygon(mouseState);
   }
@@ -2532,14 +2440,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
   }
 
   get description() {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) {
-      return `volume session (draw mode)`;
-    } else if (mode === ToolMode.EDIT) {
-      return `volume session (edit mode)`;
-    } else {
-      return `volume session (view mode)`;
-    }
+    return `volume session (draw mode)`;
   }
 
   toJSON() {
@@ -2551,21 +2452,14 @@ PlaceVolumeTool.prototype.annotationType = AnnotationType.VOLUME;
 
 let glocal_cell_session: CellSession|undefined = undefined;
 
-let glocal_cell_mode: ToolMode = ToolMode.NOOP;
-
 export function updateGlobalCellSession(session: CellSession|undefined = undefined) {
   glocal_cell_session = session;
-}
-
-export function updateGlobalCellMode(mode: ToolMode= ToolMode.NOOP) {
-  glocal_cell_mode = mode;
 }
 
 /**
  * This class is used to create the Cell annotation tool.
  */
 export class PlaceCellTool extends PlaceAnnotationTool {
-  mode: ToolMode;
   active: boolean;
   session: WatchableValue<CellSession|undefined> = new WatchableValue(undefined);
   sessionWidget: RefCounted|undefined;
@@ -2574,7 +2468,7 @@ export class PlaceCellTool extends PlaceAnnotationTool {
   bindingsRef: RefCounted|undefined;
 
   constructor(public layer: UserLayerWithAnnotations, options: any, session: CellSession|undefined = undefined,
-     mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
+     sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
     const date = new Date();
@@ -2588,21 +2482,14 @@ export class PlaceCellTool extends PlaceAnnotationTool {
     this.bindingsRef = new RefCounted();
     
     if(restore_from_firebase) {
-      this.mode = glocal_cell_mode;
       this.session.value = glocal_cell_session;
     }
     else {
-      this.mode = mode;
       this.session.value = session;
     }
 
-    if (this.mode === ToolMode.DRAW) {
-      //@ts-ignore
-      setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    } else if (this.mode === ToolMode.EDIT) {
-      //@ts-ignore
-      setPointEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    }
+    //@ts-ignore
+    setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
 
     this.icon.changed.add(this.setIconColor.bind(this));
     this.icon.value = iconDiv;
@@ -2617,19 +2504,7 @@ export class PlaceCellTool extends PlaceAnnotationTool {
   setIconColor() {
     const iconDiv = this.icon.value;
     if (iconDiv === undefined) return;
-    switch (this.mode) {
-      case ToolMode.DRAW: {
-        iconDiv.style.backgroundColor = 'green';
-        break;
-      }
-      case ToolMode.EDIT: {
-        iconDiv.style.backgroundColor = 'red';
-        break;
-      }
-      default: {
-        iconDiv.style.backgroundColor = 'grey';
-      }
-    }
+    iconDiv.style.backgroundColor = 'green';
   }
   /**
    * This function is called when the user tries to draw annotation
@@ -2637,9 +2512,8 @@ export class PlaceCellTool extends PlaceAnnotationTool {
    * @returns void
    */
   trigger(mouseState: MouseSelectionState) {
-    const {annotationLayer, mode} = this;
-    const {session} = this;
-    if (annotationLayer === undefined || mode !== ToolMode.DRAW || session.value === undefined) {
+    const {annotationLayer, session} = this;
+    if (annotationLayer === undefined || session.value === undefined) {
       // Not yet ready.
       return;
     }
@@ -2685,18 +2559,14 @@ export class PlaceCellTool extends PlaceAnnotationTool {
     if (this.active !== _value) {
       this.active = _value;
       if (this.active) {
-        const {mode} = this;
         if (this.bindingsRef) {
           this.bindingsRef.dispose();
           this.bindingsRef = undefined;
         }
         this.bindingsRef = new RefCounted();
-        if (mode === ToolMode.DRAW && this.bindingsRef) {
+        if (this.bindingsRef) {
           //@ts-ignore
           setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-        } else if (this.bindingsRef && mode === ToolMode.EDIT) {
-          //@ts-ignore
-          setPointEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
         }
       }
       super.setActive(_value);
@@ -2831,14 +2701,7 @@ export class PlaceCellTool extends PlaceAnnotationTool {
   }
 
   get description() {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) {
-      return `cell session (draw mode)`;
-    } else if (mode === ToolMode.EDIT) {
-      return `cell session (edit mode)`;
-    } else {
-      return `cell session (view mode)`;
-    }
+    return `cell session (draw mode)`;
   }
 
   toJSON() {
@@ -2849,21 +2712,14 @@ export class PlaceCellTool extends PlaceAnnotationTool {
 
 let glocal_com_session: COMSession|undefined = undefined;
 
-let glocal_com_mode: ToolMode = ToolMode.NOOP;
-
 export function updateGlobalComSession(session: CellSession|undefined = undefined) {
   glocal_com_session = session;
-}
-
-export function updateGlobalComMode(mode: ToolMode= ToolMode.NOOP) {
-  glocal_com_mode = mode;
 }
 
 /**
  * This class is used to create the Centre of Mass (COM) annotation tool.
  */
 export class PlaceComTool extends PlaceAnnotationTool {
-  mode: ToolMode;
   active: boolean;
   session: WatchableValue<COMSession|undefined> = new WatchableValue(undefined);
   sessionWidget: RefCounted|undefined;
@@ -2872,7 +2728,7 @@ export class PlaceComTool extends PlaceAnnotationTool {
   bindingsRef: RefCounted|undefined;
 
   constructor(public layer: UserLayerWithAnnotations, options: any, session: COMSession|undefined = undefined,
-     mode: ToolMode = ToolMode.NOOP, sessionDiv: HTMLElement|undefined = undefined,
+     sessionDiv: HTMLElement|undefined = undefined,
      iconDiv: HTMLElement|undefined = undefined, restore_from_firebase: boolean = false) {
     super(layer, options);
     has_volume_tool= false;
@@ -2883,21 +2739,15 @@ export class PlaceComTool extends PlaceAnnotationTool {
     this.bindingsRef = new RefCounted();
 
     if(restore_from_firebase) {
-      this.mode = glocal_com_mode;
       this.session.value = glocal_com_session;
     }
     else {
-      this.mode = mode;
       this.session.value = session;
     }
 
-    if (this.mode === ToolMode.DRAW) {
-      //@ts-ignore
-      setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    } else if (this.mode === ToolMode.EDIT) {
-      //@ts-ignore
-      setPointEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-    }
+    //@ts-ignore
+    setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
+
     this.icon.changed.add(this.setIconColor.bind(this));
     this.icon.value = iconDiv;
     this.registerDisposer(() => {
@@ -2911,19 +2761,7 @@ export class PlaceComTool extends PlaceAnnotationTool {
   setIconColor() {
     const iconDiv = this.icon.value;
     if (iconDiv === undefined) return;
-    switch (this.mode) {
-      case ToolMode.DRAW: {
-        iconDiv.style.backgroundColor = 'green';
-        break;
-      }
-      case ToolMode.EDIT: {
-        iconDiv.style.backgroundColor = 'red';
-        break;
-      }
-      default: {
-        iconDiv.style.backgroundColor = 'grey';
-      }
-    }
+    iconDiv.style.backgroundColor = 'green';
   }
   /**
    * This function is called when the user tries to draw annotation
@@ -2931,9 +2769,9 @@ export class PlaceComTool extends PlaceAnnotationTool {
    * @returns void
    */
   trigger(mouseState: MouseSelectionState) {
-    const {annotationLayer, mode} = this;
+    const {annotationLayer} = this;
     const {session} = this;
-    if (annotationLayer === undefined || mode !== ToolMode.DRAW || session.value === undefined) {
+    if (annotationLayer === undefined || session.value === undefined) {
       // Not yet ready.
       return;
     }
@@ -2978,18 +2816,14 @@ export class PlaceComTool extends PlaceAnnotationTool {
     if (this.active !== _value) {
       this.active = _value;
       if (this.active) {
-        const {mode} = this;
         if (this.bindingsRef) {
           this.bindingsRef.dispose();
           this.bindingsRef = undefined;
         }
         this.bindingsRef = new RefCounted();
-        if (mode === ToolMode.DRAW && this.bindingsRef) {
+        if (this.bindingsRef) {
           //@ts-ignore
           setPointDrawModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
-        } else if (this.bindingsRef && mode === ToolMode.EDIT) {
-          //@ts-ignore
-          setPointEditModeInputEventBindings(this.bindingsRef, window['viewer'].inputEventBindings);
         }
       }
       super.setActive(_value);
@@ -3110,14 +2944,7 @@ export class PlaceComTool extends PlaceAnnotationTool {
   }
 
   get description() {
-    const {mode} = this;
-    if (mode === ToolMode.DRAW) {
-      return `com session (draw mode)`;
-    } else if (mode === ToolMode.EDIT) {
-      return `com session (edit mode)`;
-    } else {
-      return `com session (view mode)`;
-    }
+    return `com session (draw mode)`;
   }
 
   toJSON() {
@@ -3270,13 +3097,13 @@ registerLegacyTool(
     (layer, options) => undefined);
 registerLegacyTool(
     ANNOTATE_VOLUME_TOOL_ID,
-    (layer, options) => urlParams.multiUserMode ? new PlaceVolumeTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.DRAW, undefined, undefined, true) : undefined);
+    (layer, options) => urlParams.multiUserMode ? new PlaceVolumeTool(<UserLayerWithAnnotations>layer, options, undefined, undefined, undefined, true) : undefined);
 registerLegacyTool(
     ANNOTATE_CELL_TOOL_ID,
-    (layer, options) => urlParams.multiUserMode ? new PlaceCellTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true) : undefined);
+    (layer, options) => urlParams.multiUserMode ? new PlaceCellTool(<UserLayerWithAnnotations>layer, options, undefined, undefined, undefined, true) : undefined);
 registerLegacyTool(
     ANNOTATE_COM_TOOL_ID,
-    (layer, options) => urlParams.multiUserMode ? new PlaceComTool(<UserLayerWithAnnotations>layer, options, undefined, ToolMode.NOOP, undefined, undefined, true) : undefined);
+    (layer, options) => urlParams.multiUserMode ? new PlaceComTool(<UserLayerWithAnnotations>layer, options, undefined, undefined, undefined, true) : undefined);
 
 const newRelatedSegmentKeyMap = EventActionMap.fromObject({
   'enter': {action: 'commit'},

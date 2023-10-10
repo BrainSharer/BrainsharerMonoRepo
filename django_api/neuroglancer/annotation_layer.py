@@ -48,6 +48,7 @@ class AnnotationLayer:
                             'com': self.parse_point,
                             'line': self.parse_line,
         }
+
         start_time = timer()
         for annotation in self.annotations:
             annotations.append(function_mapping[annotation['type']](annotation))
@@ -434,13 +435,9 @@ class Polygon(Annotation):
         Returns:
             dict: dictionary of 2d contours indexed by section number
         """
-        print('get_section_and_2d_contours')
         points = self.to_numpy()
-        print('points', points.shape)
         section_direction = self.get_section_direction(points)
-        print('section_direction', section_direction)
         contours2d = points[:, [i for i in range(3) if i != section_direction]]
-        print('contours2d', contours2d.shape)
         section = np.unique(points[:, section_direction])[0]
         section = int(np.floor(section))
         return section, contours2d
@@ -467,7 +464,7 @@ class Volume(Annotation):
     def __str__(self):
         return "Polygon ID is %s, source is %s" % (self.id, self.source)
 
-    def get_volume_name_and_contours(self, downsample_factor=1):
+    def get_volume_name_and_contours(self):
         """Get the name of volume and dictionary of contours
 
         Returns:
@@ -476,10 +473,9 @@ class Volume(Annotation):
         
         assert hasattr(self, 'description')
         volume_contours = {}
-        for childi in self.childs:
-            section, contours = childi.get_section_and_2d_contours()
-            volume_contours[section] = contours/downsample_factor
-        # assert len(self.childs) == len(volume_contours.keys())
+        for child in self.childs:
+            section, contours = child.get_section_and_2d_contours()
+            volume_contours[section] = contours
         return self.description, volume_contours
 
     def to_dict(self):
@@ -491,7 +487,7 @@ class Volume(Annotation):
 class ContourSorter:
     '''
     Class for sorting the contour points in a polygon
-    This is depricated now that neuroglancer is able to handle point ordering
+    This is deprecated now that neuroglancer is able to handle point ordering
     '''
 
     def __init__(self, start_points, end_points, first_point):

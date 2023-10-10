@@ -171,6 +171,10 @@ export function getPolygonDrawModeBindings() {
         'at:mousedown2': 'complete-annotation',
         'at:keyz': 'undo-annotation',
         'at:control+keyc': 'clone-polygon-annotation',
+
+        'at:control+mousedown0': 'move-polygon-vertex',
+        'at:control+alt+mousedown0': 'add-vertex-polygon',
+        'at:control+alt+mousedown2': 'delete-vertex-polygon',
       }
     );
   }
@@ -209,6 +213,7 @@ export function getPointDrawModeBindings() {
     pointDrawModeBindings = EventActionMap.fromObject(
       {
         'at:mousedown0': 'annotate',
+        'at:control+mousedown0': 'move-point-annotation',
       }
     );
   }

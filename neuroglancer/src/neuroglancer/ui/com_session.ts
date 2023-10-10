@@ -20,7 +20,7 @@
 
 import { Overlay } from 'neuroglancer/overlay';
 import { AnnotationType } from '../annotation';
-import { AnnotationLayerView, getLandmarkList, PlaceComTool, COMSession, ToolMode } from './annotations';
+import { AnnotationLayerView, getLandmarkList, PlaceComTool, COMSession } from './annotations';
 import { StatusMessage } from '../status';
 import './com_session.css';
 import { LegacyTool } from './tool';
@@ -85,7 +85,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         let color = (this.colorInput)? this.colorInput.value : undefined;
         let description = (this.landmarkDropdown)? this.landmarkDropdown.options[this.landmarkDropdown.selectedIndex].value : undefined;
         this.annotationLayerView.layer.tool.value = new PlaceComTool(this.annotationLayerView.layer, {}, 
-          undefined, ToolMode.DRAW, this.annotationLayerView.comSession, this.annotationLayerView.comButton);
+          undefined, this.annotationLayerView.comSession, this.annotationLayerView.comButton);
         const comTool = <PlaceComTool>this.annotationLayerView.layer.tool.value;
 
         let com_session = <COMSession>{label: description, color: color};
@@ -94,7 +94,6 @@ import { urlParams } from 'neuroglancer/services/state_loader';
         if(urlParams.multiUserMode) {
           const updates: any = {};
           updates[`/test_annotations_tool/com_session/${urlParams.stateID}`] = com_session;
-          updates[`/test_annotations_tool/com_mode/${urlParams.stateID}`] = ToolMode.DRAW;
           update(ref(database), updates)
               .then(() => {
                   console.log('Succefully Published COM State to Firebase');
@@ -159,21 +158,9 @@ import { urlParams } from 'neuroglancer/services/state_loader';
       button.textContent = 'Edit COM';
       button.addEventListener('click', () => {
         this.annotationLayerView.layer.tool.value = new PlaceComTool(this.annotationLayerView.layer, {}, 
-          undefined, ToolMode.EDIT, this.annotationLayerView.comSession, this.annotationLayerView.comButton);
+          undefined, this.annotationLayerView.comSession, this.annotationLayerView.comButton);
         const comTool = <PlaceComTool>this.annotationLayerView.layer.tool.value;
         comTool.session.value = <COMSession>{label: undefined, color: undefined};
-
-        if(urlParams.multiUserMode) {
-          const updates: any = {};
-          updates[`/test_annotations_tool/com_mode/${urlParams.stateID}`] = ToolMode.EDIT;
-          update(ref(database), updates)
-              .then(() => {
-                  console.log('Succefully Published COM State to Firebase');
-              })
-              .catch((error) => {
-                  console.error(error);
-              });
-        }
 
         this.dispose();
       });
