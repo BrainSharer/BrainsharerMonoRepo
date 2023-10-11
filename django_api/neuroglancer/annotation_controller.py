@@ -187,21 +187,15 @@ def interpolate2d(points, new_len):
     unique_rows = np.unique(original_array, axis=0)
     """
 
-    lastcolumn = np.round(points[:, -1])
-    z = mode(lastcolumn)
-    points2d = np.delete(points, -1, axis=1)
-    pu = points2d.astype(int)
+    pu = points.astype(int)
     indexes = np.unique(pu, axis=0, return_index=True)[1]
-    points = np.array([points2d[index] for index in sorted(indexes)])
-    #addme = points2d[0].reshape(1, 2)
-    #points2d = np.concatenate((points2d, addme), axis=0)
+    points = np.array([points[index] for index in sorted(indexes)])
 
     tck, u = splprep(points.T, u=None, s=3, per=1)
     u_new = np.linspace(u.min(), u.max(), new_len)
     x_array, y_array = splev(u_new, tck, der=0)
     arr_2d = np.concatenate([x_array[:, None], y_array[:, None]], axis=1)
-    arr_3d = np.c_[ arr_2d, np.zeros(new_len) + z ] 
-    return list(map(tuple, arr_3d))
+    return arr_2d
 
 
 def interpolate2dXXX(points:list, new_len:int) -> list:

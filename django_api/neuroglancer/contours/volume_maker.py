@@ -12,6 +12,7 @@ This code takes the contours and does the following:
 import cv2
 import numpy as np
 from scipy.ndimage.measurements import center_of_mass
+from skimage.filters import gaussian
 
 from neuroglancer.annotation_controller import interpolate2d
 
@@ -24,16 +25,16 @@ class VolumeMaker:
         print(f'origin={origin}')
         volume = []
         for _, contour_points in segment_contours.items():
-            junk = interpolate2d(contour_points, 100)
-            points = contour_points.tolist()
-            print('contour_points len', len(points))
             vertices = np.array(contour_points) - origin[:2]
             contour_points = (vertices).astype(np.int32)
             volume_slice = np.zeros(section_size, dtype=np.uint8)
             cv2.drawContours(volume_slice, [contour_points], -1, (1), thickness=-1)
+            #volume_slice = cv2.polylines(volume_slice, [contour_points], isClosed=True, color=1, thickness=1)
+            #volume_slice = cv2.fillPoly(volume_slice, pts=[contour_points], color=1)
             volume.append(volume_slice)
-        volume = np.array(volume).astype(np.bool8)
         volume = np.swapaxes(volume, 0, 2)
+        volume = gaussian(volume, 0.5)
+        volume = np.array(volume).astype(np.bool8)
         self.origins[segment] = origin
         self.volumes[segment] = volume
 
