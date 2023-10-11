@@ -177,7 +177,34 @@ def create_polygon_json(polygon_id, polygon_points,parent_id = None):
     polygon_json.append(line)
     return polygon_json
 
-def interpolate2d(points:list, new_len:int) -> list:
+def interpolate2d(points, new_len):
+    """Interpolates a list of tuples to the specified length. The points param
+    must be a list of tuples in 2d
+    
+    :param points: list of floats
+    :param new_len: integer you want to interpolate to. This will be the new length of the array
+    There can't be any consecutive identical points or an error will be thrown
+    unique_rows = np.unique(original_array, axis=0)
+    """
+
+    lastcolumn = np.round(points[:, -1])
+    z = mode(lastcolumn)
+    points2d = np.delete(points, -1, axis=1)
+    pu = points2d.astype(int)
+    indexes = np.unique(pu, axis=0, return_index=True)[1]
+    points = np.array([points2d[index] for index in sorted(indexes)])
+    #addme = points2d[0].reshape(1, 2)
+    #points2d = np.concatenate((points2d, addme), axis=0)
+
+    tck, u = splprep(points.T, u=None, s=3, per=1)
+    u_new = np.linspace(u.min(), u.max(), new_len)
+    x_array, y_array = splev(u_new, tck, der=0)
+    arr_2d = np.concatenate([x_array[:, None], y_array[:, None]], axis=1)
+    arr_3d = np.c_[ arr_2d, np.zeros(new_len) + z ] 
+    return list(map(tuple, arr_3d))
+
+
+def interpolate2dXXX(points:list, new_len:int) -> list:
     """Interpolates a list of tuples to the specified length. The points param
     must be a list of tuples in 2d
     
@@ -203,7 +230,7 @@ def interpolate2d(points:list, new_len:int) -> list:
     arr_2d = np.concatenate([x_array[:, None], y_array[:, None]], axis=1)
     arr_3d = np.c_[ arr_2d, np.zeros(new_len) + z ] 
     return list(map(tuple, arr_3d))
- 
+
  
 def onSegment(p:tuple, q:tuple, r:tuple) -> bool:
     """Given three collinear points p, q, r, the function checks if point q lies on line segment 'pr' 

@@ -13,8 +13,7 @@ import cv2
 import numpy as np
 from scipy.ndimage.measurements import center_of_mass
 
-# TODO from abakit.atlas.volume2contour import average_masks
-
+from neuroglancer.annotation_controller import interpolate2d
 
 class VolumeMaker:
 
@@ -22,8 +21,12 @@ class VolumeMaker:
         segment_contours = self.aligned_contours[segment]
         segment_contours = self.sort_contours(segment_contours)
         origin, section_size = self.get_origin_and_section_size(segment_contours)
+        print(f'origin={origin}')
         volume = []
         for _, contour_points in segment_contours.items():
+            junk = interpolate2d(contour_points, 100)
+            points = contour_points.tolist()
+            print('contour_points len', len(points))
             vertices = np.array(contour_points) - origin[:2]
             contour_points = (vertices).astype(np.int32)
             volume_slice = np.zeros(section_size, dtype=np.uint8)
@@ -31,8 +34,6 @@ class VolumeMaker:
             volume.append(volume_slice)
         volume = np.array(volume).astype(np.bool8)
         volume = np.swapaxes(volume, 0, 2)
-        for _ in range(interpolate):
-            volume, _ = self.interpolate_volumes(volume, origin)
         self.origins[segment] = origin
         self.volumes[segment] = volume
 
@@ -79,7 +80,19 @@ class VolumeMaker:
         self.aligned_contours = contours
         self.structures = list(self.aligned_contours.keys())
 
-    def interpolate_volumes(self, volume, origin):
+    def interpolate_volumes(self, volume, n):
+        nsections = volume.shape[2]
+        new_volume = []
+        for section in range(nsections):
+            points = volume[:,:,section].tolist()
+            print(section, points[0])
+            #interpolated = interpolate2d(points.tolist(), n)
+            #new_section = [interpolated, section]
+            #new_volume.append(new_section)
+        return volume
+
+
+    def interpolate_volumesXXX(self, volume, origin):
         nsections = volume.shape[2]
         origin = np.array(origin)
         origin = origin*np.array([1, 1, 2])
@@ -90,5 +103,5 @@ class VolumeMaker:
             if sectioni > 0:
                 next = interpolated[:, :, sectioni*2]
                 last = interpolated[:, :, sectioni*2-2]
-                # TODO interpolated[:,:,sectioni*2-1] = average_masks(next,last)
+                #interpolated[:,:,sectioni*2-1] = average_masks(next,last)
         return interpolated, origin

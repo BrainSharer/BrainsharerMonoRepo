@@ -29,9 +29,10 @@ def make_volumes(volume, animal, downsample_factor):
     structure, contours = volume.get_volume_name_and_contours()
     downsampled_contours = downsample_contours(contours, downsample_factor)
     vmaker.set_aligned_contours({structure: downsampled_contours})
-    vmaker.compute_origins_and_volumes_for_all_segments(interpolate=1)
+    vmaker.compute_origins_and_volumes_for_all_segments(interpolate=100)
     volume = (vmaker.volumes[structure]).astype(np.uint8)
     offset = list(vmaker.origins[structure])
+    print(f'offset={offset}')
     folder_name = f'{animal}_{structure}'
     path = '/var/www/brainsharer/structures'
     output_dir = os.path.join(path, folder_name)
