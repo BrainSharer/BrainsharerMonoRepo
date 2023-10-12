@@ -29,8 +29,6 @@ class VolumeMaker:
             contour_points = (vertices).astype(np.int32)
             volume_slice = np.zeros(section_size, dtype=np.uint8)
             cv2.drawContours(volume_slice, [contour_points], -1, (1), thickness=-1)
-            #volume_slice = cv2.polylines(volume_slice, [contour_points], isClosed=True, color=1, thickness=1)
-            #volume_slice = cv2.fillPoly(volume_slice, pts=[contour_points], color=1)
             volume.append(volume_slice)
         volume = np.swapaxes(volume, 0, 2)
         volume = gaussian(volume, 0.5)

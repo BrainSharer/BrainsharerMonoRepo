@@ -350,7 +350,7 @@ export class StateLoader extends RefCounted {
                     this.resetState();
                 });
                 this.element.appendChild(this.resetButton);
-
+                
                 this.saveButton = makeIcon({ text: 'Save', title: 'Save to the current JSON state' });
                 this.registerEventListener(this.saveButton, 'click', () => {
                     this.saveState();
@@ -402,10 +402,10 @@ export class StateLoader extends RefCounted {
     private getState() {
         this.stateAPI.getState(this.stateID).then(state => {
             this.validateState(state);
-            if (state.readonly) {
+            if ((state.readonly) || (state.owner !== this.user.user_id)) {
                 this.saveButton.style.removeProperty('display');
                 this.saveButton.style.display = 'none';
-            }
+            } 
 
         }).catch(err => {
             StatusMessage.showTemporaryMessage(`Internal error getting state: please see debug message.`);
