@@ -174,7 +174,8 @@ export class StateAPI {
                 user_date: json['user_date'],
                 neuroglancer_state: json['neuroglancer_state'],
                 readonly: json['readonly'],
-                public: json['public']
+                public: json['public'],
+                lab: json['lab']
             };
         } catch (err) {
             StatusMessage.showTemporaryMessage('The URL is deleted from database. Please check again.');
@@ -185,7 +186,8 @@ export class StateAPI {
                 user_date: "0",
                 neuroglancer_state: {},
                 readonly: false,
-                public: false
+                public: false,
+                lab: 'NA'
             };
         }
     }
@@ -205,7 +207,8 @@ export class StateAPI {
             user_date: state['user_date'],
             neuroglancer_state: state['neuroglancer_state'],
             readonly: state['readonly'],
-            public: state['public']
+            public: state['public'],
+            lab: state['lab']
         };
         const response = await fetchOk(url, {
             method: 'POST',
@@ -227,7 +230,8 @@ export class StateAPI {
             user_date: json['user_date'],
             neuroglancer_state: json['neuroglancer_state'],
             readonly: json['readonly'],
-            public: json['public']
+            public: json['public'],
+            lab: json['lab']
         };
     }
 
@@ -246,7 +250,8 @@ export class StateAPI {
             user_date: state['user_date'],
             neuroglancer_state: state['neuroglancer_state'],
             readonly: state['readonly'],
-            public: state['public']
+            public: state['public'],
+            lab: state['lab']
         };
 
         const response = await fetchOk(url, {
@@ -266,7 +271,8 @@ export class StateAPI {
             user_date: json['user_date'],
             neuroglancer_state: json['neuroglancer_state'],
             readonly: json['readonly'],
-            public: json['public']
+            public: json['public'],
+            lab: json['lab']
         };
     }
 
@@ -402,7 +408,7 @@ export class StateLoader extends RefCounted {
     private getState() {
         this.stateAPI.getState(this.stateID).then(state => {
             this.validateState(state);
-            if ((state.readonly) || (state.owner !== this.user.user_id)) {
+            if ((state.readonly) || (state.lab !== this.user.lab)) {
                 this.saveButton.style.removeProperty('display');
                 this.saveButton.style.display = 'none';
             } 
@@ -431,7 +437,8 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
-            public: true
+            public: true,
+            lab: this.user.lab
         };
 
         const annotationSavedState = this.viewer.annotationsSavedState;
@@ -467,7 +474,8 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
-            public: true
+            public: true,
+            lab: this.user.lab
         };
 
         this.stateAPI.newState(state).then((newState) => {
@@ -499,7 +507,8 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
-            public: true
+            public: true,
+            lab: this.user.lab
         };
 
         this.stateAPI.saveState(this.stateID, state).then(() => {
@@ -542,7 +551,8 @@ export class StateLoader extends RefCounted {
             user_date: String(Date.now()),
             neuroglancer_state: getCachedJson(this.viewer.state).value,
             readonly: false,
-            public: true
+            public: true,
+            lab: this.user.lab
         };
 
         this.stateAPI.saveState(this.stateID, state).then(() => {

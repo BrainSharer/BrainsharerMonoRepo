@@ -6,6 +6,7 @@ export interface State {
     neuroglancer_state: Record<string, unknown>;
     readonly: boolean;
     public: boolean;
+    lab: string;
 }
 
 export interface Segmentation {

@@ -34,6 +34,7 @@ class CookieMiddleware:
             response.delete_cookie('id')
             response.delete_cookie('username')
             response.delete_cookie('access')
+            response.delete_cookie('lab')
         else:
             pass
         

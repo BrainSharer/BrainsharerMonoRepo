@@ -13,6 +13,7 @@ import { AppSettings } from 'neuroglancer/services/service';
 export interface User {
     user_id: number;
     username: string;
+    lab: string;
 }
 
 export interface ActiveUser {
@@ -162,11 +163,13 @@ export class UserLoader {
  * @returns json of user
  */
 export async function getUser(): Promise<User> {
-    let userjson = { 'user_id': 0, 'username': '' };
+    let userjson = { 'user_id': 0, 'username': '', 'lab': '', 'access': '' };
     let user_id = getCookie('id') ?? 0;
+    let access = getCookie('access') ?? '';
+    let lab = getCookie('lab') ?? '';
     let username = getCookie('username') ?? '';
     if ((user_id !== 0) && (username !== '')) {
-        userjson = { 'user_id': +user_id, 'username': username };
+        userjson = { 'user_id': +user_id, 'username': username, 'lab': lab, 'access': access };
     }
     return userjson;
 }

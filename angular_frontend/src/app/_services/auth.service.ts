@@ -11,7 +11,7 @@ import { User } from '../_models/user';
 })
 export class AuthService {
   public sessionActive = new BehaviorSubject<boolean>(this.idAvailable());
-  public user: User = {id: 0, username: ''};
+  public user: User = {id: 0, username: '', access: '', lab: ''};
   API_URL = environment.API_URL;
 
   constructor(
@@ -23,6 +23,7 @@ export class AuthService {
     const id = this.cookieService.get('id');
     const username = this.cookieService.get('username');
     const access = this.cookieService.get('access')
+    const lab = this.cookieService.get('lab')
     if ((id) && (username)) {
       console.log('ID=' + id + ' username=' + username);
       this.sessionActive = new BehaviorSubject<boolean>(true);
@@ -37,7 +38,8 @@ export class AuthService {
   public getFullname(): string {
     let fullname = 'NA';
     if (this.user.username) {
-      fullname = this.user.username;
+      fullname = this.user.username; 
+      fullname = fullname.replace(/['"]+/g, '')
     }
     return fullname;
   }
@@ -50,7 +52,7 @@ export class AuthService {
     this.cookieService.delete('id');
     this.cookieService.delete('username');
     this.cookieService.delete('access')
-    localStorage.removeItem('access')
+    this.cookieService.delete('lab')
     this.sessionActive = new BehaviorSubject<boolean>(false);
   }
 
