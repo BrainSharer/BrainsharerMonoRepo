@@ -19,7 +19,7 @@ import { AuthService } from 'src/app/_services/auth.service';
 })
 
 export class BrowseStateComponent implements OnInit {
-  displayedColumns: string[] = ['lab', 'brain_name', 'comments', 'id', 'created', 'single_view', 'multi_view'];
+  displayedColumns: string[] = ['lab', 'comments', 'id', 'created', 'single_view', 'multi_view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
