@@ -369,9 +369,7 @@ export class UserLayer extends RefCounted {
 
   restoreState(specification: any) {
     if(specification["type"] != "image") {
-      if(specification["name"] == "demo") {
-        this.tool.restoreState(specification[TOOL_JSON_KEY]);
-      }
+      this.tool.restoreState(specification[TOOL_JSON_KEY]);
     }
     this.toolBinder.restoreState(specification[TOOL_BINDINGS_JSON_KEY]);
     this.panels.restoreState(specification);
