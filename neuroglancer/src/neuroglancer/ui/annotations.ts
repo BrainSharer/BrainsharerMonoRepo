@@ -2104,7 +2104,7 @@ export class PlaceVolumeTool extends PlaceCollectionAnnotationTool {
     this.session.value = session;
     this.active = true;
 
-    if(restore_from_firebase && urlParams.multiUserMode) {
+    if(urlParams.multiUserMode) {
       has_volume_tool = true;
     }
 

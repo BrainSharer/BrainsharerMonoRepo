@@ -26,7 +26,7 @@ import { State } from 'neuroglancer/services/state';
 import { database, dbRef } from 'neuroglancer/services/firebase';
 import { child, get, onValue, ref, update } from "firebase/database";
 import { User, getUser } from 'neuroglancer/services/user_loader';
-import { updateGlobalCellSession, updateGlobalComSession, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef } from 'neuroglancer/ui/annotations';
+import { updateHasVolumeTool, updateGlobalCellSession, updateGlobalComSession, getInProgressAnnotation, getVolumeToolUsed, clearVolumeToolUsed, updateVolumeRef } from 'neuroglancer/ui/annotations';
 
 /**
  * @file Implements a binding between a Trackable value and the URL hash state.
@@ -226,6 +226,7 @@ export class UrlHashBinding extends RefCounted {
             if (getInProgressAnnotation()) {
                 return;
             }
+            updateHasVolumeTool(false)
             this.stateData = snapshot.val();
             const jsonStateUrl = this.stateData.neuroglancer_state;
             this.root.reset();
