@@ -232,6 +232,7 @@ import { urlParams } from 'neuroglancer/services/state_loader';
 
         const volumeTool = <PlaceVolumeTool>this.annotationLayerView.layer.tool.value;
         volumeTool.session.value = <VolumeSession>{reference: reference};
+        updateVolumeRef(selectedAnnotationId)
 
         this.dispose();
       });
