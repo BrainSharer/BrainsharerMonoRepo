@@ -33,6 +33,7 @@ export class UserLoader {
         this.element.classList.add('user-loader');
 
         if (urlParams.stateID) {
+            console.log('state ID=' + urlParams.stateID)
             const stateID = urlParams.stateID;
 
             this.googleLoginButton = makeIcon({ text: 'Google', title: 'Login with your Google account.' });
@@ -66,7 +67,8 @@ export class UserLoader {
                 // this.element.appendChild(this.userList);
                 // this.element.appendChild(this.logoutButton);
             });
-        }
+        } 
+
     }
 
     /*
