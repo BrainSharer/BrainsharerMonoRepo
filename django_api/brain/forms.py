@@ -63,9 +63,7 @@ def create_scene(tifs, scene_index):
     :param tifs: A list of TIFFs.
     :param scene_number: An integer used to find the nearest neighbor
     """
-    print('create scene')
     for tif in tifs:
-        print(f'creating new scene at index={scene_index}')
         newtif = tif
         newtif.active = True
         newtif.pk = None
@@ -130,12 +128,9 @@ def scene_reorder(slide):
     channels = get_slide_channels(slide)
     len_tifs = len(scenes_tifs) + 1
     flattened = [item for sublist in [[i] * channels for i in range(1, len_tifs)] for item in sublist]
-    print('Scene reordering')
     for new_scene, tif in zip(flattened, scenes_tifs):  # iterate over the scenes
-        #print(f'channel={tif.channel} scene index={tif.scene_index} old scene number={tif.scene_number}', end="\t")
         tif.scene_number = new_scene
         tif.save()
-        #print(f'new scene number={tif.scene_number} new_scene={new_scene}')
 
 def save_slide_model(self, request, obj, form, change):
     """This method overrides the slide save method.
@@ -163,7 +158,6 @@ def save_slide_model(self, request, obj, form, change):
     for scene_index in scene_indexes:
         new = new_values[scene_index]
         current = current_values[scene_index]
-        print(f'new={new} current={current} scene_index={scene_index}')
         if new is not None and new > current:
             difference = new - current
             repeat_scene(obj, difference, scene_index)
@@ -194,7 +188,6 @@ class TifInlineFormset(forms.models.BaseInlineFormSet):
         other_channels = [i for i in range(2,channel_count)]
         # list of tuples where the 1st element in tuple is scene number and 2nd element is active
         orderings = list(SlideCziToTif.objects.filter(slide=obj.slide).filter(channel=1).order_by('scene_index').values_list('scene_number', 'active'))
-
         for channel in other_channels:
             tifs = SlideCziToTif.objects.filter(slide=obj.slide).filter(channel=channel).order_by('scene_index')
             for i, tif in enumerate(tifs):
@@ -202,5 +195,4 @@ class TifInlineFormset(forms.models.BaseInlineFormSet):
                 tif.active = orderings[i][1]
                 tif.save()
         
-        scene_reorder(obj.slide)
         return obj
