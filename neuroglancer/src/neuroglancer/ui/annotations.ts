@@ -1562,6 +1562,10 @@ export function getInProgressAnnotation() {
   return inProgressAnnotation;
 }
 
+export function setInProgressAnnotation(value: boolean) {
+  inProgressAnnotation = value;
+}
+
 export function getVolumeToolUsed() {
   return volume_tool_used;
 }

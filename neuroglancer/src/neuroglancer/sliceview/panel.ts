@@ -38,8 +38,9 @@ import { displayToLayerCoordinates, layerToDisplayCoordinates } from '../render_
 import { arraysEqual } from '../util/array';
 import * as matrix from 'neuroglancer/util/matrix';
 import { StatusMessage } from '../status';
-import { PlaceCellTool, PlaceComTool, PlaceVolumeTool } from '../ui/annotations';
+import { PlaceCellTool, PlaceComTool, PlaceVolumeTool, setInProgressAnnotation } from '../ui/annotations';
 import { checkIfSameZCoordinate, copyZCoordinate } from '../annotation/polygon';
+import { urlParams } from 'neuroglancer/services/state_loader';
 
 export interface SliceViewerState extends RenderedDataViewerState {
   showScaleBar: TrackableBoolean;
@@ -325,6 +326,12 @@ export class SliceViewPanel extends RenderedDataPanel {
         }
       }
     });
+
+    //@ts-ignore
+    registerActionListener(element, 'save-polygon-edit', (e: ActionEvent<MouseEvent>) => {
+      if(urlParams.multiUserMode)
+        setInProgressAnnotation(false)
+    });
     
     registerActionListener(element, 'move-polygon-vertex', (e: ActionEvent<MouseEvent>) => {
       const {mouseState} = this.viewer;
@@ -354,6 +361,8 @@ export class SliceViewPanel extends RenderedDataPanel {
       let parAnnotationRef = annotationLayer.source.getReference(ann.parentAnnotationId)!;
       let parAnn = <Annotation>parAnnotationRef.value;
       if (parAnn.type === AnnotationType.POLYGON && isCornerPicked(mouseState.pickedOffset)) {
+        if(urlParams.multiUserMode)
+          setInProgressAnnotation(true)
         const handler = getAnnotationTypeRenderHandler(ann.type);
         const {chunkTransform: {value: chunkTransform}} = annotationLayer;
         if (chunkTransform.error !== undefined) return;

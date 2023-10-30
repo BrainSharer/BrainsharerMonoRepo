@@ -178,6 +178,8 @@ export function getPolygonDrawModeBindings() {
         'at:shift+mousedown0': 'move-polygon-annotation',
         'at:keyr': 'rotate-polygon-z+',
         'at:keye': 'rotate-polygon-z-',
+
+        'at:control+keys': 'save-polygon-edit',
       }
     );
   }
