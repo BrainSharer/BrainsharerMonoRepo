@@ -204,9 +204,9 @@ class ScanRunAdmin(AtlasAdminModel, ExportCsvMixin):
         :ExportCsvMixin: The class with standard features and CSV 
             exporter method.
     """
-    list_display = ('prep_id', 'performance_center', 'machine','comments', 'created')
+    list_display = ('prep_id', 'resolution', 'zresolution', 'number_of_slides', 'machine','comments', 'created')
     search_fields = ('prep__prep_id',)
-    ordering = ['prep_id', 'performance_center', 'machine','comments', 'created']
+    ordering = ['prep_id', 'machine','comments', 'created']
 
 class TifInline(admin.TabularInline):
     """This class is solely used for the database QA. It will display the 
