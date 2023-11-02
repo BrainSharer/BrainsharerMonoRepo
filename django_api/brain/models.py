@@ -37,7 +37,7 @@ class Animal(AtlasModel):
     strain = models.CharField(max_length=15, blank=True, null=True, db_column='strain')
     sex = EnumField(choices=['M','F'], blank=True, null=True, db_column='sex')
     genotype = models.CharField(max_length=100, blank=True, null=True, db_column='genotype')
-    vender = EnumField(choices=['Jackson','Charles River','Harlan','NIH','Taconic'], blank=True, null=True, db_column='vender')
+    vendor = EnumField(choices=['Jackson','Charles River','Harlan','NIH','Taconic'], blank=True, null=True, db_column='vender', verbose_name='Vendor')
     stock_number = models.CharField(max_length=100, blank=True, null=True, db_column='stock_number')
     tissue_source = EnumField(choices=['animal','brain','slides'], blank=True, null=True, db_column='tissue_source')
     ship_date = models.DateField(blank=True, null=True, db_column='ship_date')
