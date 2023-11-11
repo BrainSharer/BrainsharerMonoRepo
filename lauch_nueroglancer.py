@@ -16,7 +16,8 @@ ALL_BUILD_FILES_PATH="neuroglancer/dist/min"
 
 @click.command()
 @click.argument('publish_to')
-def launch_neuoglacner(publish_to):
+@click.option('--commit', type=str, default="origin/main")
+def launch_neuoglacner(publish_to, commit):
     with tempfile.TemporaryDirectory() as tmpdirname:
         if not os.path.isabs(publish_to):
             print('not absolute path')
@@ -25,7 +26,8 @@ def launch_neuoglacner(publish_to):
         repo = Repo.clone_from(GITHUB_URL, tmpdirname)
         for remote in repo.remotes:
             remote.fetch()
-        repo.git.checkout('origin/main')
+
+        repo.git.checkout(commit)
 
         subprocess.run(["cp", str(GOOD_FIREBASE_FILE_PATH), str(Path(tmpdirname)/ FIREBASE_FILE_PATH)], cwd=tmpdirname)
         subprocess.run(["npm", "install"], cwd=str(Path(tmpdirname) / "neuroglancer"))
