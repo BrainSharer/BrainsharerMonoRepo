@@ -327,12 +327,6 @@ export class SliceViewPanel extends RenderedDataPanel {
       }
     });
 
-    //@ts-ignore
-    registerActionListener(element, 'save-polygon-edit', (e: ActionEvent<MouseEvent>) => {
-      if(urlParams.multiUserMode)
-        setInProgressAnnotation(false)
-    });
-    
     registerActionListener(element, 'move-polygon-vertex', (e: ActionEvent<MouseEvent>) => {
       const {mouseState} = this.viewer;
       const selectedLayer = this.viewer.selectedLayer.layer;
@@ -420,6 +414,8 @@ export class SliceViewPanel extends RenderedDataPanel {
               });
             },
             (_event) => {
+              if(urlParams.multiUserMode)
+                setInProgressAnnotation(false)
               pickedAnnotations.forEach((pickedAnnotation) => {
                 annotationLayer.source.commit(pickedAnnotation.annotationRef);
                 pickedAnnotation.annotationRef.dispose();
