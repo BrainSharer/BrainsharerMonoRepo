@@ -5,12 +5,11 @@ from sys import exit
 import tempfile
 from pathlib import Path
 import os
-from shutil import copyfile
 import json
 
 
 GITHUB_URL= "https://github.com/BrainSharer/BrainsharerMonoRepo.git"
-GOOD_FIREBASE_FILE_PATH= Path("/home/yusup/BrainsharerMonoRepo/neuroglancer/src/neuroglancer/services/firebase.ts")
+GOOD_FIREBASE_FILE_PATH= Path("/var/www/firebase.ts")
 FIREBASE_FILE_PATH= Path("neuroglancer/src/neuroglancer/services/firebase.ts")
 ALL_BUILD_FILES_PATH="neuroglancer/dist/min"
 
