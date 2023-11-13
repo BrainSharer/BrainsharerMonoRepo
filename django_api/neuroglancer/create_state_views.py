@@ -185,5 +185,5 @@ class NeuroglancerJSONStateManager():
 
         neuroglancer_state = NeuroglancerState.objects.create(owner=owner, neuroglancer_state=self.state,
             created=datetime.now(), updated=datetime.now(), user_date="999999", 
-            comments=title, readonly=True)
+            comments=title, readonly=False)
         return neuroglancer_state.id
