@@ -64,8 +64,8 @@ class Animal(AtlasModel):
         for channel in [1,2,3]:
             testfile = f'/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{self.prep_id}/www/histogram/C{channel}/{png}'
             if os.path.isfile(testfile):
-                histogram = f'/data/{self.prep_id}/histogram/CH{channel}/{png}'
-                link = f'<div class="hover_img"><a href="#">CH{channel}<span><img src="https://imageserv.dk.ucsd.edu/{histogram}" alt="histogram"/></span></a></div>' 
+                histogram = f'/data/{self.prep_id}/histogram/C{channel}/{png}'
+                link = f'<div class="hover_img"><a href="#">C{channel}<span><img src="https://imageserv.dk.ucsd.edu/{histogram}" alt="histogram"/></span></a></div>' 
                 links.append(link)
 
         return mark_safe(' '.join(links))
