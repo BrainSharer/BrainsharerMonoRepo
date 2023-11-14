@@ -353,7 +353,7 @@ class Section(AtlasModel):
         :return: HTML that provides a link to the histogram
         """
         png = self.file_name.replace('tif','png')
-        histogram = f"https://imageserv.dk.ucsd.edu/data/{self.prep_id}/histogram/CH1/{png}"
+        histogram = f"https://imageserv.dk.ucsd.edu/data/{self.prep_id}/histogram/C1/{png}"
         return mark_safe('<div class="profile-pic-wrapper"><img src="{}" /></div>'.format(histogram) )
     histogram.short_description = 'Histogram'
 
