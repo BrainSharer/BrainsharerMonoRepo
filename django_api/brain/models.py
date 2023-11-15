@@ -194,7 +194,7 @@ class ScanRun(AtlasModel):
                                  default=0, verbose_name="Height (pixels)")
     rotation = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(3)], default=0)
     flip = EnumField(choices=['none','flip','flop'], blank=False, null=False, default='none')
-
+    mask = models.BooleanField(default = True, db_column='mask', verbose_name='Mask image')
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
     def __str__(self):
