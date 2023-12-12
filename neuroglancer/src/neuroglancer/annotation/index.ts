@@ -782,7 +782,7 @@ export const annotationTypeHandlers: Record<AnnotationType, AnnotationTypeHandle
     },
   },
   [AnnotationType.VOLUME]: {
-    icon: 'ⅴ',
+    icon: 'VOL',
     description: 'Volume',
     toJSON: (annotation: Volume) => {
       return {
