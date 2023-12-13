@@ -19,7 +19,7 @@ import { AuthService } from 'src/app/_services/auth.service';
 })
 
 export class BrowseStateComponent implements OnInit {
-  displayedColumns: string[] = ['lab', 'comments', 'id', 'created', 'single_view', 'multi_view'];
+  displayedColumns: string[] = ['comments', 'id', 'single_view', 'multi_view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -32,7 +32,7 @@ export class BrowseStateComponent implements OnInit {
   lab_filter: number | undefined;
   labs: Lab[] = [];
   neuroglancer_states: NeuroglancerState[] = [];
-  
+
   baseUrl = environment.API_URL;
   ngUrl = environment.NG_URL;
   animalUrl = this.baseUrl + '/animal';
@@ -109,7 +109,7 @@ export class BrowseStateComponent implements OnInit {
     const redirecturl = this.ngUrl + '?id=' + id;
     window.open(redirecturl, '_blank');
   }
-  
+
   /**
    * This gets called when the user clicks the view multi user icon (the people icon)
    * @param id the Neuroglancer state ID
@@ -141,8 +141,8 @@ export class BrowseStateComponent implements OnInit {
 
     if (this.title_filter && this.title_filter.length > 1) {
       baseUrl += '&comments=' + this.title_filter;
-    } 
-    
+    }
+
     if (this.lab_filter) {
       baseUrl += '&lab=' + this.lab_filter;
     }
