@@ -44,7 +44,7 @@ class Animal(AtlasModel):
     shipper = EnumField(choices=['FedEx','UPS'], blank=True, null=True, db_column='shipper')
     tracking_number = models.CharField(max_length=100, blank=True, null=True, db_column='tracking_number')
     alias = models.CharField(max_length=100, blank=True, null=True, db_column='alias')
-    comments = models.TextField(max_length=2001, blank=True, null=True, db_column='comments')
+    comments = models.TextField(max_length=2048, blank=True, null=True, db_column='comments')
 
     class Meta:
         managed = False
