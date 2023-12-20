@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   API_URL: 'https://www.brainsharer.org/brainsharer',
-  NG_URL: 'https://www.brainsharer.org/ng_demo/',
+  NG_URL: 'https://www.brainsharer.org/ng/',
   GITHUB_URL: 'https://www.brainsharer.org/brainsharer/github/',
   GOOGLE_URL: 'https://www.brainsharer.org/brainsharer/google/',
   recaptcha: {

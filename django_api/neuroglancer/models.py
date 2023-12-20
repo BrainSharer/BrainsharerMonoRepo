@@ -30,7 +30,7 @@ class NeuroglancerState(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, null=False,
                               blank=False, db_column="FK_user_id",
                                verbose_name="User")
-    lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_lab_id", verbose_name='Lab')
+    #####TODO lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_user_id", verbose_name='Lab')
     public = models.BooleanField(default = True, db_column='active')
     readonly = models.BooleanField(default = False, verbose_name='Read only')
     created = models.DateTimeField(auto_now_add=True)
@@ -70,6 +70,16 @@ class NeuroglancerState(models.Model):
 
         return animal
 
+    @property
+    def lab(self):
+        '''
+        The primary lab of the user
+        :param obj: animal model
+        '''
+        lab = "NA"
+        if self.owner is not None and self.owner.lab is not None:
+            lab = self.owner.lab
+        return lab
 
     @property
     def point_frame(self):
