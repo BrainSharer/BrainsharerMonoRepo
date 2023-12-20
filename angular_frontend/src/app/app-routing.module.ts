@@ -8,12 +8,13 @@ const createStateModule = () => import('./pages/create-state/create-state.module
 
 
 const routes: Routes = [
+    { path: '', loadChildren: browseStateModule },
     { path: 'browse-state', loadChildren: browseStateModule },
     { path: 'create-view', loadChildren: createStateModule },
     { path: 'home', component: HomeComponent  },
     { path: '', component: HomeComponent  },
     // otherwise redirect to home
-    { path: '**', redirectTo: 'home'  }
+    { path: '**', redirectTo: ''  }
 ];
 
 
