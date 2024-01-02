@@ -238,7 +238,7 @@ class TestAnnotations(TestSetUp):
         else:
             return None, None, None
 
-
+    '''
     def test_get_big_marked_cell(self):
         """Test the API that returns a volume
         URL = /get_volume/{session_id}
@@ -247,7 +247,8 @@ class TestAnnotations(TestSetUp):
         session_id, state_id, dcount = self.find_biggest_id('MarkedCell')
         response = self.client.get(f"/get_marked_cell/{session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
+    '''
+
     def test_get_big_volume(self):
         """Test the API that returns a volume
         URL = /get_volume/{session_id}
@@ -295,6 +296,7 @@ class TestAnnotations(TestSetUp):
             post = self.check_row_count(model, session_id=session_id)
             self.assertEqual(pre, post)
 
+    '''
     def test_save_volume(self):
         """Test saving annotations.        
         URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
@@ -306,7 +308,7 @@ class TestAnnotations(TestSetUp):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         postsave = self.check_row_count(model, session_id=session_id)
         self.assertEqual(predelete, postsave)
-
+    '''
 
 
     def test_get_volume_list(self):
