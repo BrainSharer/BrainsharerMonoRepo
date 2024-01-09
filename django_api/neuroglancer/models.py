@@ -37,6 +37,7 @@ class NeuroglancerState(models.Model):
     updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)
     user_date = models.CharField(max_length=25, null=True, blank=True, default='123456789')
     comments = models.CharField(max_length=255)
+    description = models.TextField(max_length=2001, blank=True, null=True)
 
     @property
     def short_description(self):

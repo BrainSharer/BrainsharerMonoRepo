@@ -19,7 +19,7 @@ import { AuthService } from 'src/app/_services/auth.service';
 })
 
 export class BrowseStateComponent implements OnInit {
-  displayedColumns: string[] = ['comments', 'id', 'single_view', 'multi_view'];
+  displayedColumns: string[] = ['description', 'id', 'single_view', 'multi_view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -40,7 +40,7 @@ export class BrowseStateComponent implements OnInit {
   neuroUrl = this.baseUrl + '/neuroglancers';
 
   searchForm: UntypedFormGroup = new UntypedFormGroup({
-    comments: new UntypedFormControl(''),
+    description: new UntypedFormControl(''),
     labs: new UntypedFormControl(''),
   });
 
@@ -79,7 +79,7 @@ export class BrowseStateComponent implements OnInit {
 
   /**
    * This gets called when a user types something in the search box.
-   * @param search string for whatever the user inputs. Searches the comments field from the database
+   * @param search string for whatever the user inputs. Searches the description field from the database
    */
   public searchTitle(search: string): void {
     if (search && search.length > 1) {
@@ -140,7 +140,7 @@ export class BrowseStateComponent implements OnInit {
     let baseUrl = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + this.offset;
 
     if (this.title_filter && this.title_filter.length > 1) {
-      baseUrl += '&comments=' + this.title_filter;
+      baseUrl += '&description=' + this.title_filter;
     }
 
     if (this.lab_filter) {

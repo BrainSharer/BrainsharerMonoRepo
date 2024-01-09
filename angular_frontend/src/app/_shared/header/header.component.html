@@ -1,6 +1,6 @@
     <nav class="navbar navbar-expand-md navbar-light">
 
-        <a class="navbar-brand" href="/"><i class="fa fa-cube"></i>Brainsharer Portal</a>
+        <a class="navbar-brand" href="/"><i class="fa fa-cube"></i>{{title}}</a>
 
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -17,16 +17,6 @@
                 <li class="nav-item text-nowrap" *ngIf="(authService.sessionActive | async)">
                     <a class="nav-link" routerLink="create-view">Create view</a>
                 </li>
-
-<!--                <li class="nav-item">-->
-<!--                    <a class="nav-link" routerLink="contact">Contact</a>-->
-<!--                </li>-->
-<!--                <li class="nav-item dropdown">-->
-<!--                    <a class="nav-link dropdown-toggle" id="navbarDropdown" data-bs-toggle="dropdown">Documentation</a>-->
-<!--                    <ul class="dropdown-menu">-->
-<!--                        <li><a href="https://github.com/ActiveBrainAtlas2/neuroglancer/wiki/Neuroglancer-Contour-Annotations-Documentation" class="dropdown-item"><i class="fa fa-info"></i> Neuroglancer annotations</a></li>-->
-<!--                    </ul>-->
-<!--                </li>-->
             </ul>
 
             <ul class="nav navbar-nav ml-auto w-100 justify-content-end">
@@ -49,7 +39,6 @@
 
                     <ul class="dropdown-menu" style="right: 0; left: auto;">
                         <li><a (click)="clickGoogle()" class="dropdown-item"><img src="/assets/btn_google_signin_light_normal_web.png"></a></li>
-                        <!-- <li><a (click)="clickGithub()" class="dropdown-item"><img src="/assets/github-login.png"></a></li> -->
                         <li><a (click)="clickLocalLogin()"  class="dropdown-item"><i class="fa fa-user-o"></i> Local login</a></li>
                         <li><a (click)="clickLocalRegister()" class="dropdown-item"><i class="fa fa-sliders"></i> Register</a></li>
                         <li><a (click)="clickLocalLostPassword()" class="dropdown-item"><i class="fa fa-key"></i> Forgot password</a></li>

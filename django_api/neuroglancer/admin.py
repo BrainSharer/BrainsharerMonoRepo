@@ -81,8 +81,7 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     def open_neuroglancer(self, obj):
         """This method creates an HTML link that allows the user to access Neuroglancer"""
         host = settings.NG_URL
-        comments = escape(obj.comments)
-        links = f'<a target="_blank" href="{host}?id={obj.id}">{comments}</a>'
+        links = f'<a target="_blank" href="{host}?id={obj.id}">{obj.comments}</a>'
         return format_html(links)
 
     def open_multiuser(self, obj):
