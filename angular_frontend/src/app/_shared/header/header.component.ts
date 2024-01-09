@@ -2,16 +2,6 @@ import { Component } from '@angular/core';
 import { AuthService } from '../../_services/auth.service';
 import { environment } from '../../../environments/environment';
 
-
-
-const githubAuthUrl = 'https://github.com/login/oauth/authorize';
-
-
-const githubParams = {
-    client_id: '3ad4b114f66ffb3b6ed8',
-    redirect_uri: environment.GITHUB_URL,
-};
-
 const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
 
 const scope = [
@@ -40,15 +30,16 @@ export class HeaderComponent {
 
     constructor(public authService: AuthService) { }
 
+    public title:string = environment.TITLE;
 
-    public clickGithub() {
-        const urlParams = new URLSearchParams(githubParams).toString();
-        window.location.href = `${githubAuthUrl}?${urlParams}`;
-    }
 
     public clickGoogle() {
-        const urlParams = new URLSearchParams(googleParams).toString();
-        window.location.href = `${googleAuthUrl}?${urlParams}`;
+        if (environment.production) {
+            const urlParams = new URLSearchParams(googleParams).toString();
+            window.location.href = `${googleAuthUrl}?${urlParams}`;    
+        } else {
+            alert('This functionality is not available on the demo site.');
+        }
     }
   
     public clickAdmin() {
@@ -69,11 +60,19 @@ export class HeaderComponent {
     }
 
     public clickLocalRegister() {
-        window.location.href = environment.API_URL + '/local/signup/';
+        if (environment.production) {
+            window.location.href = environment.API_URL + '/local/signup/';
+        } else {
+            alert('This functionality is not available on the demo site.');
+        }
     }
 
     public clickLocalLostPassword() {
-        window.location.href = environment.API_URL + '/local/password_reset/';
+        if (environment.production) {
+            window.location.href = environment.API_URL + '/local/password_reset/';
+        } else {
+            alert('This functionality is not available on the demo site.');
+        }
     }
 
 

@@ -4,9 +4,9 @@
 
 export const environment = {
   production: false,
+  TITLE: 'Brainsharer localhost testing Neuroglancer',
   API_URL: 'http://localhost:8000',
   NG_URL: 'http://localhost:8080/',
-  GITHUB_URL: 'http://localhost:8000/github/',
   GOOGLE_URL: 'http://localhost:8000/google/',
   recaptcha: {
     siteKey: '6LfKNi0cAAAAACeYwFRY9_d_qjGhpiwYUo5gNW5-',
