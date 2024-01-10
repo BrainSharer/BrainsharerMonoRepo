@@ -27,13 +27,13 @@ import {registerSharedObject, SharedObjectCounterpart} from 'neuroglancer/worker
 
 @registerSharedObject(CREDENTIALS_PROVIDER_RPC_ID)
 export class SharedCredentialsProviderCounterpart<Credentials> extends SharedObjectCounterpart
-    implements CredentialsProvider<Credentials> {
+  implements CredentialsProvider<Credentials> {
   get = makeCachedCredentialsGetter(
-      (invalidCredentials?: CredentialsWithGeneration<Credentials>,
-       cancellationToken?: CancellationToken) =>
-          this.rpc!.promiseInvoke(
-              CREDENTIALS_PROVIDER_GET_RPC_ID,
-              {providerId: this.rpcId, invalidCredentials: invalidCredentials}, cancellationToken));
+    (invalidCredentials?: CredentialsWithGeneration<Credentials>,
+      cancellationToken?: CancellationToken): Promise<CredentialsWithGeneration<Credentials>> =>
+      this.rpc!.promiseInvoke(
+        CREDENTIALS_PROVIDER_GET_RPC_ID,
+        { providerId: this.rpcId, invalidCredentials: invalidCredentials }, cancellationToken));
 }
 
 export function WithSharedCredentialsProviderCounterpart<Credentials>() {
