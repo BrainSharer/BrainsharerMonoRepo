@@ -419,10 +419,10 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
         """
 
         queryset = NeuroglancerState.objects.only('id').filter(public=True).order_by('comments')
-        comments = self.request.query_params.get('comments')
+        description = self.request.query_params.get('description')
         lab = self.request.query_params.get('lab')
-        if comments is not None:
-            queryset = queryset.filter(comments__icontains=comments)
+        if description is not None:
+            queryset = queryset.filter(description__icontains=description)
         if lab is not None and int(lab) > 0:
             queryset = queryset.filter(owner__lab=lab)
 

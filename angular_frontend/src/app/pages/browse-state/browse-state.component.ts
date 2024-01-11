@@ -28,7 +28,7 @@ export class BrowseStateComponent implements OnInit {
   resultsPerPage = 10;
   offset = 0;
   isLoading = true;
-  title_filter: string | undefined;
+  description_filter: string | undefined;
   lab_filter: number | undefined;
   labs: Lab[] = [];
   neuroglancer_states: NeuroglancerState[] = [];
@@ -43,7 +43,6 @@ export class BrowseStateComponent implements OnInit {
     description: new UntypedFormControl(''),
     labs: new UntypedFormControl(''),
   });
-
 
 
   constructor(private dataService: DataService,
@@ -83,9 +82,9 @@ export class BrowseStateComponent implements OnInit {
    */
   public searchTitle(search: string): void {
     if (search && search.length > 1) {
-      this.title_filter = search;
+      this.description_filter = search;
     } else {
-      this.title_filter = undefined;
+      this.description_filter = undefined;
     }
     this.page = 0;
     this.setData();
@@ -139,8 +138,8 @@ export class BrowseStateComponent implements OnInit {
   private buildUrl(): string {
     let baseUrl = this.neuroUrl + '?limit=' + this.resultsPerPage + "&offset=" + this.offset;
 
-    if (this.title_filter && this.title_filter.length > 1) {
-      baseUrl += '&description=' + this.title_filter;
+    if (this.description_filter && this.description_filter.length > 1) {
+      baseUrl += '&description=' + this.description_filter;
     }
 
     if (this.lab_filter) {
