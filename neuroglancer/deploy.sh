@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 if [ "$1" == "" ] || [ $# -gt 1 ]; then
     echo "Enter either 'production' or 'demo' as an argument."
 	exit 0
@@ -31,9 +29,12 @@ then
     exit 1
 fi
 
+build_info="{'tag':'$(git describe --always --tags)', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo@$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
+echo "$build_info"
 
-
-npm run $BUILD
+#npm run build-python -- --no-typecheck --define NEUROGLANCER_BUILD_INFO="${build_info}"
+#npm run $BUILD -- --no-typecheck --define NEUROGLANCER_BUILD_INFO="${build_info}"
+npm run $BUILD -- --define NEUROGLANCER_BUILD_INFO="${build_info}"
 cd dist/min/
 tar zcvf ../../$PACKAGE *
 cd ../../
