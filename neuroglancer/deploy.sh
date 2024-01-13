@@ -15,11 +15,13 @@ rm -vf *.tar.gz
 
 if [ "$1" == "demo" ]; then
     BUILD="build-demo"
+    BUILD_INFO="{'tag':'DEMO Version', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
     PACKAGE="neuroglancer.demo.tar.gz"
 fi
 
 if [ "$1" == "production" ]; then
     BUILD="build-min"
+    BUILD_INFO="{'tag':'Production Version $(git describe --always --tags)', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
     PACKAGE="neuroglancer.production.tar.gz"
 fi
 
@@ -29,12 +31,9 @@ then
     exit 1
 fi
 
-build_info="{'tag':'$(git describe --always --tags)', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo@$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
-echo "$build_info"
-
-#npm run build-python -- --no-typecheck --define NEUROGLANCER_BUILD_INFO="${build_info}"
-#npm run $BUILD -- --no-typecheck --define NEUROGLANCER_BUILD_INFO="${build_info}"
-npm run $BUILD -- --define NEUROGLANCER_BUILD_INFO="${build_info}"
+echo "$BUILD_INFO"
+#npm run build-python -- --no-typecheck --define NEUROGLANCER_BUILD_INFO="${BUILD_INFO}"
+npm run $BUILD -- --define NEUROGLANCER_BUILD_INFO="${BUILD_INFO}"
 cd dist/min/
 tar zcvf ../../$PACKAGE *
 cd ../../

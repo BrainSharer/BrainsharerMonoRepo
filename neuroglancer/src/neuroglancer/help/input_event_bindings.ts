@@ -18,6 +18,7 @@
 
  import {LayerManager, UserLayer} from 'neuroglancer/layer';
  import {SidePanel, SidePanelManager} from 'neuroglancer/ui/side_panel';
+// import { NEUROGLANCER_BUILD_INFO } from 'neuroglancer/ui/build_info'
  import {DEFAULT_SIDE_PANEL_LOCATION, SidePanelLocation, TrackableSidePanelLocation} from 'neuroglancer/ui/side_panel_location';
  import {ToolBinder} from 'neuroglancer/ui/tool';
  import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
@@ -28,6 +29,7 @@
  declare let NEUROGLANCER_BUILD_INFO:
  | { tag: string; url?: string; timestamp?: string }
  | undefined;
+
 
  export function formatKeyName(name: string) {
    if (name.startsWith('key')) {

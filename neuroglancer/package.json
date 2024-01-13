@@ -6,7 +6,7 @@
   "main": "dist/module/main_module.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/google/neuroglancer.git"
+    "url": "git@github.com:BrainSharer/BrainsharerMonoRepo.git"
   },
   "engines": {
     "node": ">=12"
@@ -19,10 +19,10 @@
     "generate-code": "node ./config/generate_code.js",
     "build-demo": "./set_service.sh demo && node ./config/esbuild-cli.js --config=min",
     "build-min": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",
-    "build-local": "./set_service.sh local && node ./config/esbuild-cli.js --config=min",
+    "build-local": "./set_service.sh local && node ./config/esbuild-cli.js --config=min ",
     "build": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",
     "build:watch": "node ./config/esbuild-cli.js --config=dev --serve --watch",
-    "local-server": "./set_service.sh local && node ./config/esbuild-cli.js --config=dev --serve --watch",
+    "local-server": "./set_service.sh local && node ./config/esbuild-cli.js --config=dev --serve --watch --define NEUROGLANCER_BUILD_INFO=\"{'tag':'Local testing server'}\"",
     "dev-server-python": "./set_service.sh local && node ./config/esbuild-cli.js --config=python-dev --serve --watch",
     "build-module": "node ./config/esbuild-cli.js --config=module",
     "build-python": "node ./config/esbuild-cli.js --config=python-min",
