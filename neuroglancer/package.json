@@ -12,7 +12,6 @@
     "node": ">=12"
   },
   "scripts": {
-    "prebuild": "cpy ./src/neuroglancer/services/webdev.ts ./src/neuroglancer/services/service.ts node",
     "wsl-build-production": "cpy ./src/neuroglancer/services/production.ts ./src/neuroglancer/services/service.ts node && node ./config/esbuild-cli.js --config=min",
     "wsl-server": "node ./config/esbuild-cli.js --config=dev --serve --watch",
     "wsl-build-webdev": "node ./config/esbuild-cli.js --config=min",
@@ -38,7 +37,6 @@
     "typecheck": "tsc --noEmit",
     "build-min-prod": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",
     "build-prod": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",
-    "webdev-server": "./set_service.sh webdev && node ./config/esbuild-cli.js --config=dev --serve --watch",
     "build-docs": "typedoc --options ./typedoc.json && cp docs/modules.html docs/index.html"
   },
   "devDependencies": {
