@@ -25,6 +25,12 @@ if [ "$1" == "production" ]; then
     PACKAGE="neuroglancer.production.tar.gz"
 fi
 
+if ! command -v npm &> /dev/null
+then
+    echo "npm could not be found"
+    exit 1
+fi
+
 
 
 npm run $BUILD
