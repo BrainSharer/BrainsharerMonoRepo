@@ -12,11 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified for Brainsharer UCSD/Princeton
  */
 
 /**
- * @file Support for editing Neuroglancer state as JSON directly within browser.
+ * @file Support for maintaining state when drawing cells.
  */
+
 import { Overlay } from 'neuroglancer/overlay';
 import { AnnotationType } from '../annotation';
 import { AnnotationLayerView, getLandmarkList, PlaceCellTool, CellSession, getCategoryList } from './annotations';

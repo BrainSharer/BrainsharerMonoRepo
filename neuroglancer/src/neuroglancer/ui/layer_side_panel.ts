@@ -24,7 +24,7 @@ import svg_cursor from 'ikonate/icons/cursor.svg';
 import {changeLayerName, changeLayerType, deleteLayer, layerTypes, ManagedUserLayer, SelectedLayerState, UserLayer} from 'neuroglancer/layer';
 import {ElementVisibilityFromTrackableBoolean} from 'neuroglancer/trackable_boolean';
 import {CachedWatchableValue, observeWatchable} from 'neuroglancer/trackable_value';
-import {LAYER_SIDE_PANEL_DEFAULT_LOCATION, UserLayerSidePanelState} from 'neuroglancer/ui//layer_side_panel_state';
+import {LAYER_SIDE_PANEL_DEFAULT_LOCATION, UserLayerSidePanelState} from 'neuroglancer/ui/layer_side_panel_state';
 import {popDragStatus, pushDragStatus} from 'neuroglancer/ui/drag_and_drop';
 import {DRAG_OVER_CLASSNAME, DragSource, SidePanel, SidePanelManager} from 'neuroglancer/ui/side_panel';
 import {RefCounted} from 'neuroglancer/util/disposable';

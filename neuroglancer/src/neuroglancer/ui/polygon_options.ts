@@ -12,12 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified for Brainsharer UCSD/Princeton
  */
 
 /**
- * @file Support for editing Neuroglancer state as JSON directly within browser.
+ * @file Support for polygon options.
  */
- import { Overlay } from 'neuroglancer/overlay';
+
+import { Overlay } from 'neuroglancer/overlay';
  import { polygonRotateAngle, polygonSectionOffset, polygonScalePercentage } from '../annotation/polygon';
  import { StatusMessage } from '../status';
  import './polygon_options.css';

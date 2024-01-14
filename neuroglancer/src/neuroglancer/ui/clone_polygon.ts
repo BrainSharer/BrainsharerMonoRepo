@@ -12,11 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified for Brainsharer UCSD/Princeton
  */
 
 /**
- * @file Support for editing Neuroglancer state as JSON directly within browser.
+ * @file Support for cloning polygons.
  */
+
 import {Overlay} from 'neuroglancer/overlay';
 import { AnnotationLayerState } from '../annotation/annotation_layer_state';
 import { cloneAnnotationSequence } from '../annotation/polygon';
