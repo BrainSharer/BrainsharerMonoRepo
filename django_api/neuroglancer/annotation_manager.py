@@ -33,7 +33,9 @@ the dropdown menu. Once the user clicks 'Go', these events take place:
 """
 
 #from django.http import Http404
+from django.http import JsonResponse
 from rest_framework.exceptions import ValidationError
+from django.db.models import ProtectedError
 import numpy as np
 from statistics import mode
 from neuroglancer.models import AnnotationSession, BrainRegion, DEBUG, \
@@ -105,10 +107,8 @@ class AnnotationManager(AnnotationBase):
             if annotation.is_volume():
                 brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='POLYGON_SEQUENCE')
-                if 'polygon' in brain_region.abbreviation:
-                    self.add_polygons(annotation, session)
-                else:
-                    self.add_volumes(annotation, session)
+                self.delete_polygons(session)
+                self.add_polygons(annotation, session)
 
 
         if len(marked_cells) > 0:
@@ -142,6 +142,12 @@ class AnnotationManager(AnnotationBase):
             session.neuroglancer_model = self.neuroglancer_model
             session.save()
 
+    def delete_polygons(self, session):
+        try:
+            PolygonSequence.objects.filter(annotation_session=session).delete()
+        except ProtectedError:
+            error_message = "Error trying to delete the polygons."
+            return JsonResponse(error_message)
 
 
     def is_structure_com(self, annotation: Annotation):
@@ -213,31 +219,6 @@ class AnnotationManager(AnnotationBase):
             end_time = timer()
             total_elapsed_time = round((end_time - start_time),2)
             print(f'Inserting polygon {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
-
-    def add_volumes(self, annotation: Annotation, annotation_session: AnnotationSession):
-        """Helper method to add a volume to the bulk manager.
-
-        :param annotation: A polygon annotation 
-        :param annotation_session: session object
-        """
-        start_time = timer()
-
-        batch = []
-        for polygon in annotation.childs:
-            point_order = 1
-            polygon_index = random_string()
-            z = mode([int(np.floor(coord.coord_start[2]) * float(self.z_scale)) for coord in polygon.childs])
-            for child in polygon.childs:
-                xa, ya, _ = child.coord_start * (self.scales).astype(np.float64)
-                polygon_sequence = PolygonSequence(annotation_session=annotation_session, x=xa, y=ya, z=z, point_order=point_order, polygon_index=polygon_index)
-                point_order += 1
-                batch.append(polygon_sequence)
-                
-        PolygonSequence.objects.bulk_create(batch, self.batch_size, ignore_conflicts=True)
-        if DEBUG:
-            end_time = timer()
-            total_elapsed_time = round((end_time - start_time),2)
-            print(f'Inserting volume {len(batch)} points to {annotation.get_description()} took {total_elapsed_time} seconds.')
 
     def get_session(self, brain_region, annotation_type):
         """Gets either the existing session or creates a new one.

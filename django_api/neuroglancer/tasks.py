@@ -10,9 +10,8 @@ from neuroglancer.annotation_manager import AnnotationManager, DEBUG
 from timeit import default_timer as timer
 
 def upsert_annotations(layer, neuroglancer_state_id):
-    """Same as the background_archive_and_insert_annotations method except
-    it does not use supervisord and does not go into a background process.
-    This will take a while to run for the user.
+    """Does a delete then insert every time a user clicks 
+    the 'Save annotations' button.
 
     :param layeri: the active layer in Neuroglancer we are working on
     :param neuroglancer_state_id: the primary key of the Neuroglancer state
