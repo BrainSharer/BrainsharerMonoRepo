@@ -12,16 +12,17 @@ fi
 
 rm -vf dist/min/*
 rm -vf *.tar.gz
+GIT=$(git tag --sort=version:refname)
 
 if [ "$1" == "demo" ]; then
     BUILD="build-demo"
-    BUILD_INFO="{'tag':'DEMO Version', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
+    BUILD_INFO="{'tag':'DEMO Version $GIT', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
     PACKAGE="neuroglancer.demo.tar.gz"
 fi
 
 if [ "$1" == "production" ]; then
     BUILD="build-min"
-    BUILD_INFO="{'tag':'Production Version $(git describe --always --tags)', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
+    BUILD_INFO="{'tag':'Production Version $GIT', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
     PACKAGE="neuroglancer.production.tar.gz"
 fi
 
