@@ -12,12 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ * Modified for Brainsharer UCSD/Princeton
  */
 
  import './input_event_bindings.css';
 
  import {LayerManager, UserLayer} from 'neuroglancer/layer';
  import {SidePanel, SidePanelManager} from 'neuroglancer/ui/side_panel';
+// import { NEUROGLANCER_BUILD_INFO } from 'neuroglancer/ui/build_info'
  import {DEFAULT_SIDE_PANEL_LOCATION, SidePanelLocation, TrackableSidePanelLocation} from 'neuroglancer/ui/side_panel_location';
  import {ToolBinder} from 'neuroglancer/ui/tool';
  import {animationFrameDebounce} from 'neuroglancer/util/animation_frame_debounce';
@@ -25,6 +27,11 @@
  import {EventActionMap} from 'neuroglancer/util/event_action_map';
  import {emptyToUndefined} from 'neuroglancer/util/json';
  
+ declare let NEUROGLANCER_BUILD_INFO:
+ | { tag: string; url?: string; timestamp?: string }
+ | undefined;
+
+
  export function formatKeyName(name: string) {
    if (name.startsWith('key')) {
      return name.substring(3);
@@ -91,6 +98,36 @@
    private updateView() {
      const {scroll, bindings, toolBinder} = this;
      removeChildren(scroll);
+
+     if (typeof NEUROGLANCER_BUILD_INFO !== "undefined") {
+      const header = document.createElement("h2");
+      header.textContent = "Build info";
+      const buildInfoElement = document.createElement("div");
+      buildInfoElement.classList.add("neuroglancer-build-info");
+      const tagElement = document.createElement("a");
+      const { tag, url, timestamp } = NEUROGLANCER_BUILD_INFO;
+      tagElement.textContent = tag;
+      tagElement.target = "_blank";
+      if (url !== undefined) {
+        tagElement.href = url;
+      }
+      scroll.appendChild(header);
+      buildInfoElement.appendChild(tagElement);
+      if (timestamp !== undefined) {
+        const timestampElement = document.createElement("div");
+        timestampElement.classList.add("neuroglancer-build-timestamp");
+        const timestampString = Intl.DateTimeFormat("en", {
+          hour12: false,
+          dateStyle: "medium",
+          timeStyle: "long",
+        }).format(new Date(timestamp));
+        timestampElement.textContent = `Built at ${timestampString}`;
+        buildInfoElement.append(timestampElement);
+      }
+      scroll.appendChild(buildInfoElement);
+    }
+
+
      interface BindingList {
        label: string;
        entries: Map<string, string>;
