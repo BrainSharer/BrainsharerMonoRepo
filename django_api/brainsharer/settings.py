@@ -1,5 +1,6 @@
 import os
 import datetime
+
 from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIENT_SECRET, \
     GITHUB_OAUTH2_CLIENT_SECRET
 

@@ -102,8 +102,6 @@ class NeuroglancerStateSerializer(serializers.ModelSerializer):
         ordering = ['-created']
         fields = '__all__'
 
-
-
     def create(self, validated_data):
         """This method gets called when a user clicks New in Neuroglancer
         """
