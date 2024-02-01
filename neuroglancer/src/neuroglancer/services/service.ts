@@ -16,17 +16,16 @@
  */
 
 /**
- * @file settings for the demo website.
+ * @file Settings for local server support in testing.
  */
 
 export const AppSettings = {
-        API_ENDPOINT: 'https://demo.brainsharer.org/brainsharer',
+        API_ENDPOINT: 'http://localhost:8000',
         IMAGESERVER_API_ENDPOINT: 'https://imageserv.dk.ucsd.edu/brainsharer',
-        GOOGLE_LOGIN: 'https://demo.brainsharer.org/brainsharer/accounts/google/login/?next=',
-        LOCAL_LOGIN: 'https://demo.brainsharer.org/brainsharer/admin/login/?next=',
-        ADMIN_PORTAL: 'https://demo.brainsharer.org/brainsharer/admin/',
-        REFRESH_TOKEN: 'https://demo.brainsharer.org/brainsharer/api-token-refresh/',
+        GOOGLE_LOGIN: 'http://localhost:8000/accounts/google/login/?next=',
+        LOCAL_LOGIN: 'http://localhost:8000/brainsharer/admin/login/?next=',
+        ADMIN_PORTAL: 'https://localhost:8000/admin/',
+        REFRESH_TOKEN: 'http://localhost:8000/api-token-refresh/',
         DISPLAY_FETCH: true,
         DISPLAY_GOOGLE: false
-    };
-    
+};

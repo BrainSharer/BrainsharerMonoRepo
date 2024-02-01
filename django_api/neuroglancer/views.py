@@ -172,9 +172,7 @@ class GetPolygonList(views.APIView):
         data = []
         rows = AnnotationSession.objects.filter(
             active=True).filter(annotation_type='POLYGON_SEQUENCE')\
-                .order_by('animal', 
-                'annotator__username')\
-                .all()
+                .order_by('animal', 'annotator__username', 'brain_region__abbreviation').all()
         for row in rows:
             data.append({
                 'session_id': row.id,
