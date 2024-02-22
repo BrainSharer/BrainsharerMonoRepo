@@ -19,7 +19,7 @@ import { AuthService } from 'src/app/_services/auth.service';
 })
 
 export class BrowseStateComponent implements OnInit {
-  displayedColumns: string[] = ['description', 'id', 'single_view', 'multi_view'];
+  displayedColumns: string[] = ['description', 'id', 'neuroglancer_view'];
   dataSource = new MatTableDataSource<NeuroglancerState>();
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -109,14 +109,6 @@ export class BrowseStateComponent implements OnInit {
     window.open(redirecturl, '_blank');
   }
 
-  /**
-   * This gets called when the user clicks the view multi user icon (the people icon)
-   * @param id the Neuroglancer state ID
-   */
-  public redirectToMulti = (id: string) => {
-    const redirecturl = this.ngUrl + '?id=' + id + "&multi=1";
-    window.open(redirecturl, '_blank');
-  }
 
   /**
    * This gets called when the user clicks one of the forward or

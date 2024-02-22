@@ -79,17 +79,11 @@
                 <th mat-header-cell *matHeaderCellDef mat-sort-header> URL ID </th>
                 <td mat-cell *matCellDef="let element"> {{element.id}} </td>
               </ng-container>
-
-              <ng-container matColumnDef="single_view">
-                <th mat-header-cell *matHeaderCellDef> Single User Neuroglancer view </th>
-                <td mat-cell *matCellDef="let element">
-                  <a class="hoverlink" (click)="redirectToView(element.id)" ><img src="/assets/icon_individual.png" alt="Neuroglancer Individual Mode" title="Launch Neuroglancer in individual annotation mode"></a>
-                </td>
-            </ng-container>
-            <ng-container matColumnDef="multi_view">
-              <th mat-header-cell *matHeaderCellDef> Multi User Neuroglancer view </th>
+            
+            <ng-container matColumnDef="neuroglancer_view">
+              <th mat-header-cell *matHeaderCellDef> Neuroglancer view </th>
               <td mat-cell *matCellDef="let element">
-                <a class="hoverlink" (click)="redirectToMulti(element.id)"><img src="/assets/icon_collaboration.png" alt="Neuroglancer Collaboration Mode" title="Launch Neuroglancer in collaborative annotation mode"></a>
+                <a class="hoverlink" (click)="redirectToView(element.id)"><img src="/assets/icon_collaboration.png" alt="Neuroglancer Collaboration Mode" title="Launch Neuroglancer in collaborative annotation mode"></a>
               </td>
           </ng-container>
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
