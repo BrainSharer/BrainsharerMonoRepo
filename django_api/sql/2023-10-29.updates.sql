@@ -5,15 +5,23 @@
 -- increase +ve rotation rotates image counter clockwise
 
 use brainsharer;
-desc elastix_transformation; 
 
 select *
-from elastix_transformation
-where FK_prep_id = 'CTB005'
-and section in ('149')
-order by section;
+from neuroglancer_state ns WHERE id = 305;
 
-update elastix_transformation set rotation=0.0159641, xshift=0, yshift=-350 where FK_prep_id = 'CTB005' and section = '146';
-update elastix_transformation set rotation=-0.0114995, xshift=40, yshift=180 where FK_prep_id = 'CTB005' and section = '148';
-update elastix_transformation set rotation=0.000412516, xshift=-0.020744, yshift=0.22061 where FK_prep_id = 'CTB005' and section = '149';
+select au.username, as2.FK_prep_id, br.abbreviation, count(*) as c
+from polygon_sequences ps 
+inner join annotation_session as2 on ps.FK_session_id = as2.id 
+inner join brain_region br on as2.FK_brain_region_id = br.id
+inner join auth_user au on as2.FK_user_id = au.id
+where 1=1
+and as2.FK_prep_id = 'MD589'
+and as2.active = 1
+and br.abbreviation = 'SC'
+group by au.username, as2.FK_prep_id, br.abbreviation
+order by au.username, as2.FK_prep_id, br.abbreviation;
 
+select id, LENGTH (neuroglancer_state) as l
+from neuroglancer_state ns 
+where id = 529
+order by l asc;
