@@ -97,7 +97,8 @@ class Histology(AtlasModel):
     orientation = EnumField(choices=['coronal','horizontal','sagittal','oblique'], blank=True, null=True)
     oblique_notes = models.CharField(max_length=200, blank=True, null=True)
     mounting = EnumField(choices=['every section','2nd','3rd','4th','5ft','6th'], blank=True, null=True)
-    counterstain = EnumField(choices=['thionin','NtB','NtFR','DAPI','Giemsa','Syto41'], blank=True, null=True)
+    counterstain = EnumField(choices=['thionin','NtB','NtFR','DAPI','Giemsa','Syto41','NTB/thionin', 'NTB/PRV-eGFP', 'NTB/PRV', 'NTB/ChAT/ΔGRV', 'NTB/ChAT/Ai14'], 
+                             blank=True, null=True)
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
     class Meta:
@@ -170,7 +171,7 @@ class ScanRun(AtlasModel):
     
     id = models.AutoField(primary_key=True)
     prep = models.ForeignKey(Animal, models.CASCADE, db_column='FK_prep_id')
-    machine = EnumField(choices=['Axioscan I', 'Axioscan II'], blank=True, null=True)
+    machine = EnumField(choices=['Axioscan I', 'Axioscan II', 'Nanozoomer'], blank=True, null=True)
     objective = EnumField(choices=['60X','40X','20X','10X'], blank=True, null=True)
     resolution = models.FloatField(verbose_name="XY Resolution (µm)")
     zresolution = models.FloatField(verbose_name="Z Resolution (µm)")

@@ -165,7 +165,7 @@ class PointsAdmin(admin.ModelAdmin):
                 scene=dict(
                     xaxis=dict(nticks=4, range=[20000, 60000], ),
                     yaxis=dict(nticks=4, range=[10000, 30000], ),
-                    zaxis=dict(nticks=4, range=[100, 350], ), ),
+                    zaxis=dict(nticks=4, range=[0, 450], ), ),
                 width=1200,
                 margin=dict(r=0, l=0, b=0, t=0))
             fig.update_traces(marker=dict(size=2),
