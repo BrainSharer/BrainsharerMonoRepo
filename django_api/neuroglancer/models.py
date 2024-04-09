@@ -31,7 +31,7 @@ class NeuroglancerState(models.Model):
                               blank=False, db_column="FK_user_id",
                                verbose_name="User")
     #####TODO lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_user_id", verbose_name='Lab')
-    public = models.BooleanField(default = True, db_column='active')
+    public = models.BooleanField(default = False, db_column='active')
     readonly = models.BooleanField(default = False, verbose_name='Read only')
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)

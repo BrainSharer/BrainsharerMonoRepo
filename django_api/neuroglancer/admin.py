@@ -58,12 +58,12 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.CharField: {'widget': TextInput(attrs={'size': '80'})},
     }
-    list_display = ('id', 'animal', 'open_neuroglancer', 'public', 'readonly', 'open_multiuser', 'owner', 'lab', 'created')
+    list_display = ('id', 'animal', 'open_neuroglancer', 'public_description', 'public', 'readonly', 'open_multiuser', 'owner', 'lab', 'created')
     list_per_page = 25
     ordering = ['-readonly', '-updated']
     readonly_fields = ['user_date']
     list_filter = ['updated', 'created', 'readonly', UrlFilter, 'public']
-    search_fields = ['comments']
+    search_fields = ['id', 'comments', 'description']
 
     def get_queryset(self, request):
         """Returns the query set of points where the layer contains annotations"""
@@ -83,6 +83,13 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
         host = settings.NG_URL
         links = f'<a target="_blank" href="{host}?id={obj.id}">{obj.comments}</a>'
         return format_html(links)
+    
+    def public_description(self, obj):
+        """This method displays HTML"""
+        if obj.description is None:
+            return 'NA'
+        else:
+            return format_html(obj.description)
 
     def open_multiuser(self, obj):
         """This method creates an HTML link that allows the user to access Neuroglancer 
