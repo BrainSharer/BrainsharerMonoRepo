@@ -364,7 +364,7 @@ class GetCellTypes(views.APIView):
 
     def get(self, request, format=None):
         data = {}
-        cell_types = CellType.objects.filter(active=True).all()
+        cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
         data['cell_type'] = [i.cell_type for i in cell_types]
         return JsonResponse(data)
 
