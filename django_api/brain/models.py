@@ -179,10 +179,6 @@ class ScanRun(AtlasModel):
     scan_date = models.DateField(blank=True, null=True)
     file_type = EnumField(choices=['CZI','JPEG2000','NDPI','NGR'], blank=True, null=True)
     channels_per_scene = models.IntegerField(blank=False, null=False, default=3)
-    channel1_name = models.CharField(max_length=255, blank=False, null=False, default='C1', verbose_name='Channel 1 name')
-    channel2_name = models.CharField(max_length=255, blank=True, null=True, default='C2', verbose_name='Channel 2 name')
-    channel3_name = models.CharField(max_length=255, blank=True, null=True, default='C3', verbose_name='Channel 3 name')
-    channel4_name = models.CharField(max_length=255, blank=True, null=True, default='C4', verbose_name='Channel 4 name')
     converted_status = EnumField(choices=['not started','converted','converting','error'], blank=True, null=True)
     ch_1_filter_set = EnumField(choices=['68','47','38','46','63','64','50'], blank=True, null=True)
     ch_2_filter_set = EnumField(choices=['68','47','38','46','63','64','50'], blank=True, null=True)
@@ -197,6 +193,8 @@ class ScanRun(AtlasModel):
     flip = EnumField(choices=['none','flip','flop'], blank=False, null=False, default='none')
     MASK_CHOICES = ((0, 'No mask'), (1, 'Full mask'), (2, 'Bottom mask'))
     mask = models.IntegerField(choices=MASK_CHOICES, default=1, verbose_name='Mask image')
+    image_dimensions = models.IntegerField(validators=[MinValueValidator(2), MaxValueValidator(3)], default=2)
+    bgcolor = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(65535)], default=0)
 
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
