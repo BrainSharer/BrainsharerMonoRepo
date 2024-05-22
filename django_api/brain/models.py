@@ -193,9 +193,6 @@ class ScanRun(AtlasModel):
     flip = EnumField(choices=['none','flip','flop'], blank=False, null=False, default='none')
     MASK_CHOICES = ((0, 'No mask'), (1, 'Full mask'), (2, 'Bottom mask'))
     mask = models.IntegerField(choices=MASK_CHOICES, default=1, verbose_name='Mask image')
-    image_dimensions = models.IntegerField(validators=[MinValueValidator(2), MaxValueValidator(3)], default=2)
-    bgcolor = models.IntegerField(validators=[MinValueValidator(0), MaxValueValidator(65535)], default=0)
-
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
     def __str__(self):
