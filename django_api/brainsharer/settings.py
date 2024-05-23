@@ -4,7 +4,8 @@ import datetime
 from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIENT_SECRET, \
     GITHUB_OAUTH2_CLIENT_SECRET
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = "/jojooj"
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 ACCESS_TOKEN_LIFETIME_MINUTES = 10080 # 7*24*60 = 10080 minutes in a week
