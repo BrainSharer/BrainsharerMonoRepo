@@ -17,6 +17,7 @@
     "wsl-build-webdev": "node ./config/esbuild-cli.js --config=min",
     "generate-code": "node ./config/generate_code.js",
     "build-demo": "./set_service.sh demo && node ./config/esbuild-cli.js --config=min",
+    "build-tobor": "./set_service.sh tobor && node ./config/esbuild-cli.js --config=min",
     "build-min": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",
     "build-local": "./set_service.sh local && node ./config/esbuild-cli.js --config=min ",
     "build": "./set_service.sh production && node ./config/esbuild-cli.js --config=min",

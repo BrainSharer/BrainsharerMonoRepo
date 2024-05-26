@@ -1,12 +1,12 @@
 #!/bin/bash
 
 if [ "$1" == "" ] || [ $# -gt 1 ]; then
-    echo "Enter either 'production' or 'demo' as an argument."
+    echo "Enter either 'production' or 'demo' or 'tobor' as an argument."
 	exit 0
 fi
 
-if ! [[ "$1" =~ ^(demo|production)$ ]]; then
-    echo "Enter either 'production' or 'demo' as an argument."
+if ! [[ "$1" =~ ^(demo|production|tobor)$ ]]; then
+    echo "Enter either 'production' or 'demo' or 'tobor' as an argument."
 	exit 0
 fi
 
@@ -20,10 +20,16 @@ if [ "$1" == "demo" ]; then
     PACKAGE="neuroglancer.demo.tar.gz"
 fi
 
-if [ "$1" == "production" ]; then
-    BUILD="build-min"
-    BUILD_INFO="{'tag':'Production Version $GIT', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
-    PACKAGE="neuroglancer.production.tar.gz"
+if [ "$1" == "demo" ]; then
+    BUILD="build-demo"
+    BUILD_INFO="{'tag':'DEMO Version $GIT', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
+    PACKAGE="neuroglancer.demo.tar.gz"
+fi
+
+if [ "$1" == "tobor" ]; then
+    BUILD="build-tobor"
+    BUILD_INFO="{'tag':'Tobor Version $GIT', 'url':'https://github.com/BrainSharer/BrainsharerMonoRepo/commit/$(git rev-parse HEAD)', 'timestamp':'$(date)'}"
+    PACKAGE="neuroglancer.tobor.tar.gz"
 fi
 
 if ! command -v npm &> /dev/null

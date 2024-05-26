@@ -1,23 +1,41 @@
-select as2.id, br.abbreviation , as2.annotation_type , as2.FK_brain_region_id , ps.x, ps.y, ps.z
-from polygon_sequences ps 
-inner join annotation_session as2 on ps.FK_session_id = as2.id
-inner join brain_region br on as2.FK_brain_region_id = br.id 
-where as2.FK_prep_id = 'DK109'
 
-and as2.active = 1
-and as2.FK_user_id = 1;
+show create table annotation_session ;
 
-update polygon_sequences set x = x/32, y=y/32 where FK_session_id = 7773;
+alter table annotation_session add column coordinates JSON after FK_brain_region_id;
 
-select s.id, s.FK_scan_run_id , s.slide_physical_id , s.slide_status, s.file_name, st.file_name 
-from slide s  
-inner join slide_czi_to_tif st on s.id = st.FK_slide_id 
-where st.FK_slide_id in (10978,10980)
-and st.file_name = 'DK132_slide015_2024_01_17_axion2_S1_C1.tif'
-and st.channel = 1;
+ALTER TABLE annotation_session ADD CONSTRAINT CHECK(JSON_VALID(coordinates));
 
-select section, rotation, xshift, yshift, created
-FROM elastix_transformation WHERE FK_prep_id = 'DK132' AND SECTION in ('060','061');
--- 060	-0.412586	-224.155	20.6463	2024-02-14 02:26:28.000
--- 061	0.0472374	40.922	47.0392	2024-02-13 20:29:54.000
-DELETE FROM elastix_transformation WHERE FK_prep_id = 'DK132' AND SECTION in ('060','061');
+-- ---------------------------------- Finished annotation session alterations ---
+
+select 
+-- ct.*, as2.* 
+as2.id, ct.*, as2.annotation_type , mc.x/0.325, mc.y/0.325, mc.z/20
+from marked_cells mc 
+inner join annotation_session as2 on mc.FK_session_id = as2.id 
+inner join cell_type ct on mc.FK_cell_type_id = ct.id 
+where 1=1 
+and as2.active is True
+and as2.annotation_type = 'MARKED_CELL'
+and as2.FK_prep_id = 'DK37'
+and ct.cell_type ='Fiducial'
+order by mc.z, mc.id
+;
+
+desc cell_type; 
+
+select * from annotation_session as2 where as2.FK_prep_id = 'CTB010';
+
+select id, created, updated, comments
+from neuroglancer_state ns
+where id = 914
+order by id desc limit 3;
+
+select section, rotation , xshift , yshift 
+from elastix_transformation et where FK_prep_id = 'DK37'
+and iteration = 0
+and section in (93, 94);
+-- 093	0.00941176	39.3639	1.04921
+-- 094	-0.0656527	-30.9066	-8.27369
+
+
+delete from elastix_transformation where FK_prep_id = 'CTB010' and section > 86;

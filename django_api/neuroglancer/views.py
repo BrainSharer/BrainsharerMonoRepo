@@ -338,7 +338,7 @@ class ContoursToVolume(views.APIView):
 class SaveAnnotation(views.APIView):
     """A view that saves all the annotation in one annotation layer of a specific row in the neuroglancer url table
     There are two methods to save the data, one is in the background and the other is the default way without
-    using the background process. We use the background task in production as the method can take a long time
+    using the background process. We use the regular task in production as the method can take a long time
     to complete.
     """
     

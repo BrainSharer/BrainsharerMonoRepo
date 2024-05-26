@@ -9,7 +9,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('/brainsharer/admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('local/', include('django.contrib.auth.urls')), 
     #path('accounts/', include('allauth.urls')),
     path('', include('authentication.urls')),

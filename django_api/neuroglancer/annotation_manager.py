@@ -103,6 +103,7 @@ class AnnotationManager(AnnotationBase):
             if annotation.is_com():
                 brain_region = get_region_from_abbreviation(annotation.get_description())
                 session = self.get_session(brain_region=brain_region, annotation_type='STRUCTURE_COM')
+                self.delete_com(session)
                 self.add_com(annotation, session)
             if annotation.is_volume():
                 brain_region = get_region_from_abbreviation(annotation.get_description())
@@ -118,6 +119,7 @@ class AnnotationManager(AnnotationBase):
             unique_description_and_cell_types = np.unique(description_and_cell_types)
             brain_region = get_region_from_abbreviation('point')
             session = self.get_session(brain_region=brain_region, annotation_type='MARKED_CELL')
+            self.delete_marked_cells(session)
             for description_cell_type in unique_description_and_cell_types:
                 in_category = description_and_cell_types == description_cell_type
                 cells = marked_cells[in_category]
@@ -142,7 +144,21 @@ class AnnotationManager(AnnotationBase):
             session.neuroglancer_model = self.neuroglancer_model
             session.save()
 
-    def delete_polygons(self, session):
+    def delete_com(self, session: Annotation):
+        try:
+            StructureCom.objects.filter(annotation_session=session).delete()
+        except ProtectedError:
+            error_message = "Error trying to delete the COMs."
+            return JsonResponse(error_message)
+        
+    def delete_marked_cells(self, session: Annotation):
+        try:
+            MarkedCell.objects.filter(annotation_session=session).delete()
+        except ProtectedError:
+            error_message = "Error trying to delete the marked cells."
+            return JsonResponse(error_message)
+        
+    def delete_polygons(self, session: Annotation):
         try:
             PolygonSequence.objects.filter(annotation_session=session).delete()
         except ProtectedError:
