@@ -166,15 +166,15 @@ class AnnotationLayer:
         :param _type: string to determing if we are grouping points to polygons are polygons to volumes
         """
 
-        for annotationi in self.annotations:
-            if annotationi in self.annotation_removed:
+        for annotation in self.annotations:
+            if annotation in self.annotation_removed:
                 continue
-            if annotationi._type == _type:
-                annotationi.childs = []
-                for childid in annotationi.child_ids:
-                    annotationi.childs.append(self.get_annotation_with_id(childid))
+            if annotation._type == _type:
+                annotation.childs = []
+                for childid in annotation.child_ids:
+                    annotation.childs.append(self.get_annotation_with_id(childid))
                     self.annotation_removed[childid] = True
-                annotationi.childs = np.array(annotationi.childs)
+                annotation.childs = np.array(annotation.childs)
 
         self.delete_annotations()
         
@@ -184,30 +184,30 @@ class AnnotationLayer:
         Reorder the polygon points by tracing out the start and end of each line segment.  Requires that 
         all the points in the polygons are unique
         '''
-        for annotationi in self.annotations:
-            if annotationi._type == 'polygon':
+        for annotation in self.annotations:
+            if annotation._type == 'polygon':
                 start_points = np.array(
-                    [pointi.coord_start for pointi in annotationi.childs])
+                    [pointi.coord_start for pointi in annotation.childs])
                 end_points = np.array(
-                    [pointi.coord_end for pointi in annotationi.childs])
+                    [pointi.coord_end for pointi in annotation.childs])
                 sorter = ContourSorter(
-                    start_points=start_points, end_points=end_points, first_point=annotationi.source)
-                annotationi.childs = np.array(annotationi.childs)[
+                    start_points=start_points, end_points=end_points, first_point=annotation.source)
+                annotation.childs = np.array(annotation.childs)[
                     sorter.sort_index]
-                annotationi.child_ids = annotationi.child_ids[sorter.sort_index]
+                annotation.child_ids = annotation.child_ids[sorter.sort_index]
 
     def check_polygon_points(self):
         '''
         Check the the ordering of the annotation points makes sense.  Traces all the polygons from start to finish and checks 
         that you return to the starting point
         '''
-        for annotationi in self.annotations:
-            if annotationi._type == 'polygon':
+        for annotation in self.annotations:
+            if annotation._type == 'polygon':
                 start_points = np.array(
-                    [pointi.coord_start for pointi in annotationi.childs])
+                    [pointi.coord_start for pointi in annotation.childs])
                 end_points = np.array(
-                    [pointi.coord_end for pointi in annotationi.childs])
-                first_point = annotationi.source
+                    [pointi.coord_end for pointi in annotation.childs])
+                first_point = annotation.source
                 check_if_contour_points_are_in_order(
                     first_point, start_points, end_points)
 
