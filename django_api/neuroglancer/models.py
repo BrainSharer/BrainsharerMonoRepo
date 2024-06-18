@@ -46,6 +46,10 @@ class NeuroglancerState(models.Model):
     @property
     def escape_url(self):
         return escape(self.neuroglancer_state)
+    
+    @property
+    def user(self):
+        return self.owner.first_name
 
     @property
     def animal(self):

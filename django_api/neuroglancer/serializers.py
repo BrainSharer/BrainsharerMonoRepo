@@ -83,6 +83,7 @@ class NeuroglancerNoStateSerializer(serializers.ModelSerializer):
     """
     animal = serializers.CharField(required=False)
     lab = serializers.CharField(required=False)
+    user = serializers.CharField(required=False)
 
     class Meta:
         model = NeuroglancerState
