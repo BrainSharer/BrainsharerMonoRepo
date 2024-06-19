@@ -4,7 +4,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 import logging
-from neuroglancer.models import BrainRegion, NeuroglancerState, NeuroglancerView
+from neuroglancer.models import AnnotationSession, BrainRegion, NeuroglancerState, NeuroglancerView
 from authentication.models import User
 
 logging.basicConfig()
@@ -18,6 +18,31 @@ class AnnotationSerializer(serializers.Serializer):
     point = serializers.ListField()
     type = serializers.CharField()
     description = serializers.CharField()
+
+
+class AnnotationSessionSerializer(serializers.Serializer):
+    """This one feeds the data import of annotations.
+    """
+
+    id = serializers.IntegerField()
+    animal = serializers.CharField()
+    user = serializers.CharField()
+    brain_region = serializers.CharField()
+    annotation = serializers.JSONField()
+
+    #animal = serializers.CharField()
+    #brain_region = serializers.CharField()
+
+
+
+class AnnotationSessionXXXXSerializer(serializers.ModelSerializer):
+    """A serializer class for the brain region model. Not currently used."""
+
+    class Meta:
+        model = AnnotationSession
+        fields = '__all__'
+
+
 
 class PolygonSerializer(serializers.Serializer):
     """This class serializes the polygons that are created in Neuroglancer.

@@ -268,6 +268,8 @@ class AnnotationSession(AtlasModel):
     annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_user_id",
                                verbose_name="Annotator", blank=False, null=False)
     annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+    annotation = models.JSONField(verbose_name="Annotation")
+
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:

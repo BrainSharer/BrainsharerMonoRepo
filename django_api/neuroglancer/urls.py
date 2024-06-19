@@ -1,6 +1,6 @@
 from django.urls import path, include
 from neuroglancer.views import NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
-    SaveAnnotation, NeuroglancerGroupAvailableData, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
+    SaveAnnotation, NeuroglancerGroupAvailableData, SearchAnnotations, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
     GetCOM, GetMarkedCellList, GetMarkedCell, GetCellTypes
 
 from rest_framework import routers
@@ -10,6 +10,10 @@ router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'neuroglancer', NeuroglancerViewSet, basename='neuroglancer') # private portal data
 router.register(r'neuroglancers', NeuroglancerPublicViewSet, basename='neuroglancers') # public data
 router.register(r'states', NeuroglancerAvailableData, basename='states')
+
+annotation_urls = [
+    path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
+]
 
 general_urls = [
     path('', include(router.urls)),
@@ -44,5 +48,5 @@ marked_cell_related_urls = [
     path('cell_types',GetCellTypes.as_view(),name = 'cell_types'),
 ]
 
-urlpatterns = general_urls + transformation_relate_urls + volume_related_urls + \
+urlpatterns = annotation_urls + general_urls + transformation_relate_urls + volume_related_urls + \
     com_related_urls + marked_cell_related_urls

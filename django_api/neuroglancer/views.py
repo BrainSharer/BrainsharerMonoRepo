@@ -15,7 +15,6 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
-
 import logging
 
 from neuroglancer.annotation_controller import create_polygons
@@ -25,7 +24,7 @@ from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
+from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -34,9 +33,57 @@ from brainsharer.pagination import LargeResultsSetPagination
 from neuroglancer.models import DEBUG
 from timeit import default_timer as timer
 
+from rest_framework import generics
+from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
+
+"""
+class SearchAnnotationsXXX(generics.ListAPIView):
+          serializer_class = AnnotationSessionSerializer
+          model = serializer_class.Meta.model
+          paginate_by = 100
+          def get_queryset(self):
+              query = self.kwargs.get('q')
+              if query:
+                  return self.model.objects.filter(
+                    Q(animal__prep_id__icontains=query)|   
+                    Q(brain_region__abbreviation__icontains=query)
+                    ).distinct()
+              return None
+"""
+
+class SearchAnnotations(views.APIView):
+    def get(self, request, search_string, format=None):
+
+        data = []
+
+        if search_string:
+            rows = AnnotationSession.objects.filter(
+            Q(animal__prep_id__icontains=search_string)|   
+            Q(brain_region__abbreviation__icontains=search_string)
+            ).distinct()
+
+            for row in rows:
+                data.append({
+                    "id": row.id,
+                    "animal": row.animal.prep_id,
+                    "user": row.annotator.username,
+                    "brain_region": row.brain_region.abbreviation,
+                    "annotation": row.annotation
+                })
+            
+        serializer = AnnotationSessionSerializer(data, many=True)
+        return Response(serializer.data)
+
+class SearchAnnotationsZZZ(generics.ListAPIView):
+    queryset = AnnotationSession.objects.all()
+    serializer_class = AnnotationSessionSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['animal__prep_id', 'brain_region__abbreviation']
 
 
 def apply_scales_to_annotation_rows(rows, prep_id):
@@ -53,8 +100,6 @@ def apply_scales_to_annotation_rows(rows, prep_id):
         row.x = row.x / scale_xy
         row.y = row.y / scale_xy
         row.z = row.z / z_scale + decimal.Decimal(0.5)
-
-
 
 class GetVolume(AnnotationBase, views.APIView):
     """A view that returns the volume annotation for a session in neuroglancer json format
