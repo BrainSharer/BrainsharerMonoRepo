@@ -35,7 +35,6 @@ from timeit import default_timer as timer
 
 from rest_framework import generics
 from django.db.models import Q
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
 logging.basicConfig()
