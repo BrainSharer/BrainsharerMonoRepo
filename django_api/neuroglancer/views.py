@@ -57,14 +57,12 @@ class SearchAnnotationsXXX(generics.ListAPIView):
 
 class SearchAnnotations(views.APIView):
     def get(self, request, search_string, format=None):
-
         data = []
-
         if search_string:
-            rows = AnnotationSession.objects.filter(
-            Q(animal__prep_id__icontains=search_string)|   
-            Q(brain_region__abbreviation__icontains=search_string)
-            ).distinct()
+            rows = AnnotationSession.objects\
+                .filter(Q(animal__prep_id__icontains=search_string)|   
+                Q(brain_region__abbreviation__icontains=search_string)
+                ).order_by('animal__prep_id', 'brain_region__abbreviation', 'annotator__username').distinct()
 
             for row in rows:
                 data.append({
