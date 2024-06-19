@@ -49,7 +49,10 @@ class NeuroglancerState(models.Model):
     
     @property
     def user(self):
-        return self.owner.first_name
+        first_name = "NA"
+        if self.owner is not None and self.owner.first_name is not None:
+            first_name = self.owner.first_name
+        return first_name
 
     @property
     def animal(self):

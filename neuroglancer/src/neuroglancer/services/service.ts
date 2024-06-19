@@ -16,17 +16,16 @@
  */
 
 /**
- * @file settings for the demo website.
+ * @file Settings for local server support in testing.
  */
 
 export const AppSettings = {
-        API_ENDPOINT: 'https://tobor.eddyod.com/brainsharer',
+        API_ENDPOINT: 'http://localhost:8000',
         IMAGESERVER_API_ENDPOINT: 'https://imageserv.dk.ucsd.edu/brainsharer',
-        GOOGLE_LOGIN: 'https://tobor.eddyod.com/brainsharer/accounts/google/login/?next=',
-        LOCAL_LOGIN: 'https://tobor.eddyod.com/brainsharer/admin/login/?next=',
-        ADMIN_PORTAL: 'https://tobor.eddyod.com/brainsharer/admin/',
-        REFRESH_TOKEN: 'https://tobor.eddyod.com/brainsharer/api-token-refresh/',
+        GOOGLE_LOGIN: 'http://localhost:8000/accounts/google/login/?next=',
+        LOCAL_LOGIN: 'http://localhost:8000/brainsharer/admin/login/?next=',
+        ADMIN_PORTAL: 'https://localhost:8000/admin/',
+        REFRESH_TOKEN: 'http://localhost:8000/api-token-refresh/',
         DISPLAY_FETCH: true,
         DISPLAY_GOOGLE: false
-    };
-    
+};
