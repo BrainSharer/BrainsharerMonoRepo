@@ -12,6 +12,8 @@ router.register(r'neuroglancers', NeuroglancerPublicViewSet, basename='neuroglan
 router.register(r'states', NeuroglancerAvailableData, basename='states')
 
 annotation_urls = [
+    path('annotations/search', SearchAnnotations.as_view(), name='search_annotations'),
+    path('annotations/search/', SearchAnnotations.as_view(), name='search_annotations'),
     path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
 ]
 

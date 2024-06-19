@@ -56,7 +56,7 @@ class SearchAnnotationsXXX(generics.ListAPIView):
 """
 
 class SearchAnnotations(views.APIView):
-    def get(self, request, search_string, format=None):
+    def get(self, request, search_string=None, format=None):
         data = []
         if search_string:
             rows = AnnotationSession.objects\
