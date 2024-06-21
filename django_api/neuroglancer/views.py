@@ -24,7 +24,7 @@ from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionSerializer, ComListSerializer, \
+from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -69,11 +69,25 @@ class SearchAnnotations(views.APIView):
                     "id": row.id,
                     "animal": row.animal.prep_id,
                     "user": row.annotator.username,
-                    "brain_region": row.brain_region.abbreviation,
-                    "annotation": row.annotation
+                    "brain_region": row.brain_region.abbreviation
                 })
             
         serializer = AnnotationSessionSerializer(data, many=True)
+        return Response(serializer.data)
+
+class GetAnnotation(views.APIView):
+    def get(self, request, session_id, format=None):
+        session = {}
+        if session_id:
+            try:
+                data = AnnotationSession.objects.get(pk=session_id)
+            except AnnotationSession.DoesNotExist:
+                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            session['id'] = data.id
+            session['annotation'] = data.annotation
+
+
+        serializer = AnnotationSessionDataSerializer(session, many=False)
         return Response(serializer.data)
 
 class SearchAnnotationsZZZ(generics.ListAPIView):

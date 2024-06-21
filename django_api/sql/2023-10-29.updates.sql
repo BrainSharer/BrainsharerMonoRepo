@@ -28,10 +28,10 @@ order by l asc;
 
 desc neuroglancer_state;
 
-select as2.id, as2.annotation
+select *
 from annotation_session as2
--- inner join marked_cells sc on as2.id = sc.FK_session_id 
-where as2.id = 8084; 
+inner join polygon_sequences ps on as2.id = ps.FK_session_id 
+where as2.FK_prep_id = 'DK78' limit 10; 
 
 select FK_session_id , polygon_index, min(point_order) as m
 from polygon_sequences ps
@@ -42,3 +42,4 @@ order by point_order desc;
 desc annotation_session; 
 show create table annotation_session;
 alter table annotation_session drop column annotation;
+

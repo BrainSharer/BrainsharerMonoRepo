@@ -1,5 +1,5 @@
 from django.urls import path, include
-from neuroglancer.views import NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
+from neuroglancer.views import GetAnnotation, NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
     SaveAnnotation, NeuroglancerGroupAvailableData, SearchAnnotations, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
     GetCOM, GetMarkedCellList, GetMarkedCell, GetCellTypes
 
@@ -15,6 +15,7 @@ annotation_urls = [
     path('annotations/search', SearchAnnotations.as_view(), name='search_annotations'),
     path('annotations/search/', SearchAnnotations.as_view(), name='search_annotations'),
     path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
+    path('annotations/<int:session_id>', GetAnnotation.as_view(), name='get_annotations'),
 ]
 
 general_urls = [

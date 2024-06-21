@@ -20,6 +20,13 @@ class AnnotationSerializer(serializers.Serializer):
     description = serializers.CharField()
 
 
+class AnnotationSessionDataSerializer(serializers.Serializer):
+    """This one feeds the data import of annotations.
+    """
+
+    id = serializers.IntegerField()
+    annotation = serializers.JSONField()
+
 class AnnotationSessionSerializer(serializers.Serializer):
     """This one feeds the data import of annotations.
     """
@@ -28,10 +35,7 @@ class AnnotationSessionSerializer(serializers.Serializer):
     animal = serializers.CharField()
     user = serializers.CharField()
     brain_region = serializers.CharField()
-    annotation = serializers.JSONField()
 
-    #animal = serializers.CharField()
-    #brain_region = serializers.CharField()
 
 
 
