@@ -25,3 +25,20 @@ select id, LENGTH (neuroglancer_state) as l
 from neuroglancer_state ns 
 where id = 529
 order by l asc;
+
+desc neuroglancer_state;
+
+select as2.id, as2.annotation
+from annotation_session as2
+-- inner join marked_cells sc on as2.id = sc.FK_session_id 
+where as2.id = 8084; 
+
+select FK_session_id , polygon_index, min(point_order) as m
+from polygon_sequences ps
+where point_order > 0
+group by FK_session_id, polygon_index
+order by point_order desc; 
+
+desc annotation_session; 
+show create table annotation_session;
+alter table annotation_session drop column annotation;
