@@ -175,7 +175,7 @@ class ScanRun(AtlasModel):
     objective = EnumField(choices=['60X','40X','20X','10X'], blank=True, null=True)
     resolution = models.FloatField(verbose_name="XY Resolution (µm)")
     zresolution = models.FloatField(verbose_name="Z Resolution (µm)")
-    number_of_slides = models.IntegerField()
+    number_of_slides = models.IntegerField(verbose_name="Slide count (0=autodetect)", default=0)
     scan_date = models.DateField(blank=True, null=True)
     file_type = EnumField(choices=['CZI','JPEG2000','NDPI','NGR'], blank=True, null=True)
     channels_per_scene = models.IntegerField(blank=False, null=False, default=3)
