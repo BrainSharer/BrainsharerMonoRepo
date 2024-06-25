@@ -24,7 +24,7 @@ from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, \
+from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, LabelSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -50,6 +50,15 @@ class GetCellTypesNew(views.APIView):
         rows = CellType.objects.filter(active=True).order_by('cell_type').all()
         data = [{"id": row.id, "cell_type": row.cell_type} for row in rows]            
         serializer = CellTypeSerializer(data, many=True)
+        return Response(serializer.data)
+
+class GetLabels(views.APIView):
+    def get(self, request, format=None):
+        cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
+        brain_regions = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
+        cell_types = [{"id": row.id, "label_type": "cell", "label": row.cell_type} for row in cell_types]            
+        brain_regions = [{"id": row.id, "label_type": "brain_region", "label": row.abbreviation} for row in brain_regions]            
+        serializer = LabelSerializer(cell_types + brain_regions, many=True)
         return Response(serializer.data)
 
 class SearchAnnotations(views.APIView):

@@ -87,6 +87,12 @@ class CellTypeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     cell_type = serializers.CharField()
 
+class LabelSerializer(serializers.Serializer):
+    """A serializer class for the brain region model."""
+    id = serializers.IntegerField()
+    label_type = serializers.CharField()
+    label = serializers.CharField()
+
 class RotationSerializer(serializers.Serializer):
     """A serializer class for the rotations/transformations used in the alignment
     tool in Neuroglancer.
