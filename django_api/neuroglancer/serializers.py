@@ -32,20 +32,7 @@ class AnnotationSessionSerializer(serializers.Serializer):
     """
 
     id = serializers.IntegerField()
-    animal = serializers.CharField()
-    user = serializers.CharField()
-    brain_region = serializers.CharField()
-
-
-
-
-class AnnotationSessionXXXXSerializer(serializers.ModelSerializer):
-    """A serializer class for the brain region model. Not currently used."""
-
-    class Meta:
-        model = AnnotationSession
-        fields = '__all__'
-
+    animal_abbreviation_username = serializers.CharField()
 
 
 class PolygonSerializer(serializers.Serializer):

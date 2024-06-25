@@ -258,6 +258,17 @@ def get_region_from_abbreviation(abbreviation):
     return brainRegion
 
     
+class SearchSessions(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    animal_abbreviation_username = models.CharField(max_length=2001, null=False, db_column="animal_abbreviation_username", verbose_name="Animal")
+    annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+
+    class Meta:
+        managed = False
+        db_table = 'v_search_sessions'
+        verbose_name = 'Search session'
+        verbose_name_plural = 'Search sessions'
+
 class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
     id = models.BigAutoField(primary_key=True)
@@ -289,6 +300,7 @@ class AnnotationSession(AtlasModel):
         if one_row is None:
             return None
         return one_row.source
+    
     
     @property
     def cell_type(self):

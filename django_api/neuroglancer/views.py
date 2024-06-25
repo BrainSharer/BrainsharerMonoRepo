@@ -23,7 +23,7 @@ from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotati
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
-    NeuroglancerState, BrainRegion, StructureCom, CellType
+    NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
 from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
@@ -40,36 +40,18 @@ from rest_framework import filters
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-"""
-class SearchAnnotationsXXX(generics.ListAPIView):
-          serializer_class = AnnotationSessionSerializer
-          model = serializer_class.Meta.model
-          paginate_by = 100
-          def get_queryset(self):
-              query = self.kwargs.get('q')
-              if query:
-                  return self.model.objects.filter(
-                    Q(animal__prep_id__icontains=query)|   
-                    Q(brain_region__abbreviation__icontains=query)
-                    ).distinct()
-              return None
-"""
 
 class SearchAnnotations(views.APIView):
     def get(self, request, search_string=None, format=None):
         data = []
         if search_string:
-            rows = AnnotationSession.objects\
-                .filter(Q(animal__prep_id__icontains=search_string)|   
-                Q(brain_region__abbreviation__icontains=search_string)
-                ).order_by('animal__prep_id', 'brain_region__abbreviation', 'annotator__username').distinct()
+            rows = SearchSessions.objects\
+                .filter(animal_abbreviation_username__icontains=search_string).order_by('animal_abbreviation_username').distinct()
 
             for row in rows:
                 data.append({
                     "id": row.id,
-                    "animal": row.animal.prep_id,
-                    "user": row.annotator.username,
-                    "brain_region": row.brain_region.abbreviation
+                    "animal_abbreviation_username": row.animal_abbreviation_username,
                 })
             
         serializer = AnnotationSessionSerializer(data, many=True)
@@ -89,12 +71,6 @@ class GetAnnotation(views.APIView):
 
         serializer = AnnotationSessionDataSerializer(session, many=False)
         return Response(serializer.data)
-
-class SearchAnnotationsZZZ(generics.ListAPIView):
-    queryset = AnnotationSession.objects.all()
-    serializer_class = AnnotationSessionSerializer
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['animal__prep_id', 'brain_region__abbreviation']
 
 
 def apply_scales_to_annotation_rows(rows, prep_id):
