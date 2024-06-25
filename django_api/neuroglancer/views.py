@@ -24,7 +24,7 @@ from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, ComListSerializer, \
+from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -33,13 +33,24 @@ from brainsharer.pagination import LargeResultsSetPagination
 from neuroglancer.models import DEBUG
 from timeit import default_timer as timer
 
-from rest_framework import generics
-from django.db.models import Q
-from rest_framework import filters
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
+
+class GetBrainRegions(views.APIView):
+    def get(self, request, format=None):
+        rows = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
+        data = [{"id": row.id, "abbreviation": row.abbreviation} for row in rows]            
+        serializer = BrainRegionSerializer(data, many=True)
+        return Response(serializer.data)
+
+class GetCellTypesNew(views.APIView):
+    def get(self, request, format=None):
+        rows = CellType.objects.filter(active=True).order_by('cell_type').all()
+        data = [{"id": row.id, "cell_type": row.cell_type} for row in rows]            
+        serializer = CellTypeSerializer(data, many=True)
+        return Response(serializer.data)
 
 class SearchAnnotations(views.APIView):
     def get(self, request, search_string=None, format=None):

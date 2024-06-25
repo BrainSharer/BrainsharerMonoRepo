@@ -77,12 +77,15 @@ class PolygonListSerializer(serializers.Serializer):
     annotator = serializers.CharField()
     brain_region = serializers.CharField()
 
-class BrainRegionSerializer(serializers.ModelSerializer):
-    """A serializer class for the brain region model. Not currently used."""
+class BrainRegionSerializer(serializers.Serializer):
+    """A serializer class for the brain region model."""
+    id = serializers.IntegerField()
+    abbreviation = serializers.CharField()
 
-    class Meta:
-        model = BrainRegion
-        fields = '__all__'
+class CellTypeSerializer(serializers.Serializer):
+    """A serializer class for the brain region model."""
+    id = serializers.IntegerField()
+    cell_type = serializers.CharField()
 
 class RotationSerializer(serializers.Serializer):
     """A serializer class for the rotations/transformations used in the alignment
