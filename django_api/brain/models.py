@@ -97,7 +97,8 @@ class Histology(AtlasModel):
     orientation = EnumField(choices=['coronal','horizontal','sagittal','oblique'], blank=True, null=True)
     oblique_notes = models.CharField(max_length=200, blank=True, null=True)
     mounting = EnumField(choices=['every section','2nd','3rd','4th','5ft','6th'], blank=True, null=True)
-    counterstain = EnumField(choices=['thionin','NtB','NtFR','DAPI','Giemsa','Syto41'], blank=True, null=True)
+    counterstain = EnumField(choices=['thionin','NtB','NtFR','DAPI','Giemsa','Syto41','NTB/thionin', 'NTB/PRV-eGFP', 'NTB/PRV', 'NTB/ChAT/ΔGRV', 'NTB/ChAT/Ai14'], 
+                             blank=True, null=True)
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
     class Meta:
@@ -170,7 +171,7 @@ class ScanRun(AtlasModel):
     
     id = models.AutoField(primary_key=True)
     prep = models.ForeignKey(Animal, models.CASCADE, db_column='FK_prep_id')
-    machine = EnumField(choices=['Axioscan I', 'Axioscan II'], blank=True, null=True)
+    machine = EnumField(choices=['Axioscan I', 'Axioscan II', 'Nanozoomer'], blank=True, null=True)
     objective = EnumField(choices=['60X','40X','20X','10X'], blank=True, null=True)
     resolution = models.FloatField(verbose_name="XY Resolution (µm)")
     zresolution = models.FloatField(verbose_name="Z Resolution (µm)")
@@ -178,10 +179,6 @@ class ScanRun(AtlasModel):
     scan_date = models.DateField(blank=True, null=True)
     file_type = EnumField(choices=['CZI','JPEG2000','NDPI','NGR'], blank=True, null=True)
     channels_per_scene = models.IntegerField(blank=False, null=False, default=3)
-    channel1_name = models.CharField(max_length=255, blank=False, null=False, default='C1', verbose_name='Channel 1 name')
-    channel2_name = models.CharField(max_length=255, blank=True, null=True, default='C2', verbose_name='Channel 2 name')
-    channel3_name = models.CharField(max_length=255, blank=True, null=True, default='C3', verbose_name='Channel 3 name')
-    channel4_name = models.CharField(max_length=255, blank=True, null=True, default='C4', verbose_name='Channel 4 name')
     converted_status = EnumField(choices=['not started','converted','converting','error'], blank=True, null=True)
     ch_1_filter_set = EnumField(choices=['68','47','38','46','63','64','50'], blank=True, null=True)
     ch_2_filter_set = EnumField(choices=['68','47','38','46','63','64','50'], blank=True, null=True)
@@ -196,7 +193,6 @@ class ScanRun(AtlasModel):
     flip = EnumField(choices=['none','flip','flop'], blank=False, null=False, default='none')
     MASK_CHOICES = ((0, 'No mask'), (1, 'Full mask'), (2, 'Bottom mask'))
     mask = models.IntegerField(choices=MASK_CHOICES, default=1, verbose_name='Mask image')
-
     comments = models.TextField(max_length=2001, blank=True, null=True)
 
     def __str__(self):

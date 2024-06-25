@@ -1,5 +1,6 @@
 import os
 import datetime
+
 from brainsharer.local_settings import SECRET_KEY, DATABASES, GOOGLE_OAUTH2_CLIENT_SECRET, \
     GITHUB_OAUTH2_CLIENT_SECRET
 
@@ -121,7 +122,7 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-BASE_BACKEND_URL = 'http://localhost:8000'
+BASE_BACKEND_URL = 'https://tobor.eddyod.com/brainsharer'
 BASE_FRONTEND_URL = 'http://localhost:4200'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
@@ -136,10 +137,10 @@ INTERNAL_IPS = ['127.0.0.1']
 LANGUAGE_CODE = 'en-us'
 LOGIN_REDIRECT_URL = BASE_FRONTEND_URL
 LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
-LOGIN_URL = 'http://localhost:8000/local/login'
+LOGIN_URL = 'https://tobor.eddyod.com/brainsharer/local/login'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
 MEDIA_URL = '/share/'
-NG_URL = "http://localhost:8080"
+NG_URL = "https://tobor.eddyod.com/ng"
 #SESSION_COOKIE_AGE = 60 * ACCESS_TOKEN_LIFETIME_MINUTES
 #SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SITE_ID = 2

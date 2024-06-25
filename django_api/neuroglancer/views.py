@@ -15,7 +15,6 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
-
 import logging
 
 from neuroglancer.annotation_controller import create_polygons
@@ -24,8 +23,8 @@ from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotati
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
-    NeuroglancerState, BrainRegion, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, ComListSerializer, \
+    NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
+from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -37,6 +36,52 @@ from timeit import default_timer as timer
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
+
+
+class GetBrainRegions(views.APIView):
+    def get(self, request, format=None):
+        rows = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
+        data = [{"id": row.id, "abbreviation": row.abbreviation} for row in rows]            
+        serializer = BrainRegionSerializer(data, many=True)
+        return Response(serializer.data)
+
+class GetCellTypesNew(views.APIView):
+    def get(self, request, format=None):
+        rows = CellType.objects.filter(active=True).order_by('cell_type').all()
+        data = [{"id": row.id, "cell_type": row.cell_type} for row in rows]            
+        serializer = CellTypeSerializer(data, many=True)
+        return Response(serializer.data)
+
+class SearchAnnotations(views.APIView):
+    def get(self, request, search_string=None, format=None):
+        data = []
+        if search_string:
+            rows = SearchSessions.objects\
+                .filter(animal_abbreviation_username__icontains=search_string).order_by('animal_abbreviation_username').distinct()
+
+            for row in rows:
+                data.append({
+                    "id": row.id,
+                    "animal_abbreviation_username": row.animal_abbreviation_username,
+                })
+            
+        serializer = AnnotationSessionSerializer(data, many=True)
+        return Response(serializer.data)
+
+class GetAnnotation(views.APIView):
+    def get(self, request, session_id, format=None):
+        session = {}
+        if session_id:
+            try:
+                data = AnnotationSession.objects.get(pk=session_id)
+            except AnnotationSession.DoesNotExist:
+                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            session['id'] = data.id
+            session['annotation'] = data.annotation
+
+
+        serializer = AnnotationSessionDataSerializer(session, many=False)
+        return Response(serializer.data)
 
 
 def apply_scales_to_annotation_rows(rows, prep_id):
@@ -53,8 +98,6 @@ def apply_scales_to_annotation_rows(rows, prep_id):
         row.x = row.x / scale_xy
         row.y = row.y / scale_xy
         row.z = row.z / z_scale + decimal.Decimal(0.5)
-
-
 
 class GetVolume(AnnotationBase, views.APIView):
     """A view that returns the volume annotation for a session in neuroglancer json format
@@ -172,9 +215,7 @@ class GetPolygonList(views.APIView):
         data = []
         rows = AnnotationSession.objects.filter(
             active=True).filter(annotation_type='POLYGON_SEQUENCE')\
-                .order_by('animal', 
-                'annotator__username')\
-                .all()
+                .order_by('animal', 'annotator__username', 'brain_region__abbreviation').all()
         for row in rows:
             data.append({
                 'session_id': row.id,
@@ -340,7 +381,7 @@ class ContoursToVolume(views.APIView):
 class SaveAnnotation(views.APIView):
     """A view that saves all the annotation in one annotation layer of a specific row in the neuroglancer url table
     There are two methods to save the data, one is in the background and the other is the default way without
-    using the background process. We use the background task in production as the method can take a long time
+    using the background process. We use the regular task in production as the method can take a long time
     to complete.
     """
     
@@ -366,7 +407,7 @@ class GetCellTypes(views.APIView):
 
     def get(self, request, format=None):
         data = {}
-        cell_types = CellType.objects.filter(active=True).all()
+        cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
         data['cell_type'] = [i.cell_type for i in cell_types]
         return JsonResponse(data)
 

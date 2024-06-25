@@ -1,0 +1,36 @@
+Files that UCSD/Brainsharer have modified
+
+./neuroglancer/ui/clone_polygon.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/annotations.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/polygon_options.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/com_session.ts:3:Modified by Brainsharer UCSD/Princeton
+./neuroglancer/ui/title.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/default_input_event_bindings.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/volume_session.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/cell_session.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/ui/url_hash_binding.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/help/input_event_bindings.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/fetch_transformation.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/histogram.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/fetch_annotation.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/fetch_mouselight_neurons.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/save_annotation.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/fetch_tracing_annotation.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/widget/invlerp.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/util/matrix.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/annotation_layer_state.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/volume.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/index.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/polygon.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/com.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/cell.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/annotation/renderlayer.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/annotation_state_loader.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/service.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/user_loader.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/user.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/demo.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/state_loader.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/production.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/state.ts:15: * Modified for Brainsharer UCSD/Princeton
+./neuroglancer/services/local.ts:15: * Modified for Brainsharer UCSD/Princeton

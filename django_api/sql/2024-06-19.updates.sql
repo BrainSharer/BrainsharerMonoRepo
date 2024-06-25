@@ -1,0 +1,96 @@
+alter table annotation_session add column annotation longtext after FK_brain_region_id;
+ALTER TABLE annotation_session ADD CONSTRAINT CHECK(JSON_VALID(annotation));
+set @data = '
+{
+   "source":[
+      0.008130738511681557,
+      0.003470097901299596,
+      0.004050000105053186
+   ],
+   "centroid":[
+      0.008271966129541397,
+      0.0047262744046747684,
+      0.004050000105053186
+   ],
+   "childrenVisible":true,
+   "type":"polygon",
+   "props":[
+      "#ffff00",
+      1,
+      1,
+      5,
+      3,
+      1
+   ],
+   "childJsons":[
+      {
+         "pointA":[
+            0.008130738511681557,
+            0.003470097901299596,
+            0.004050000105053186
+         ],
+         "pointB":[
+            0.00735027389600873,
+            0.00535436300560832,
+            0.004050000105053186
+         ],
+         "type":"line",
+         "parentAnnotationId":"7631fa037907f9237f94367e6b7754873682cb5d",
+         "props":[
+            "#ffff00",
+            1,
+            1,
+            5,
+            3,
+            1
+         ]
+      },
+      {
+         "pointA":[
+            0.00735027389600873,
+            0.00535436300560832,
+            0.004050000105053186
+         ],
+         "pointB":[
+            0.009334884583950043,
+            0.00535436300560832,
+            0.004050000105053186
+         ],
+         "type":"line",
+         "parentAnnotationId":"7631fa037907f9237f94367e6b7754873682cb5d",
+         "props":[
+            "#ffff00",
+            1,
+            1,
+            5,
+            3,
+            1
+         ]
+      },
+      {
+         "pointA":[
+            0.009334884583950043,
+            0.00535436300560832,
+            0.004050000105053186
+         ],
+         "pointB":[
+            0.008130738511681557,
+            0.003470097901299596,
+            0.004050000105053186
+         ],
+         "type":"line",
+         "parentAnnotationId":"7631fa037907f9237f94367e6b7754873682cb5d",
+         "props":[
+            "#ffff00",
+            1,
+            1,
+            5,
+            3,
+            1
+         ]
+      }
+   ]
+}';
+
+update annotation_session set annotation = @data;
+

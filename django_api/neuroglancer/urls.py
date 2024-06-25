@@ -1,6 +1,6 @@
 from django.urls import path, include
-from neuroglancer.views import NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
-    SaveAnnotation, NeuroglancerGroupAvailableData, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
+from neuroglancer.views import GetAnnotation, GetBrainRegions, GetCellTypesNew, NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
+    SaveAnnotation, NeuroglancerGroupAvailableData, SearchAnnotations, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
     GetCOM, GetMarkedCellList, GetMarkedCell, GetCellTypes
 
 from rest_framework import routers
@@ -11,12 +11,20 @@ router.register(r'neuroglancer', NeuroglancerViewSet, basename='neuroglancer') #
 router.register(r'neuroglancers', NeuroglancerPublicViewSet, basename='neuroglancers') # public data
 router.register(r'states', NeuroglancerAvailableData, basename='states')
 
+annotation_urls = [
+    path('annotations/search', SearchAnnotations.as_view(), name='search_annotations'),
+    path('annotations/search/', SearchAnnotations.as_view(), name='search_annotations'),
+    path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
+    path('annotations/<int:session_id>', GetAnnotation.as_view(), name='get_annotations'),
+    path('annotations/brain_regions', GetBrainRegions.as_view(), name='brain_regions'),
+    path('annotations/cell_types', GetCellTypesNew.as_view(), name='cell_types'),
+]
+
 general_urls = [
     path('', include(router.urls)),
     path('landmark_list',LandmarkList.as_view()),
     path('save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>',SaveAnnotation.as_view(),name = 'save_annotations'),
     path('groups', NeuroglancerGroupAvailableData.as_view()),
-    path('landmark_list',LandmarkList.as_view()),
     path('createstate', create_state),
 ]
 
@@ -44,5 +52,5 @@ marked_cell_related_urls = [
     path('cell_types',GetCellTypes.as_view(),name = 'cell_types'),
 ]
 
-urlpatterns = general_urls + transformation_relate_urls + volume_related_urls + \
+urlpatterns = annotation_urls + general_urls + transformation_relate_urls + volume_related_urls + \
     com_related_urls + marked_cell_related_urls

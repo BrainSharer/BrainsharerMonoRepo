@@ -31,7 +31,7 @@ class NeuroglancerState(models.Model):
                               blank=False, db_column="FK_user_id",
                                verbose_name="User")
     #####TODO lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_user_id", verbose_name='Lab')
-    public = models.BooleanField(default = True, db_column='active')
+    public = models.BooleanField(default = False, db_column='active')
     readonly = models.BooleanField(default = False, verbose_name='Read only')
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)
@@ -46,6 +46,13 @@ class NeuroglancerState(models.Model):
     @property
     def escape_url(self):
         return escape(self.neuroglancer_state)
+    
+    @property
+    def user(self):
+        first_name = "NA"
+        if self.owner is not None and self.owner.first_name is not None:
+            first_name = self.owner.first_name
+        return first_name
 
     @property
     def animal(self):
@@ -251,6 +258,17 @@ def get_region_from_abbreviation(abbreviation):
     return brainRegion
 
     
+class SearchSessions(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    animal_abbreviation_username = models.CharField(max_length=2001, null=False, db_column="animal_abbreviation_username", verbose_name="Animal")
+    annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+
+    class Meta:
+        managed = False
+        db_table = 'v_search_sessions'
+        verbose_name = 'Search session'
+        verbose_name_plural = 'Search sessions'
+
 class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
     id = models.BigAutoField(primary_key=True)
@@ -261,6 +279,8 @@ class AnnotationSession(AtlasModel):
     annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_user_id",
                                verbose_name="Annotator", blank=False, null=False)
     annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+    annotation = models.JSONField(verbose_name="Annotation")
+
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -280,6 +300,7 @@ class AnnotationSession(AtlasModel):
         if one_row is None:
             return None
         return one_row.source
+    
     
     @property
     def cell_type(self):

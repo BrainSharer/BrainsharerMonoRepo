@@ -2,7 +2,7 @@
 
 if (($# < 1))
 then
-    echo "Enter either webdev, local ... exiting"
+    echo "Enter either webdev, local, tobor ... exiting"
     exit 1
 fi
         

@@ -353,6 +353,7 @@ export class StateLoader extends RefCounted {
     private newButton: HTMLElement;
     private user: User;
     private stateID: number;
+    private default_comments: string = 'Type URL name here';
 
     constructor(public viewer: Viewer) {
         super();
@@ -397,7 +398,7 @@ export class StateLoader extends RefCounted {
                 this.element.appendChild(this.newButton);
 
                 this.stateID = -1;
-                this.input.value = 'Type URL name here';
+                this.input.value = this.default_comments;
                 this.saveButton.style.display = 'none';
                 this.resetButton.style.display = 'none;'
 
@@ -446,9 +447,13 @@ export class StateLoader extends RefCounted {
      * @returns the state object
      */
     private saveState() {
-        const comments = this.input.value;
-        if (comments.length === 0) {
-            StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);
+        let comments = this.input.value;
+        if ((comments.length === 0) || (comments == this.default_comments)) {
+            StatusMessage.showTemporaryMessage(`There was an error: the comments field cannot be empty. Give this view a name in the comments field.`);
+            return;
+        }
+        if (this.stateID == -1) {
+            StatusMessage.showTemporaryMessage(`There was an error: There was no saved state for this view.`);
             return;
         }
         const state = {
@@ -516,9 +521,15 @@ export class StateLoader extends RefCounted {
      * @returns Nothing if there is no comments.
      */
     public segmentVolume(volumeId: string, successCallback: (_ :Segmentation) => void): void {
-        const comments = this.input.value;
-        if (comments.length === 0) {
+        let comments = this.input.value;
+        console.log('comments len=' + comments.length);
+        console.log('comments len=' + comments);
+        if ((comments.length === 0) || (comments == this.default_comments)) {
             StatusMessage.showTemporaryMessage(`There was an error: the comment cannot be empty.`);
+            return;
+        }
+        if (this.stateID === -1) {
+            StatusMessage.showTemporaryMessage(`There was an error: The state is empty. Enter a name in the comments field and click the New button first.`);
             return;
         }
         const state = {

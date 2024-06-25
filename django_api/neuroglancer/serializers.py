@@ -4,7 +4,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 import logging
-from neuroglancer.models import BrainRegion, NeuroglancerState, NeuroglancerView
+from neuroglancer.models import AnnotationSession, BrainRegion, NeuroglancerState, NeuroglancerView
 from authentication.models import User
 
 logging.basicConfig()
@@ -18,6 +18,22 @@ class AnnotationSerializer(serializers.Serializer):
     point = serializers.ListField()
     type = serializers.CharField()
     description = serializers.CharField()
+
+
+class AnnotationSessionDataSerializer(serializers.Serializer):
+    """This one feeds the data import of annotations.
+    """
+
+    id = serializers.IntegerField()
+    annotation = serializers.JSONField()
+
+class AnnotationSessionSerializer(serializers.Serializer):
+    """This one feeds the data import of annotations.
+    """
+
+    id = serializers.IntegerField()
+    animal_abbreviation_username = serializers.CharField()
+
 
 class PolygonSerializer(serializers.Serializer):
     """This class serializes the polygons that are created in Neuroglancer.
@@ -61,12 +77,15 @@ class PolygonListSerializer(serializers.Serializer):
     annotator = serializers.CharField()
     brain_region = serializers.CharField()
 
-class BrainRegionSerializer(serializers.ModelSerializer):
-    """A serializer class for the brain region model. Not currently used."""
+class BrainRegionSerializer(serializers.Serializer):
+    """A serializer class for the brain region model."""
+    id = serializers.IntegerField()
+    abbreviation = serializers.CharField()
 
-    class Meta:
-        model = BrainRegion
-        fields = '__all__'
+class CellTypeSerializer(serializers.Serializer):
+    """A serializer class for the brain region model."""
+    id = serializers.IntegerField()
+    cell_type = serializers.CharField()
 
 class RotationSerializer(serializers.Serializer):
     """A serializer class for the rotations/transformations used in the alignment
@@ -83,6 +102,7 @@ class NeuroglancerNoStateSerializer(serializers.ModelSerializer):
     """
     animal = serializers.CharField(required=False)
     lab = serializers.CharField(required=False)
+    user = serializers.CharField(required=False)
 
     class Meta:
         model = NeuroglancerState
@@ -101,8 +121,6 @@ class NeuroglancerStateSerializer(serializers.ModelSerializer):
         model = NeuroglancerState
         ordering = ['-created']
         fields = '__all__'
-
-
 
     def create(self, validated_data):
         """This method gets called when a user clicks New in Neuroglancer

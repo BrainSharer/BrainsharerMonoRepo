@@ -78,7 +78,7 @@ class GithubLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
 
 class GoogleLoginApi(PublicApiMixin, ApiErrorsMixin, APIView):
     """This class is used when a user logins with the Google link
-    the url is: /google
+    the url is: /google/
     """
     
     class InputSerializer(serializers.Serializer):

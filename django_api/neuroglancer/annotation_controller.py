@@ -113,7 +113,7 @@ def sort_polygon_points_and_get_coordinates(polygon_points):
     polygon_points = polygon_points[sort_id]
     return [[i.x, i.y, i.z] for i in polygon_points]
 
-def create_parent_annotation_json(npoints, id, source, _type, child_ids=None,parent_id = None,description = None):
+def create_parent_annotation_json(npoints, id, source, _type, child_ids=None,parent_id = None, description = None):
     """create the json entry for a parent annotation.  The parent annotation need to have a 
     specific id and the list of id for all the children
 
