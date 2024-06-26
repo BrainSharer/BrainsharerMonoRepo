@@ -61,6 +61,23 @@ class GetLabels(views.APIView):
         serializer = LabelSerializer(cell_types + brain_regions, many=True)
         return Response(serializer.data)
 
+class SearchLabels(views.APIView):
+    def get(self, request, search_string=None, format=None):
+        data = []
+        if search_string:
+            cell_types = CellType.objects\
+                .filter(cell_type__icontains=search_string).order_by('cell_type').distinct()
+            brain_regions = BrainRegion.objects\
+                .filter(abbreviation__icontains=search_string).order_by('abbreviation').distinct()
+
+            for row in cell_types:
+                data.append({"id": row.id, "label_type": "cell", "label": row.cell_type})
+            for row in brain_regions:
+                data.append({"id": row.id, "label_type": "brain_region", "label": row.abbreviation})
+            
+        serializer = LabelSerializer(data, many=True)
+        return Response(serializer.data)
+
 class SearchAnnotations(views.APIView):
     def get(self, request, search_string=None, format=None):
         data = []

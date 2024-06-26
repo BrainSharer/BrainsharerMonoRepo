@@ -1,6 +1,6 @@
 from django.urls import path, include
 from neuroglancer.views import GetAnnotation, GetBrainRegions, GetCellTypesNew, GetLabels, NeuroglancerViewSet, NeuroglancerPublicViewSet, NeuroglancerAvailableData, LandmarkList, \
-    SaveAnnotation, NeuroglancerGroupAvailableData, SearchAnnotations, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
+    SaveAnnotation, NeuroglancerGroupAvailableData, SearchAnnotations, SearchLabels, create_state, Rotation, GetComList, GetVolume, GetPolygonList, ContoursToVolume, \
     GetCOM, GetMarkedCellList, GetMarkedCell, GetCellTypes
 
 from rest_framework import routers
@@ -18,7 +18,8 @@ annotation_urls = [
     path('annotations/<int:session_id>', GetAnnotation.as_view(), name='get_annotations'),
     path('annotations/brain_regions', GetBrainRegions.as_view(), name='brain_regions'),
     path('annotations/cell_types', GetCellTypesNew.as_view(), name='cell_types'),
-    path('annotations/labels', GetLabels.as_view(), name='cell_types'),
+    path('annotations/labels', GetLabels.as_view(), name='search_labels'),
+    path('annotations/labels/<str:search_string>', SearchLabels.as_view(), name='search_labels'),
 ]
 
 general_urls = [
