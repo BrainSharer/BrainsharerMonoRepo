@@ -269,7 +269,43 @@ class SearchSessions(models.Model):
         verbose_name = 'Search session'
         verbose_name_plural = 'Search sessions'
 
+class AnnotationLabel(AtlasModel):
+    id = models.BigAutoField(primary_key=True)
+    label_type = models.CharField(max_length=50, blank=False, null=False)
+    label = models.CharField(max_length=50, blank=False, null=False)
+    description = models.TextField(max_length=2001, blank=False, null=False)
+
+    class Meta:
+        managed = False
+        db_table = 'annotation_label'
+        verbose_name = 'Annotation label'
+        verbose_name_plural = 'Annotation labels'
+
+    def __str__(self):
+        return f'{self.label_type} {self.label}'
+
 class AnnotationSession(AtlasModel):
+    """This model describes a user session in Neuroglancer."""
+    id = models.BigAutoField(primary_key=True)
+    animal = models.ForeignKey(Animal, models.CASCADE, null=True, db_column="FK_prep_id", verbose_name="Animal")
+    neuroglancer_model = models.ForeignKey(NeuroglancerState, models.CASCADE, null=True, db_column="FK_state_id", verbose_name="Neuroglancer state")
+    label = models.ForeignKey(AnnotationLabel, models.CASCADE, null=True, db_column="FK_label_id",
+                               verbose_name="Brain region")
+    annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_user_id",
+                               verbose_name="Annotator", blank=False, null=False)
+    annotation = models.JSONField(verbose_name="Annotation")
+
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = 'annotation_session_new'
+        verbose_name = 'Annotation session'
+        verbose_name_plural = 'Annotation sessions'
+
+
+
+class AnnotationSessionOld(AtlasModel):
     """This model describes a user session in Neuroglancer."""
     id = models.BigAutoField(primary_key=True)
     animal = models.ForeignKey(Animal, models.CASCADE, null=True, db_column="FK_prep_id", verbose_name="Animal")

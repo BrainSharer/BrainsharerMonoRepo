@@ -19,6 +19,10 @@ class AnnotationSerializer(serializers.Serializer):
     type = serializers.CharField()
     description = serializers.CharField()
 
+class AnnotationModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=AnnotationSession
+        fields='__all__'
 
 class AnnotationSessionDataSerializer(serializers.Serializer):
     """This one feeds the data import of annotations.

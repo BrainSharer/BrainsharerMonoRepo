@@ -19,7 +19,7 @@ from plotly.offline import plot
 import plotly.express as px
 from brain.models import ScanRun
 from brain.admin import AtlasAdminModel, ExportCsvMixin
-from neuroglancer.models import AnnotationSession, BrainRegion, CellType, \
+from neuroglancer.models import AnnotationSession, AnnotationSessionOld, BrainRegion, CellType, \
     MarkedCellWorkflow, MarkedCell, NeuroglancerState, NeuroglancerView, Points, PolygonSequence, StructureCom
 from neuroglancer.dash_view import dash_scatter_view
 from neuroglancer.url_filter import UrlFilter
@@ -375,7 +375,7 @@ def delete_session(modeladmin, request, queryset):
     messages.info(request, f'sessions has been deleted')
 
 
-@admin.register(AnnotationSession)
+@admin.register(AnnotationSessionOld)
 class AnnotationSessionAdmin(AtlasAdminModel):
     """Administer the annotation session data.
     """
@@ -440,7 +440,7 @@ class AnnotationSessionAdmin(AtlasAdminModel):
         """Provides the HTML link to the table data
         """
         
-        session = AnnotationSession.objects.get(pk=id)
+        session = AnnotationSessionOld.objects.get(pk=id)
         annotation_type = session.annotation_type
         if annotation_type == 'POLYGON_SEQUENCE':
             points = PolygonSequence.objects.filter(

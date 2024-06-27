@@ -17,6 +17,7 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
 import logging
 
+from neuroglancer.annotation_session_manager import get_session
 from neuroglancer.annotation_controller import create_polygons
 from neuroglancer.annotation_base import AnnotationBase
 from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotation
@@ -24,7 +25,7 @@ from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
-from neuroglancer.serializers import AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, LabelSerializer, \
+from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, LabelSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
     PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.tasks import upsert_annotations
@@ -108,6 +109,45 @@ class GetAnnotation(views.APIView):
 
         serializer = AnnotationSessionDataSerializer(session, many=False)
         return Response(serializer.data)
+
+
+@api_view(['POST', 'PATCH'])
+def annotation_session_api(request):
+
+    if request.method == 'POST':        
+        if 'id' in request.data:
+            try:
+                obj = AnnotationSession.objects.get(pk=request.data.get('id'))
+                serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
+            except AnnotationSession.DoesNotExist:
+                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            
+        else:
+            ## check if there is an already existing annotation session.
+            obj = get_session(request.data)
+            if obj is not None:
+                serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
+            else:
+                # No existing session found, so we'll insert a new one
+                serializer = AnnotationModelSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    # PATCH method to partially update a person
+    elif request.method == 'PATCH':
+        obj = AnnotationSession.objects.get(pk=request.data.get('id'))
+        serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'data': serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    else:    
+        return Response({'msg': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 def apply_scales_to_annotation_rows(rows, prep_id):
