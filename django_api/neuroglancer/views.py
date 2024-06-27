@@ -23,7 +23,7 @@ from neuroglancer.annotation_base import AnnotationBase
 from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotation
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.models import UNMARKED, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
+from neuroglancer.models import UNMARKED, AnnotationLabel, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
     NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
 from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, LabelSerializer, \
     MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
@@ -114,7 +114,16 @@ class GetAnnotation(views.APIView):
 @api_view(['POST', 'PATCH'])
 def annotation_session_api(request):
 
-    if request.method == 'POST':        
+    if request.method == 'POST':
+        if 'label' in request.data and isinstance(request.data.get('label'), str):
+            label = request.data.get('label')
+            try:
+                label_obj = AnnotationLabel.objects.get(label=label)
+            except AnnotationLabel.DoesNotExist:
+                return Response({"Error": f"Label: {label} does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+            request.data['label'] = label_obj.id
+
         if 'id' in request.data:
             try:
                 obj = AnnotationSession.objects.get(pk=request.data.get('id'))
@@ -124,6 +133,7 @@ def annotation_session_api(request):
             
         else:
             ## check if there is an already existing annotation session.
+            ## We need to look up the label ID
             obj = get_session(request.data)
             if obj is not None:
                 serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
