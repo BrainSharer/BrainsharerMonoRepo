@@ -16,7 +16,6 @@ annotation_urls = [
     path('annotations/search/', SearchAnnotations.as_view(), name='search_annotations'),
     path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
     path('annotations/<int:session_id>', GetAnnotation.as_view(), name='get_annotations'),
-    path('annotations/brain_regions', GetBrainRegions.as_view(), name='brain_regions'),
     path('annotations/cell_types', GetCellTypesNew.as_view(), name='cell_types'),
     path('annotations/labels', GetLabels.as_view(), name='search_labels'),
     path('annotations/labels/', SearchLabels.as_view(), name='search_labels'),

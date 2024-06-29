@@ -124,14 +124,14 @@ def annotation_session_api(request):
 
             request.data['label'] = label_obj.id
 
-        if 'id' in request.data:
+        # if there is an id, do a partial update
+        if 'id' in request.data and isinstance(request.data.get('id'), int):
             try:
                 obj = AnnotationSession.objects.get(pk=request.data.get('id'))
                 serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
             except AnnotationSession.DoesNotExist:
-                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
-            
-        else:
+                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)    
+        else: # no id, so fix request data with the label id and check for session
             ## check if there is an already existing annotation session.
             ## We need to look up the label ID
             obj = get_session(request.data)
@@ -144,6 +144,7 @@ def annotation_session_api(request):
         if serializer.is_valid():
             serializer.save()
             return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
