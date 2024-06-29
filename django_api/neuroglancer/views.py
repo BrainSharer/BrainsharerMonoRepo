@@ -125,7 +125,7 @@ def annotation_session_api(request):
             request.data['label'] = label_obj.id
 
         # if there is an id, do a partial update
-        if 'id' in request.data and isinstance(request.data.get('id'), int):
+        if 'id' in request.data and isinstance(request.data.get('id'), str) and request.data.get('id').isdigit():
             try:
                 obj = AnnotationSession.objects.get(pk=request.data.get('id'))
                 serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
