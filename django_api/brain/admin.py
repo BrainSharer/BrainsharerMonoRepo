@@ -259,7 +259,7 @@ class TifInline(admin.TabularInline):
         tif_file = obj.file_name
         png = tif_file.replace('tif', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/scene/{png}"
-        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
+        onerror = 'https://brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
             '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt="" /></div>'.format(thumbnail, onerror))
 
@@ -277,7 +277,7 @@ class TifInline(admin.TabularInline):
         png = tif_file.replace('tif', 'png')
         filepath = f"{animal}/section/{png}"
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{filepath}"
-        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
+        onerror = 'https://brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
             '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt=""/></div>'.format(thumbnail, onerror))
 
