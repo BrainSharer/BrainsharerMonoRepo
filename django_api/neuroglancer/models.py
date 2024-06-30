@@ -261,7 +261,7 @@ def get_region_from_abbreviation(abbreviation):
 class SearchSessions(models.Model):
     id = models.BigAutoField(primary_key=True)
     animal_abbreviation_username = models.CharField(max_length=2001, null=False, db_column="animal_abbreviation_username", verbose_name="Animal")
-    annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+    label_type = models.CharField(max_length=100, blank=False, null=False)
 
     class Meta:
         managed = False
