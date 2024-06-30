@@ -4,10 +4,9 @@ import decimal
 import json
 import numpy as np
 import os
-from neuroglancer.models import BrainRegion, StructureCom
+from neuroglancer.models import BrainRegion
 from brain.models import Animal, ScanRun
 import logging
-from neuroglancer.annotation_base import AnnotationBase
 from django.conf import settings
 from brain_atlas_toolkit import graph_tools
 logging.basicConfig()
@@ -51,34 +50,6 @@ def align_atlas(animal, annotator_id, source, reverse=False, reference_scales=No
         R = np.eye(3)
         t = np.zeros((3,1))
     return R, t
-
-def get_annotation_dict(prep_id, annotator_id,source):
-    """This method replaces get_centers_dict and get_layer_data_row.
-
-    :param prep_id: string name of animal
-    :param label: formerly layer, the string name of the layer
-    """
-
-    row_dict = {}
-    try:
-        animal = Animal.objects.get(pk=prep_id)
-    except Animal.DoesNotExist:
-        logger.error(f'Error, {prep_id} does not exist in DB. Method: get_annotation_dict is returning an empty dictionary.')
-        return row_dict
-    base = AnnotationBase()
-    base.set_animal_from_id(prep_id)
-    base.set_annotator_from_id(annotator_id)
-    rows = StructureCom.objects.filter(annotation_session__animal__prep_id=prep_id)\
-                .filter(source=source).filter(annotation_session__annotator=base.annotator) 
-    brain_region_dict = {}
-    brain_regions = BrainRegion.objects.filter(active=True).all()
-    for brain_region in brain_regions:
-        brain_region_dict[brain_region.id] = brain_region.abbreviation
-    for row in rows:
-        brain_region_id = row.annotation_session.brain_region.id
-        abbreviation = brain_region_dict[brain_region_id]
-        row_dict[abbreviation] = [row.x, row.y, row.z]
-    return row_dict
 
 
 def get_scales(prep_id):

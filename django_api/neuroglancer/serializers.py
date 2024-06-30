@@ -4,7 +4,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 import logging
-from neuroglancer.models import AnnotationSession, BrainRegion, NeuroglancerState, NeuroglancerView
+from neuroglancer.models import AnnotationSession, NeuroglancerState
 from authentication.models import User
 
 logging.basicConfig()
@@ -177,25 +177,4 @@ class NeuroglancerStateSerializer(serializers.ModelSerializer):
             logger.error('Could not save Neuroglancer model')
         # obj.neuroglancer_state = None
         return obj
-
-
-class NeuroglancerGroupViewSerializer(serializers.ModelSerializer):
-    '''
-    This is to form the groups with just distinct group_name
-    and layer_type
-    '''
-
-    class Meta:
-        model = NeuroglancerView
-        fields = ['group_name', 'layer_type']
-        ordering = ['group_name', 'layer_type']
-
-
-class NeuroglancerViewSerializer(serializers.ModelSerializer):
-    lab_name = serializers.CharField(source='lab.lab_name')
-
-    class Meta:
-        model = NeuroglancerView
-        fields = '__all__'
-        ordering = ['group_name', 'layer_type', 'layer_name']
 

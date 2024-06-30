@@ -8,7 +8,6 @@ from subprocess import check_output
 import os
 from time import sleep
 import decimal
-from django.db.models import Count
 from rest_framework import viewsets, views, permissions, status
 from django.http import JsonResponse
 from django.conf import settings
@@ -17,18 +16,13 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
 import logging
 
-from neuroglancer.annotation_session_manager import get_session
-from neuroglancer.annotation_controller import create_polygons
-from neuroglancer.annotation_base import AnnotationBase
-from neuroglancer.annotation_layer import AnnotationLayer, create_point_annotation
-from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.models import UNMARKED, AnnotationLabel, AnnotationSession, MarkedCell, NeuroglancerView, PolygonSequence, \
-    NeuroglancerState, BrainRegion, SearchSessions, StructureCom, CellType
-from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, BrainRegionSerializer, CellTypeSerializer, ComListSerializer, LabelSerializer, \
-    MarkedCellListSerializer, NeuroglancerViewSerializer, NeuroglancerGroupViewSerializer, PolygonListSerializer, \
-    PolygonSerializer, RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
-from neuroglancer.tasks import upsert_annotations
+from neuroglancer.annotation_session_manager import get_session
+from neuroglancer.atlas import align_atlas, get_scales
+from neuroglancer.models import AnnotationLabel, AnnotationSession, \
+    NeuroglancerState, BrainRegion, SearchSessions, CellType
+from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, LabelSerializer, \
+    RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.contours.create_contours import make_volumes
 from brainsharer.pagination import LargeResultsSetPagination
 from neuroglancer.models import DEBUG
@@ -38,20 +32,6 @@ from timeit import default_timer as timer
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
-
-class GetBrainRegions(views.APIView):
-    def get(self, request, format=None):
-        rows = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
-        data = [{"id": row.id, "abbreviation": row.abbreviation} for row in rows]            
-        serializer = BrainRegionSerializer(data, many=True)
-        return Response(serializer.data)
-
-class GetCellTypesNew(views.APIView):
-    def get(self, request, format=None):
-        rows = CellType.objects.filter(active=True).order_by('cell_type').all()
-        data = [{"id": row.id, "cell_type": row.cell_type} for row in rows]            
-        serializer = CellTypeSerializer(data, many=True)
-        return Response(serializer.data)
 
 class GetLabels(views.APIView):
     def get(self, request, format=None):
@@ -176,174 +156,6 @@ def apply_scales_to_annotation_rows(rows, prep_id):
         row.y = row.y / scale_xy
         row.z = row.z / z_scale + decimal.Decimal(0.5)
 
-class GetVolume(AnnotationBase, views.APIView):
-    """A view that returns the volume annotation for a session in neuroglancer json format
-    """
-
-    def get(self, request, session_id, format=None):
-        try:
-            session = AnnotationSession.objects.get(pk=session_id)
-            rows = PolygonSequence.objects.filter(annotation_session__pk=session_id).order_by('z','point_order')
-        except:
-            print(f'Bad query in GetVolume::get with session ID={session_id}')
-            return Response('error')
-        apply_scales_to_annotation_rows(rows, session.animal.prep_id)
-        polygons = create_polygons(rows, description=session.brain_region.abbreviation)
-        serializer = PolygonSerializer(polygons, many=True)
-        return Response(serializer.data)
-
-
-class GetCOM(AnnotationBase, views.APIView):
-    """A view that returns the COM for a perticular annotator in neuroglancer json format
-    """
-
-    def get(self, request, prep_id, annotator_id, source, format=None):
-        self.set_animal_from_id(prep_id)
-        self.set_annotator_from_id(annotator_id)
-        try:
-            rows = StructureCom.objects.filter(annotation_session__animal=self.animal)\
-                .filter(annotation_session__active=True)\
-                .filter(source=source).filter(annotation_session__annotator=self.annotator)
-        except:
-            print('bad query')
-        apply_scales_to_annotation_rows(rows, self.animal.prep_id)
-        data = []
-        for row in rows:
-            coordinates = [int(round(row.x)), int(round(row.y)), row.z]
-            description = row.annotation_session.brain_region.abbreviation
-            point_annotation = create_point_annotation(
-                coordinates, description, type='com')
-            data.append(point_annotation)
-        serializer = AnnotationSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-class GetMarkedCell(AnnotationBase, views.APIView):
-    """A view that returns the marked cells for a specific annotation session in neuroglancer json format.
-    """
-
-    def get(self, request, session_id, format=None):
-        try:
-            session = AnnotationSession.objects.get(pk=session_id)
-        except:
-            return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        rows = MarkedCell.objects.filter(annotation_session__pk=session_id)
-        apply_scales_to_annotation_rows(rows, session.animal.prep_id)
-        data = []
-        for row in rows:
-            coordinates = [int(round(row.x)), int(round(row.y)), row.z]
-            description = row.source
-            if row.source == 'HUMAN_POSITIVE':
-                description = 'positive'
-            elif row.source == 'HUMAN_NEGATIVE':
-                description = 'negative'
-            elif row.source == 'MACHINE_SURE':
-                description = 'machine_sure'
-            elif row.source == 'MACHINE_UNSURE':
-                description = 'machine_unsure'
-            elif row.source == UNMARKED:
-                description = 'unmarked'
-            else:
-                return Response({"Error": "Source is not correct on annotation session"}, status=status.HTTP_404_NOT_FOUND)
-                
-             
-            point_annotation = create_point_annotation(coordinates, description, type='cell')
-            point_annotation['category'] = row.cell_type.cell_type
-            data.append(point_annotation)
-        serializer = AnnotationSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-class GetComList(views.APIView):
-    """A view that returns a list of available COMs.
-    """
-
-    def get(self, request, format=None):
-        """
-        This will get the layers of COMs for the dropdown menu
-        """
-        data = []
-        coms = StructureCom.objects.filter(annotation_session__active=True)\
-            .order_by('annotation_session__animal__prep_id', 
-            'annotation_session__annotator__username')\
-            .values('annotation_session__animal__prep_id', 'annotation_session__annotator__username', 
-            'annotation_session__annotator__id', 'source')\
-            .annotate(Count("id"))
-        for com in coms:
-            data.append({
-                "prep_id": com['annotation_session__animal__prep_id'],
-                "annotator": com['annotation_session__annotator__username'],
-                "annotator_id": com['annotation_session__annotator__id'],
-                "source": com['source'],
-                "count": com['id__count']
-            })
-        serializer = ComListSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-class GetPolygonList(views.APIView):
-    """A view that returns a list of available brain region volumes.
-    """
-
-    def get(self, request, format=None):
-        """
-        This will get the layer_data
-        """
-        data = []
-        rows = AnnotationSession.objects.filter(
-            active=True).filter(annotation_type='POLYGON_SEQUENCE')\
-                .order_by('animal', 'annotator__username', 'brain_region__abbreviation').all()
-        for row in rows:
-            data.append({
-                'session_id': row.id,
-                "prep_id": row.animal.prep_id,
-                "annotator": row.annotator.username,
-                "brain_region": row.brain_region.abbreviation,
-                "source": 'NA'
-            })
-        serializer = PolygonListSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-class GetMarkedCellList(views.APIView):
-    """A view that returns a list of available marked cell annotations.
-    """
-
-    def get(self, request, format=None):
-        """
-        This will get the layer_data for the marked cell requested
-        """
-        data = []
-        rows = MarkedCell.objects.filter(annotation_session__active=True)\
-            .order_by('annotation_session__animal', 
-            'annotation_session__annotator__username')\
-            .values('annotation_session__id',
-            'annotation_session__animal', 
-            'annotation_session__annotator__username',
-            'source',
-            'cell_type__cell_type',
-            'cell_type__id',
-            'annotation_session__brain_region__abbreviation',
-            'annotation_session__brain_region__id',
-            )\
-            .distinct()
-
-        for row in rows:
-            data.append({
-                'session_id': row['annotation_session__id'],
-                'prep_id': row['annotation_session__animal'],
-                'annotator': row['annotation_session__annotator__username'],
-                'source': row['source'],
-                'cell_type': row['cell_type__cell_type'],
-                'cell_type_id': row['cell_type__id'],
-                'structure': row['annotation_session__brain_region__abbreviation'],
-                'structure_id': row['annotation_session__brain_region__id'],
-            })
-        serializer = MarkedCellListSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-
 class Rotation(views.APIView):
     """A view that returns the transformation from the atlas to the image stack of one 
     particular brain.
@@ -374,19 +186,6 @@ class Rotations(views.APIView):
             })
         serializer = RotationSerializer(data, many=True)
         return Response(serializer.data)
-
-
-class LandmarkList(views.APIView):
-    """A view that returns a list of active brain regions in the structures table.
-    """
-
-    def get(self, request, format=None):
-
-        list_of_landmarks = BrainRegion.objects.all().filter(active=True).all()
-        list_of_landmarks = [i.abbreviation for i in list_of_landmarks]
-        data = {}
-        data['land_marks'] = list_of_landmarks
-        return JsonResponse(data)
 
 
 class ContoursToVolume(views.APIView):
@@ -455,28 +254,6 @@ class ContoursToVolume(views.APIView):
 
         return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
 
-class SaveAnnotation(views.APIView):
-    """A view that saves all the annotation in one annotation layer of a specific row in the neuroglancer url table
-    There are two methods to save the data, one is in the background and the other is the default way without
-    using the background process. We use the regular task in production as the method can take a long time
-    to complete.
-    """
-    
-    def get(self, request, neuroglancer_state_id, annotation_layer_name):
-        neuroglancerState = NeuroglancerState.objects.get(pk=neuroglancer_state_id)
-        state_json = neuroglancerState.neuroglancer_state
-        layers = state_json['layers']
-        found = False
-        for layer in layers:
-            if layer['type'] == 'annotation' and layer['name'] == annotation_layer_name:
-                upsert_annotations(layer, neuroglancer_state_id)                    
-                found = True
-
-        if found:
-            return Response('success')
-        else:
-            return Response(f'layer not found {(annotation_layer_name)}')
-
 
 class GetCellTypes(views.APIView):
     """View that returns a list of cell types
@@ -488,36 +265,32 @@ class GetCellTypes(views.APIView):
         data['cell_type'] = [i.cell_type for i in cell_types]
         return JsonResponse(data)
 
-##### Below are classes/methods for displaying data on the brainsharer public frontend
 
-class NeuroglancerAvailableData(viewsets.ModelViewSet):
-    """
-    API endpoint that allows the available neuroglancer data on the server
-    to be viewed.
-    """
-    queryset = NeuroglancerView.objects.all()
-    serializer_class = NeuroglancerViewSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = LargeResultsSetPagination
+##### Neuroglancer views
 
-    def get_queryset(self):
-        """
-        Optionally restricts the returned purchases to a given animal,
-        by filtering against a `animal` query parameter in the URL.
-        """
-        queryset = NeuroglancerView.objects.order_by('group_name','layer_type', 'layer_name').all()
-        animal = self.request.query_params.get('animal')
-        lab = self.request.query_params.get('lab')
-        layer_type = self.request.query_params.get('layer_type')
-        if animal is not None:
-            queryset = queryset.filter(group_name__icontains=animal)
-        if lab is not None and int(lab) > 0:
-            queryset = queryset.filter(lab=lab)
-        if layer_type is not None and layer_type != '':
-            queryset = queryset.filter(layer_type=layer_type)
-
-        return queryset
-
+@api_view(['POST'])
+def create_state(request):
+    if request.method == "POST":
+        data = request.data
+        layers = []
+        data = [i for i in data if not (i['id'] == 0)]
+        titles = []
+        stateManager = NeuroglancerJSONStateManager()
+        stateManager.prepare_top_attributes(data[0])
+        for d in data:
+            id = int(d['id'])
+            if id > 0:
+                layer = stateManager.create_layer(d)
+                layers.append(layer)
+                title = f"{d['group_name']} {d['layer_name']}" 
+                titles.append(title)
+        stateManager.state['layers'] = layers
+        stateManager.prepare_bottom_attributes()
+        for k,v in stateManager.state.items():
+            print(k,v)
+        title = titles[0] # hard code to 1st title
+        state_id = stateManager.create_neuroglancer_model(title)
+        return JsonResponse(state_id, safe=False)
 
 class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
     """
@@ -553,47 +326,3 @@ class NeuroglancerViewSet(viewsets.ModelViewSet):
     serializer_class = NeuroglancerStateSerializer
     queryset = NeuroglancerState.objects.all()
 
-
-class NeuroglancerGroupAvailableData(views.APIView):
-    """
-    API endpoint that allows the available neuroglancer data on the server
-    to be viewed.
-    """
-    queryset = NeuroglancerView.objects.all()
-    serializer_class = NeuroglancerGroupViewSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        """
-        Just getting distinct group_name and layer_type
-        for the frontend create-view page
-        """
-        data = NeuroglancerView.objects.order_by('group_name', 'layer_type').values('group_name', 'layer_type').distinct()
-        serializer = NeuroglancerGroupViewSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-
-@api_view(['POST'])
-def create_state(request):
-    if request.method == "POST":
-        data = request.data
-        layers = []
-        data = [i for i in data if not (i['id'] == 0)]
-        titles = []
-        stateManager = NeuroglancerJSONStateManager()
-        stateManager.prepare_top_attributes(data[0])
-        for d in data:
-            id = int(d['id'])
-            if id > 0:
-                layer = stateManager.create_layer(d)
-                layers.append(layer)
-                title = f"{d['group_name']} {d['layer_name']}" 
-                titles.append(title)
-        stateManager.state['layers'] = layers
-        stateManager.prepare_bottom_attributes()
-        for k,v in stateManager.state.items():
-            print(k,v)
-        title = titles[0] # hard code to 1st title
-        state_id = stateManager.create_neuroglancer_model(title)
-        return JsonResponse(state_id, safe=False)

@@ -1,12 +1,11 @@
 
 drop view if exists v_search_sessions;
 create view v_search_sessions as
-select as2.id, concat(as2.FK_prep_id, " ",  br.abbreviation, " ", au.username) as animal_abbreviation_username,
-as2.annotation_type
-from annotation_session as2
-inner join brain_region br on as2.FK_brain_region_id=br.id
+select as2.id, concat(as2.FK_prep_id, " ",  al.label, " ", au.username) as animal_abbreviation_username, al.label_type 
+from annotation_session_new as2
+inner join annotation_label al on as2.FK_label_id=al.id
 inner join auth_user au ON as2.FK_user_id = au.id
-where as2.active = 1 and au.is_active = 1 and br.active = 1;
+where as2.active = 1 and au.is_active = 1 and al.active = 1;
 
 select * from v_search_sessions vss limit 10;
 
@@ -94,5 +93,41 @@ SET as2.FK_label_id = al.id
 WHERE al.label_type = 'brain region';
 
 -- alter table annotation_session_new drop column FK_brain_region_id;
+desc annotation_label; 
+alter table annotation_label modify column label varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;
+
 select * 
-from annotation_label where id = 8;
+from annotation_label where label = '7N_L';
+
+desc annotation_session_new ;
+alter table annotation_session_new modify column FK_brain_region_id int(11) default NULL;
+
+show create table brain_region ;
+
+
+CREATE TABLE `brain_region` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `active` tinyint(1) NOT NULL,
+  `created` timestamp NOT NULL DEFAULT current_timestamp(),
+  `abbreviation` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `description` longtext DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=66 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+show create table annotation_label; 
+CREATE TABLE `annotation_label` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `oldid` int(11) DEFAULT NULL,
+  `label_type` varchar(50) NOT NULL,
+  `label` varchar(50) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `created` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=94 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+select asn.id, asn.FK_prep_id , al.label, au.username
+from annotation_session_new asn 
+inner join auth_user au on asn.FK_user_id = au.id
+inner join annotation_label al on asn.FK_label_id = al.id 
+where asn.id in (8093, 8094);
+
