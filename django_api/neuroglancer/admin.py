@@ -239,6 +239,7 @@ class AnnotationSessionAdmin(AtlasAdminModel):
         if len_points > 1:
             title = 'points'
         return f"{len_points} {title}"
+    show_points_without_link.short_description = 'Points'
 
     def show_points(self, obj):
         """Shows the HTML for the link to the graph of data.
