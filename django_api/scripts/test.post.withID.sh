@@ -3,6 +3,6 @@
 curl \
   -X POST \
   -H "Content-Type: application/json" \
-  -d '{"animal" : "MD589", "annotation" : {"source": [1,2,3]}, "annotator" : 5, "id" : "99999", "label" : "7n_L"}' \
+  -d '{"animal" : "MD589", "annotation" : {"source": [1,2,3]}, "annotator" : 1, "id" : "7755", "label" : "Fiducial"}' \
 http://localhost:8000/annotations/
 

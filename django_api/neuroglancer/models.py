@@ -241,7 +241,7 @@ class SearchSessions(models.Model):
 
 class AnnotationLabel(AtlasModel):
     id = models.BigAutoField(primary_key=True)
-    label_type = models.CharField(max_length=50, blank=False, null=False)
+    label_type = EnumField(choices=['brain region', 'cell'], blank=False, null=False, default='brain region')
     label = models.CharField(max_length=50, blank=False, null=False)
     description = models.TextField(max_length=2001, blank=False, null=False)
 
@@ -269,7 +269,7 @@ class AnnotationSession(AtlasModel):
 
     class Meta:
         managed = False
-        db_table = 'annotation_session_new'
+        db_table = 'annotation_session'
         verbose_name = 'Annotation session'
         verbose_name_plural = 'Annotation sessions'
 
