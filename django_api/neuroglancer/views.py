@@ -16,6 +16,7 @@ from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
 import logging
 
+from neuroglancer.contours.annotation_layer import AnnotationLayer
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.annotation_session_manager import get_session
 from neuroglancer.atlas import align_atlas, get_scales
@@ -96,6 +97,7 @@ def annotation_session_api(request):
 
     if request.method == 'POST':
         if 'label' in request.data and isinstance(request.data.get('label'), str):
+            ## We need to look up the label ID
             label = request.data.get('label')
             try:
                 label_obj = AnnotationLabel.objects.get(label=label)
@@ -104,22 +106,14 @@ def annotation_session_api(request):
 
             request.data['label'] = label_obj.id
 
-        # if there is an id, do a partial update
-        if 'id' in request.data and isinstance(request.data.get('id'), str) and request.data.get('id').isdigit():
-            try:
-                obj = AnnotationSession.objects.get(pk=request.data.get('id'))
-                serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
-            except AnnotationSession.DoesNotExist:
-                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)    
-        else: # no id, so fix request data with the label id and check for session
-            ## check if there is an already existing annotation session.
-            ## We need to look up the label ID
-            obj = get_session(request.data)
-            if obj is not None:
-                serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
-            else:
-                # No existing session found, so we'll insert a new one
-                serializer = AnnotationModelSerializer(data=request.data)
+        ## check if there is an already existing annotation session.
+        existing_session = get_session(request.data)
+        if existing_session is None:
+            # No existing session found, so we'll insert a new one
+            serializer = AnnotationModelSerializer(data=request.data)
+        else:
+            # We found a session so we will update it
+            serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
