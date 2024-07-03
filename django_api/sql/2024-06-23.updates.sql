@@ -1,12 +1,4 @@
 
-drop view if exists v_search_sessions;
-create view v_search_sessions as
-select as2.id, concat(as2.FK_prep_id, " ",  al.label, " ", au.username) as animal_abbreviation_username, al.label_type 
-from annotation_session_new as2
-inner join annotation_label al on as2.FK_label_id=al.id
-inner join auth_user au ON as2.FK_user_id = au.id
-where as2.active = 1 and au.is_active = 1 and al.active = 1;
-
 select * from v_search_sessions vss limit 10;
 
 
@@ -87,10 +79,11 @@ from brain_region br
 where br.active= 1
 order by abbreviation;
 
-UPDATE annotation_session_new as2 
-INNER JOIN annotation_label al on as2.FK_brain_region_id = al.oldid
-SET as2.FK_label_id = al.id
-WHERE al.label_type = 'brain region';
+select * 
+from annotation_session as2 
+inner join annotation_label al on as2.FK_label_id = al.id 
+where label_type = 'cell';
+
 
 -- alter table annotation_session_new drop column FK_brain_region_id;
 desc annotation_label; 
@@ -126,8 +119,8 @@ CREATE TABLE `annotation_label` (
 ) ENGINE=InnoDB AUTO_INCREMENT=94 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 select asn.id, asn.FK_prep_id , al.label, au.username
-from annotation_session_new asn 
+from annotation_session asn 
 inner join auth_user au on asn.FK_user_id = au.id
 inner join annotation_label al on asn.FK_label_id = al.id 
-where asn.id in (8093, 8094);
+where asn.id in (7689);
 

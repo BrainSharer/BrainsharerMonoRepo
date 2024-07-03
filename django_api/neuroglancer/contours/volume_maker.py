@@ -83,7 +83,7 @@ class VolumeMaker:
         for section in range(nsections):
             points = volume[:,:,section].tolist()
             print(section, points[0])
-            #interpolated = interpolate2d(points.tolist(), n)
+            interpolated = interpolate2d(points.tolist(), n)
             #new_section = [interpolated, section]
             #new_volume.append(new_section)
         return volume

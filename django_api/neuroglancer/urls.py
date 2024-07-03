@@ -1,6 +1,6 @@
 from django.urls import path, include
 from neuroglancer.views import GetAnnotation, GetLabels, NeuroglancerViewSet, NeuroglancerPublicViewSet,  \
-    SearchAnnotations, SearchLabels, annotation_session_api, create_state, Rotation, ContoursToVolume
+    SearchAnnotations, SearchLabels, annotation_session_api, create_state, Rotation, Segmentation
 
 from rest_framework import routers
 app_name = 'neuroglancer'
@@ -19,7 +19,7 @@ annotation_urls = [
     path('annotations/labels/', SearchLabels.as_view(), name='search_labels'),
     path('annotations/labels/<str:search_string>', SearchLabels.as_view(), name='search_labels'),
     path('annotations/', annotation_session_api, name='annotation_model_session'),
-    path('annotations/contour_to_segmentation/<int:neuroglancer_state_id>/<str:volume_id>',ContoursToVolume.as_view(),name = 'contour_to_segmentation'),
+    path('annotations/segmentation/<int:session_id>', Segmentation.as_view(),name = 'create_segmentation'),
 ]
 
 general_urls = [

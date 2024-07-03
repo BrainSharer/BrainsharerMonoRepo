@@ -68,7 +68,7 @@ def get_scales(prep_id):
     else:
         scale_xy = 1
         z_scale = 1
-    return decimal.Decimal(scale_xy), decimal.Decimal(z_scale)
+    return scale_xy, z_scale
 
 
 

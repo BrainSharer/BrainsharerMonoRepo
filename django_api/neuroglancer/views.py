@@ -4,27 +4,26 @@ is the 'V' in the MVC framework for the Neuroglancer app
 portion of the portal.
 """
 
-from subprocess import check_output
-import os
-from time import sleep
 import decimal
+import os
 from rest_framework import viewsets, views, permissions, status
 from django.http import JsonResponse
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
+from django.db.models import Count
 import logging
 
-from neuroglancer.contours.annotation_layer import AnnotationLayer
+from brain.models import ScanRun, Section
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.annotation_session_manager import get_session
+from neuroglancer.annotation_session_manager import create_polygons, create_segmentation_folder, create_volume, get_session
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.models import AnnotationLabel, AnnotationSession, \
     NeuroglancerState, BrainRegion, SearchSessions, CellType
 from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, LabelSerializer, \
     RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
-from neuroglancer.contours.create_contours import make_volumes
+from neuroglancer.annotation_session_manager import create_polygons, get_session
 from brainsharer.pagination import LargeResultsSetPagination
 from neuroglancer.models import DEBUG
 from timeit import default_timer as timer
@@ -135,6 +134,41 @@ def annotation_session_api(request):
         return Response({'msg': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+class Segmentation(views.APIView):
+    """Method to create a 3D volume from existing annotation
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    
+    def get(self, request, session_id):
+        """Simpler version that does not use slurm or subprocess script
+        """
+        if DEBUG:
+            start_time = timer()
+
+        annotationSession = AnnotationSession.objects.get(pk=session_id)
+        scan_run = ScanRun.objects.get(prep=annotationSession.animal)
+        downsample_factor = 64
+        width = int(scan_run.width) // downsample_factor
+        height = int(scan_run.height) // downsample_factor
+        sections = Section.objects.values("id").filter(prep_id=annotationSession.animal).filter(active=True).filter(channel=1)
+        z_length = len(sections)
+        if z_length == 0:
+            files = os.listdir(f"/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{annotationSession.animal}/preps/C1/thumbnail")
+            z_length = len(files)
+        polygons = create_polygons(annotationSession.annotation, scan_run.resolution, scan_run.zresolution, downsample_factor)
+        volume = create_volume(polygons, width, height, z_length)        
+        folder_name = create_segmentation_folder(volume, annotationSession.animal, downsample_factor, annotationSession.label)
+        segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
+        if DEBUG:
+            end_time = timer()
+            total_elapsed_time = round((end_time - start_time), 2)
+            print(f'Creating segmentation took {total_elapsed_time} seconds.')
+
+        return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
+
+
 def apply_scales_to_annotation_rows(rows, prep_id):
     """To fetch the scan resolution of an animal from the database and apply it to a 
     list of annotation rows
@@ -181,72 +215,6 @@ class Rotations(views.APIView):
         serializer = RotationSerializer(data, many=True)
         return Response(serializer.data)
 
-
-class ContoursToVolume(views.APIView):
-    """Method to run slurm to create a 3D volume
-    """
-
-    permission_classes = [permissions.AllowAny]
-
-    
-    def get_slurm(self, request, neuroglancer_state_id, volume_id):
-        command = ["sbatch", os.path.abspath('./slurm_scripts/contour_to_volume'), str(neuroglancer_state_id),volume_id]
-        out = check_output(command)
-        print(out)
-        start_id = out.find(b'job')+4
-        job_id = int(out[start_id:-1])
-        output_file = f'/var/www/brainsharer/structures/slurm/slurm_{job_id}.out'
-        error_file = f'/var/www/brainsharer/structures/slurm/slurm_{job_id}.err'
-        while not os.path.exists(output_file):
-            sleep(1)
-            print(f'waiting for job {job_id} to finish')
-            break
-        print('finished')
-        text_file = open(output_file, "r")
-        data = text_file.read()
-        text_file.close()
-        url = data.split('\n')[-1]
-        folder_name = url.split('/')[-1]
-        return JsonResponse({'url': url, 'name': folder_name})
-    
-    def get_subprocess(self, request, neuroglancer_state_id, volume_id):
-        """Simpler version that does not use slurm
-        """
-
-        command = [os.path.abspath('./slurm_scripts/contour_to_volume'), str(neuroglancer_state_id),volume_id]
-        out = check_output(command)
-        data = str(out).strip("'")
-        url = data.split('\\n')[-1]
-        folder_name = url.split('/')[-1]
-        return JsonResponse({'url': url, 'name': folder_name})
-    
-    def get(self, request, neuroglancer_state_id, volume_id):
-        """Simpler version that does not use slurm or subprocess script
-        """
-        if DEBUG:
-            start_time = timer()
-
-        neuroglancerState = NeuroglancerState.objects.get(pk=neuroglancer_state_id)
-        animal = neuroglancerState.animal
-        state_json = neuroglancerState.neuroglancer_state
-        layers = state_json['layers']
-        for layer in layers:
-            if layer['type'] == 'annotation':
-                annotation_layer = AnnotationLayer(layer)
-                volume = annotation_layer.get_annotation_with_id(volume_id)
-                if volume is not None:
-                    break
-        if volume is None:
-            raise Exception(f'No volume was found with id={volume_id}' )
-        
-        folder_name = make_volumes(volume, animal, 32)
-        segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
-        if DEBUG:
-            end_time = timer()
-            total_elapsed_time = round((end_time - start_time),2)
-            print(f'Creating segmentation took {total_elapsed_time} seconds.')
-
-        return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
 
 
 class GetCellTypes(views.APIView):

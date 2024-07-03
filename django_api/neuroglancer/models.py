@@ -252,7 +252,7 @@ class AnnotationLabel(AtlasModel):
         verbose_name_plural = 'Annotation labels'
 
     def __str__(self):
-        return f'{self.label_type} {self.label}'
+        return f'{self.label}'
 
 class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
