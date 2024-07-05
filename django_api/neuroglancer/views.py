@@ -17,7 +17,7 @@ import logging
 
 from brain.models import ScanRun, Section
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.annotation_session_manager import create_polygons, create_segmentation_folder, create_volume, get_session
+from neuroglancer.annotation_session_manager import create_polygons, create_segmentation_folder, create_volume, get_origin_and_section_size, get_session
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.models import AnnotationLabel, AnnotationSession, \
     NeuroglancerState, BrainRegion, SearchSessions, CellType
@@ -146,20 +146,31 @@ class Segmentation(views.APIView):
         """
         if DEBUG:
             start_time = timer()
+        try:
+            annotationSession = AnnotationSession.objects.get(pk=session_id)
+        except AnnotationSession.DoesNotExist:
+            return Response({"msg": f"Annotation data does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            scan_run = ScanRun.objects.get(prep=annotationSession.animal)
+        except ScanRun.DoesNotExist:
+            return Response({"msg": f"Scan run data does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-        annotationSession = AnnotationSession.objects.get(pk=session_id)
-        scan_run = ScanRun.objects.get(prep=annotationSession.animal)
         downsample_factor = 64
-        width = int(scan_run.width) // downsample_factor
-        height = int(scan_run.height) // downsample_factor
         sections = Section.objects.values("id").filter(prep_id=annotationSession.animal).filter(active=True).filter(channel=1)
         z_length = len(sections)
         if z_length == 0:
             files = os.listdir(f"/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{annotationSession.animal}/preps/C1/thumbnail")
             z_length = len(files)
+        if z_length == 0:
+            return Response({"msg": f"Data not found"}, status=status.HTTP_404_NOT_FOUND)
+
         polygons = create_polygons(annotationSession.annotation, scan_run.resolution, scan_run.zresolution, downsample_factor)
-        volume = create_volume(polygons, width, height, z_length)        
-        folder_name = create_segmentation_folder(volume, annotationSession.animal, downsample_factor, annotationSession.label)
+        if not isinstance(polygons, dict):
+            return Response({"msg": polygons}, status=status.HTTP_404_NOT_FOUND)
+        origin, section_size = get_origin_and_section_size(polygons)
+
+        volume = create_volume(polygons, origin, section_size)        
+        folder_name = create_segmentation_folder(volume, annotationSession.animal, downsample_factor, annotationSession.label, origin.tolist())
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
         if DEBUG:
             end_time = timer()

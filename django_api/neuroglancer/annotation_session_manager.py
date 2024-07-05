@@ -32,10 +32,18 @@ def get_session(request_data: dict):
 
 def create_polygons(data: dict, xy_scale: float, z_resolution: int, downsample_factor: int):
     polygons = defaultdict(list)
-    polygon_data = data['childJsons']
+    # first test data to make sure it has the right keys
+    
+    try:
+        polygon_data = data['childJsons']
+    except KeyError:
+        return "No childJsons key in data. Check the data you are sending."
+    
     for polygon in polygon_data:
-        lines = polygon['childJsons']
-        
+        try:
+            lines = polygon['childJsons']
+        except KeyError:
+            return "No data. Check the data you are sending."
         x0,y0,z0 = lines[0]['pointA']
         x0 = x0 * M_UM_SCALE / xy_scale / downsample_factor
         y0 = y0 * M_UM_SCALE / xy_scale / downsample_factor
@@ -53,22 +61,61 @@ def create_polygons(data: dict, xy_scale: float, z_resolution: int, downsample_f
     
     return polygons
 
-def create_volume(polygons, width, height, z_length):
+def create_volume_within_volume(polygons, width, height, z_length):
     volume = np.zeros((height, width, z_length), dtype=np.float64)
     print(f'volume shape: {volume.shape}')
 
     for z, points in polygons.items():
-        #points = interpolate2d(points, 100)
+        points = interpolate2d(points, 100)
         points = np.array(points, dtype=np.int32)
         volume_slice = np.zeros((height, width), dtype=np.uint8)
         cv2.fillPoly(volume_slice, pts = [points], color = COLOR)
         volume[..., z] += volume_slice
     volume = np.swapaxes(volume, 0, 1)
-    #volume = cv2.GaussianBlur(volume, (3,3), 1)
-    #volume = gaussian(volume, 1, truncate=2)
     return volume.astype(np.uint8)
 
-def create_segmentation_folder(volume, animal, downsample_factor, label):
+
+def create_volume(polygons, origin, section_size):
+    volume = []
+    color = 1
+    for _, points in polygons.items():
+        points = interpolate2d(points, len(points) * 2)
+        # subtract origin so the array starts drawing in the upper top left
+        points = np.array(points) - origin[:2]
+        points = (points).astype(np.int32)
+        volume_slice = np.zeros(section_size, dtype=np.uint8)
+        volume_slice = cv2.polylines(volume_slice, [points], isClosed=True, color=color, thickness=1)
+        volume_slice = cv2.fillPoly(volume_slice, pts=[points], color=color)
+        volume.append(volume_slice)
+    volume = np.array(volume)
+    volume = np.swapaxes(volume,0,2)
+    volume = cv2.GaussianBlur(volume, (3,3), 1)
+    return volume.astype(np.uint8)
+
+def get_origin_and_section_size(structure_contours):
+    """Gets the origin and section size
+    Set the pad to make sure we get all the volume
+    """
+    section_mins = []
+    section_maxs = []
+    for _, contour_points in structure_contours.items():
+        contour_points = np.array(contour_points)
+        section_mins.append(np.min(contour_points, axis=0))
+        section_maxs.append(np.max(contour_points, axis=0))
+    min_z = min([int(i) for i in structure_contours.keys()])
+    min_x, min_y = np.min(section_mins, axis=0)
+    max_x, max_y = np.max(section_maxs, axis=0)
+
+    xspan = max_x - min_x
+    yspan = max_y - min_y
+    origin = np.array([min_x, min_y, min_z])
+    # flipped yspan and xspan 19 Oct 2023
+    section_size = np.array([yspan, xspan]).astype(int)
+    return origin, section_size
+
+
+
+def create_segmentation_folder(volume, animal, downsample_factor, label, offset):
     folder_name = f'{animal}_{label}'
     path = '/var/www/brainsharer/structures'
     output_dir = os.path.join(path, folder_name)
@@ -76,9 +123,8 @@ def create_segmentation_folder(volume, animal, downsample_factor, label):
     xy_scale = xy_scale * 1000 * downsample_factor# neuroglancer wants it in nm
     zresolution = zresolution * 1000
     scales = [int(xy_scale), int(xy_scale), int(zresolution)]
-    print(scales)
-
-    maker = NgConverter(volume=volume, scales=scales, offset=[0,0,0])
+    
+    maker = NgConverter(volume=volume, scales=scales, offset=offset)
     segment_properties = {1:label}
     maker.reset_output_path(output_dir)
     maker.init_precomputed(output_dir)

@@ -10,6 +10,7 @@ from django_mysql.models import EnumField
 from django.utils.safestring import mark_safe
 from django.core.validators import MaxValueValidator, MinValueValidator
 import os
+from django.utils.html import escape
 
 from authentication.models import Lab
 
