@@ -12,10 +12,9 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.pagination import LimitOffsetPagination
-from django.db.models import Count
 import logging
 
-from brain.models import ScanRun, Section
+from brain.models import ScanRun
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
 from neuroglancer.annotation_session_manager import create_polygons, create_segmentation_folder, create_volume, get_origin_and_section_size, get_session
 from neuroglancer.atlas import align_atlas, get_scales
@@ -156,20 +155,14 @@ class Segmentation(views.APIView):
             return Response({"msg": f"Scan run data does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
         downsample_factor = 64
-        sections = Section.objects.values("id").filter(prep_id=annotationSession.animal).filter(active=True).filter(channel=1)
-        z_length = len(sections)
-        if z_length == 0:
-            files = os.listdir(f"/net/birdstore/Active_Atlas_Data/data_root/pipeline_data/{annotationSession.animal}/preps/C1/thumbnail")
-            z_length = len(files)
-        if z_length == 0:
-            return Response({"msg": f"Data not found"}, status=status.HTTP_404_NOT_FOUND)
-
         polygons = create_polygons(annotationSession.annotation, scan_run.resolution, scan_run.zresolution, downsample_factor)
         if not isinstance(polygons, dict):
             return Response({"msg": polygons}, status=status.HTTP_404_NOT_FOUND)
         origin, section_size = get_origin_and_section_size(polygons)
 
-        volume = create_volume(polygons, origin, section_size)        
+        volume = create_volume(polygons, origin, section_size)
+        if volume is None or volume.shape[0] == 0:
+            return Response({"msg": "Volume could not be created"}, status=status.HTTP_404_NOT_FOUND)        
         folder_name = create_segmentation_folder(volume, annotationSession.animal, downsample_factor, annotationSession.label, origin.tolist())
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
         if DEBUG:

@@ -32,8 +32,7 @@ def get_session(request_data: dict):
 
 def create_polygons(data: dict, xy_scale: float, z_resolution: int, downsample_factor: int):
     polygons = defaultdict(list)
-    # first test data to make sure it has the right keys
-    
+    # first test data to make sure it has the right keys    
     try:
         polygon_data = data['childJsons']
     except KeyError:
@@ -48,7 +47,7 @@ def create_polygons(data: dict, xy_scale: float, z_resolution: int, downsample_f
         x0 = x0 * M_UM_SCALE / xy_scale / downsample_factor
         y0 = y0 * M_UM_SCALE / xy_scale / downsample_factor
         z0 = int(round(z0 * M_UM_SCALE / z_resolution))
-        for j, line in enumerate(lines):
+        for line in lines:
             x,y,z = line['pointA']
             x = x * M_UM_SCALE / xy_scale / downsample_factor
             y = y * M_UM_SCALE / xy_scale / downsample_factor
@@ -56,14 +55,12 @@ def create_polygons(data: dict, xy_scale: float, z_resolution: int, downsample_f
             xy = (x, y)
             section = int(np.round(z))
             polygons[section].append(xy)
-            #print(f'\tpoint {j} {x} {y} {section}')
         polygons[z0].append((x0, y0))
     
     return polygons
 
 def create_volume_within_volume(polygons, width, height, z_length):
     volume = np.zeros((height, width, z_length), dtype=np.float64)
-    print(f'volume shape: {volume.shape}')
 
     for z, points in polygons.items():
         points = interpolate2d(points, 100)
@@ -76,10 +73,11 @@ def create_volume_within_volume(polygons, width, height, z_length):
 
 
 def create_volume(polygons, origin, section_size):
+    print(f'origin: {origin} section_size: {section_size}')
     volume = []
     color = 1
     for _, points in polygons.items():
-        points = interpolate2d(points, len(points) * 2)
+        #points = interpolate2d(points, len(points) * 2)
         # subtract origin so the array starts drawing in the upper top left
         points = np.array(points) - origin[:2]
         points = (points).astype(np.int32)
@@ -89,8 +87,12 @@ def create_volume(polygons, origin, section_size):
         volume.append(volume_slice)
     volume = np.array(volume)
     volume = np.swapaxes(volume,0,2)
-    volume = cv2.GaussianBlur(volume, (3,3), 1)
+    if volume.shape[0] > 1:
+        volume = cv2.GaussianBlur(volume, (3,3), 1)
     return volume.astype(np.uint8)
+
+# section_mins: [{(2.8922062499999996, 1.7355812499999999),
+# section_mins: [array([2.87345625, 1.73558125]), list
 
 def get_origin_and_section_size(structure_contours):
     """Gets the origin and section size
@@ -98,10 +100,10 @@ def get_origin_and_section_size(structure_contours):
     """
     section_mins = []
     section_maxs = []
-    for _, contour_points in structure_contours.items():
-        contour_points = np.array(contour_points)
-        section_mins.append(np.min(contour_points, axis=0))
-        section_maxs.append(np.max(contour_points, axis=0))
+    for _, points in structure_contours.items():
+        points = np.array(points)
+        section_mins.append(np.min(points, axis=0))
+        section_maxs.append(np.max(points, axis=0))
     min_z = min([int(i) for i in structure_contours.keys()])
     min_x, min_y = np.min(section_mins, axis=0)
     max_x, max_y = np.max(section_maxs, axis=0)
