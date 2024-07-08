@@ -8,9 +8,9 @@ from django.apps import apps
 
 from authentication.models import User
 from brain.models import Animal, ScanRun
-from neuroglancer.models import AnnotationSession, MarkedCell, NeuroglancerState, PolygonSequence, \
-    StructureCom, BrainRegion, LAUREN_ID, CellType
-from neuroglancer.annotation_layer import random_string
+from neuroglancer.models import AnnotationSession, NeuroglancerState, BrainRegion, LAUREN_ID, CellType
+from neuroglancer.contours.annotation_layer import random_string
+
 
 class TestSetUp(TestCase):
     client = Client()

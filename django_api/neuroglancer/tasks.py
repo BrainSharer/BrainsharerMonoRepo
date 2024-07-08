@@ -6,7 +6,7 @@ They also cannot accept objects as arguments.
 ``sudo systemctl restart supervisord.service``
 """
 from neuroglancer.models import NeuroglancerState
-from neuroglancer.annotation_manager import AnnotationManager, DEBUG
+from neuroglancer.contours.annotation_manager import AnnotationManager, DEBUG
 from timeit import default_timer as timer
 
 def upsert_annotations(layer, neuroglancer_state_id):

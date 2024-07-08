@@ -44,7 +44,6 @@ Use the side navigation panel to view different classes and methods within each 
    Neuroglancer models (database columns) <modules/neuroglancer/models.rst> 
    REST API serializers <modules/neuroglancer/serializers.rst> 
    Neuroglancer tests <modules/neuroglancer/tests.rst>
-   Neuroglancer tasks <modules/neuroglancer/tasks.rst>
    REST API endpoints <modules/neuroglancer/views.rst>
    Align atlas tools <modules/neuroglancer/atlas.rst>
 

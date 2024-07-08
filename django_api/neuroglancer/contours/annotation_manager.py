@@ -42,8 +42,8 @@ from neuroglancer.models import AnnotationSession, BrainRegion, DEBUG, \
     PolygonSequence, StructureCom, PolygonSequence, MarkedCell, get_region_from_abbreviation
 from neuroglancer.atlas import get_scales
 from neuroglancer.models import CellType, UNMARKED
-from neuroglancer.annotation_layer import AnnotationLayer, Annotation, random_string
-from neuroglancer.annotation_base import AnnotationBase
+from neuroglancer.contours.annotation_layer import AnnotationLayer, Annotation, random_string
+from neuroglancer.contours.annotation_base import AnnotationBase
 from timeit import default_timer as timer
 
 class AnnotationManager(AnnotationBase):
