@@ -16,13 +16,12 @@ import logging
 
 from brain.models import ScanRun
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.annotation_session_manager import create_polygons, create_segmentation_folder, create_volume, get_origin_and_section_size, get_session
+from neuroglancer.annotation_session_manager import AnnotationSessionManager, get_session
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.models import AnnotationLabel, AnnotationSession, \
     NeuroglancerState, BrainRegion, SearchSessions, CellType
 from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, LabelSerializer, \
     RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
-from neuroglancer.annotation_session_manager import create_polygons, get_session
 from brainsharer.pagination import LargeResultsSetPagination
 from neuroglancer.models import DEBUG
 from timeit import default_timer as timer
@@ -154,16 +153,16 @@ class Segmentation(views.APIView):
         except ScanRun.DoesNotExist:
             return Response({"msg": f"Scan run data does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-        downsample_factor = 64
-        polygons = create_polygons(annotationSession.annotation, scan_run.resolution, scan_run.zresolution, downsample_factor)
+        annotation_session_manager = AnnotationSessionManager(scan_run, annotationSession.label)
+        polygons = annotation_session_manager.create_polygons(annotationSession.annotation)
         if not isinstance(polygons, dict):
             return Response({"msg": polygons}, status=status.HTTP_404_NOT_FOUND)
-        origin, section_size = get_origin_and_section_size(polygons)
-
-        volume = create_volume(polygons, origin, section_size)
+        origin, section_size = annotation_session_manager.get_origin_and_section_size(polygons)
+        volume = annotation_session_manager.create_volume(polygons, origin, section_size)
         if volume is None or volume.shape[0] == 0:
             return Response({"msg": "Volume could not be created"}, status=status.HTTP_404_NOT_FOUND)        
-        folder_name = create_segmentation_folder(volume, annotationSession.animal, downsample_factor, annotationSession.label, origin.tolist())
+        folder_name = annotation_session_manager.create_segmentation_folder(volume, annotationSession.animal, 
+                                                 annotationSession.label, origin.tolist())
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
         if DEBUG:
             end_time = timer()
