@@ -408,19 +408,19 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
     def previous_preview_tag(self, obj):
         png = self.previous_slide.file_name.replace('czi', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.previous_slide.scan_run.prep}/slides_preview/{png}"
-        return mark_safe(f'<h3>{self.previous_slide.file_name}</h3><img src="{thumbnail}" alt="previous preview"/>')
+        return mark_safe(f'<h3>{self.previous_slide.file_name} {self.previous_slide.checksum}</h3><img src="{thumbnail}" alt="previous preview"/>')
     previous_preview_tag.short_description = 'Previous' 
 
     def current_preview_tag(self, obj):
         png = obj.file_name.replace('czi', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{obj.scan_run.prep}/slides_preview/{png}"
-        return mark_safe(f'<h3>{obj.file_name}</h3><img src="{thumbnail}" alt="current preview"/>')
+        return mark_safe(f'<h3>{obj.file_name} {obj.checksum}</h3><img src="{thumbnail}" alt="current preview"/>')
     current_preview_tag.short_description = 'Current'
     
     def following_preview_tag(self, obj):
         png = self.following_slide.file_name.replace('czi', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.following_slide.scan_run.prep}/slides_preview/{png}"
-        return mark_safe(f'<h3>{self.following_slide.file_name}</h3><img src="{thumbnail}" alt="following preview"/>')
+        return mark_safe(f'<h3>{self.following_slide.file_name} {self.following_slide.checksum}</h3><img src="{thumbnail}" alt="following preview"/>')
     following_preview_tag.short_description = 'Following'
 
     def scene_count(self, obj):

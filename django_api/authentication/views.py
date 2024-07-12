@@ -15,6 +15,14 @@ from authentication.serializers import LabSerializer, MyTokenObtainPairSerialize
     UserSerializer, ValidateUserSerializer
 
 
+def logout_view(request):
+    logout(request)
+    response = HttpResponseRedirect(settings.LOGOUT_REDIRECT_URL)    
+    response.delete_cookie("access")
+    response.delete_cookie("refresh")
+    return response
+
+
 class LabViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows the neuroglancer states to be viewed or edited.
@@ -90,13 +98,6 @@ class LocalSignUpView(generic.CreateView):
     success_url = reverse_lazy("login")
     template_name = "registration/signup.html"
 
-
-def logout_view(request):
-    logout(request)
-    response = HttpResponseRedirect(settings.LOGOUT_REDIRECT_URL)    
-    response.delete_cookie("access")
-    response.delete_cookie("refresh")
-    return response
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer

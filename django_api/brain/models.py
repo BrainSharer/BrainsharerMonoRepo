@@ -244,6 +244,8 @@ class Slide(AtlasModel):
                                                   validators=[MinValueValidator(0),MaxValueValidator(5)])
 
     file_name = models.CharField(max_length=200)
+    checksum = models.CharField(max_length=64, blank=True, null=True)
+    
     comments = models.TextField(max_length=2001, blank=True, null=True)
     file_size = models.FloatField(verbose_name='File size (bytes)')
     processed = models.BooleanField(verbose_name="Converted")

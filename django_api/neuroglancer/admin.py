@@ -40,7 +40,6 @@ def get_points_in_session(id):
     points = 0
     for k,v in json_data.items():
         if 'childJsons' in k:
-            print('xxxxxxxxxxxxxxxxxxxxxxx')
             points = len(v)
             break
         else:
@@ -57,7 +56,7 @@ class NeuroglancerStateAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.CharField: {'widget': TextInput(attrs={'size': '80'})},
     }
-    list_display = ('id', 'animal', 'open_neuroglancer', 'public_description', 'public', 'readonly', 'open_multiuser', 'owner', 'lab', 'created')
+    list_display = ('id', 'animal', 'open_neuroglancer', 'public_description', 'public', 'readonly', 'owner', 'lab', 'created')
     list_per_page = 25
     ordering = ['-readonly', '-updated']
     readonly_fields = ['user_date']

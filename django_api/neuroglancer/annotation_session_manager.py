@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 import numpy as np
 import os
 from cloudvolume import CloudVolume
@@ -38,6 +38,33 @@ def get_session(request_data: dict):
 
 
 class AnnotationSessionManager():
+    """
+    A class that manages annotation sessions and provides methods for creating polygons and volumes.
+
+    Attributes:
+        resolution (float): The resolution of the scan run.
+        isotropic (int): The isotropic value for the volume.
+        downsample_factor (float): The downsample factor for the volume.
+        zresolution (int): The z-resolution of the volume.
+        label (str): The label associated with the annotation session.
+        color (int): The color value associated with the label.
+
+    Methods:
+        create_polygons(data: dict) -> dict:
+            Creates a dictionary of polygons from the given data.
+
+        create_volume(polygons, origin, section_size) -> numpy.ndarray:
+            Creates a volume from a collection of polygons.
+
+        get_origin_and_section_size(structure_contours) -> Tuple[numpy.ndarray, numpy.ndarray]:
+            Calculates the origin and section size based on the given structure contours.
+
+        create_segmentation_folder(volume, animal, label, offset) -> str:
+            Creates a segmentation folder for a given volume, animal, label, and offset.
+
+        fetch_color_by_label(label) -> int:
+            Fetches the color value associated with the given label.
+    """
 
     def __init__(self, scan_run: ScanRun, label: str) -> None:
         self.resolution = scan_run.resolution
@@ -104,6 +131,7 @@ class AnnotationSessionManager():
         Create a volume from a collection of polygons. Each section contains a polygon which is composed of a list of lines.
         Each line is composed of two points. All these points are fetched in the correct order and used to create the volume.
         Create an isotropic volume at 10um. @ delta Z / 2 
+        
         Here are the steps:
             1. For each section get the points of the polygon
 
@@ -203,7 +231,19 @@ class AnnotationSessionManager():
         maker.add_segmentation_mesh(cloud_volume.layer_cloudpath, mip=0)
         return folder_name
     
-    def fetch_color_by_label(self, label):
+    @staticmethod
+    def fetch_color_by_label(label):
+        """
+        Fetches the color associated with a given label.
+
+        Args:
+            label (str): The label for which to fetch the color.
+
+        Returns:
+            int: The color associated with the label. If the label is not found in the `allen_structures` dictionary,
+                 the default color is returned.
+
+        """
         allen_structures = {
             'SC': 851,
             'IC': 811,
