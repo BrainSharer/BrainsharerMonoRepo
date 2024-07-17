@@ -4,14 +4,37 @@ import os
 from cloudvolume import CloudVolume
 import cv2
 from scipy.interpolate import splev, splprep
+from django.db.models import Count
 
 from brain.models import ScanRun
 from neuroglancer.contours.ng_segment_maker import NgConverter
-from neuroglancer.models import AnnotationSession
+from neuroglancer.models import AnnotationLabel, AnnotationSession
+from neuroglancer.models import DEBUG
 
 
 M_UM_SCALE = 1000000
 COLOR = 1
+
+def get_exact_match(model_class, m2m_field, ids):
+    """
+    Retrieves instances of the given `model_class` that have an exact match
+    for the provided `ids` in the many-to-many field `m2m_field`.
+    https://stackoverflow.com/questions/5301996/how-to-do-many-to-many-django-query-to-find-book-with-2-given-authors
+
+    Args:
+        model_class (class): The model class to query.
+        m2m_field (str): The name of the many-to-many field to filter on.
+        ids (list): A list of IDs to match in the many-to-many field.
+
+    Returns:
+        QuerySet: A queryset containing instances of `model_class` that have
+        an exact match for the provided `ids` in the many-to-many field `m2m_field`.
+    """
+    query = model_class.objects.annotate(count=Count(m2m_field))\
+                .filter(count=len(ids))
+    for _id in ids:
+        query = query.filter(**{m2m_field: _id})
+    return query
 
 def get_session(request_data: dict):
     """
@@ -24,16 +47,45 @@ def get_session(request_data: dict):
         AnnotationSession: The retrieved annotation session.
 
     """
-    animal = request_data.get('animal')
-    label = request_data.get('label')
-    annotator = request_data.get('annotator')
-    
-    annotation_session = AnnotationSession.objects.filter(active=True)\
-        .filter(label=label)\
-        .filter(animal=animal)\
-        .filter(annotator=annotator)\
-        .order_by('-created').first()
+    annotation_session = None
+    if 'id' in request_data and isinstance(request_data.get('id'), str) and request_data.get('id').isdigit():
+        ## We simply get the annotation session based on its ID
+        id = int(request_data.get('id'))
+        try:
+            annotation_session = AnnotationSession.objects.get(pk=id)
+        except AnnotationSession.DoesNotExist:
+            annotation_session = None
+
+    if annotation_session is not None:
+        return annotation_session
+    else:
+        animal = request_data.get('animal')
+        label = request_data.get('label')
+        annotator = request_data.get('annotator')
+        annotation_session = None
+
+        labels = label.split('\n')
+        if DEBUG:
+            print(f'labels: {labels} type={type(labels)} len={len(labels)}')
+
+        try:
+            label_objects = AnnotationLabel.objects.filter(label__in=labels)
+        except AnnotationLabel.DoesNotExist:
+            print('error')
+
+        label_ids = [label.id for label in label_objects]
+
+        matches = get_exact_match(AnnotationSession, 'labels', label_ids)
+
+        annotation_session = matches.filter(active=True)\
+            .filter(animal=animal)\
+            .filter(annotator=annotator)\
+            .order_by('-created').first()
         
+        if DEBUG:
+            print(f"get_session: animal: {animal}, label: {label}, annotator: {annotator} label IDS: {label_ids}")
+
+            
     return annotation_session
 
 

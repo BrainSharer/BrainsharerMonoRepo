@@ -1,13 +1,13 @@
 from django.urls import path, include
-from neuroglancer.views import GetAnnotation, GetLabels, NeuroglancerViewSet, NeuroglancerPublicViewSet,  \
+from neuroglancer.views import GetAnnotation, GetLabels, NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
     SearchAnnotations, SearchLabels, annotation_session_api, create_state, Rotation, Segmentation
 
 from rest_framework import routers
 app_name = 'neuroglancer'
 
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'neuroglancer', NeuroglancerViewSet, basename='neuroglancer') # private portal data
-router.register(r'neuroglancer/', NeuroglancerViewSet, basename='neuroglancer') # private portal data
+router.register(r'neuroglancer', NeuroglancerPrivateViewSet, basename='neuroglancer') # private portal data
+router.register(r'neuroglancer/', NeuroglancerPrivateViewSet, basename='neuroglancer') # private portal data
 router.register(r'neuroglancers', NeuroglancerPublicViewSet, basename='neuroglancers') # public data
 
 annotation_urls = [

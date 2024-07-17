@@ -93,23 +93,16 @@ class GetAnnotation(views.APIView):
 def annotation_session_api(request):
 
     if request.method == 'POST':
-        if 'label' in request.data and isinstance(request.data.get('label'), str):
-            ## We need to look up the label ID
-            label = request.data.get('label')
-            try:
-                label_obj = AnnotationLabel.objects.get(label=label)
-            except AnnotationLabel.DoesNotExist:
-                return Response({"Error": f"Label: {label} does not exist"}, status=status.HTTP_404_NOT_FOUND)
-
-            request.data['label'] = label_obj.id
-
         ## check if there is an already existing annotation session.
         existing_session = get_session(request.data)
         if existing_session is None:
-            # No existing session found, so we'll insert a new one
+            if DEBUG:
+                print('No existing session found, so insert a new one')
             serializer = AnnotationModelSerializer(data=request.data)
         else:
-            # We found a session so we will update it
+            if DEBUG:
+                print('We found a session so we will update it')
+
             serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=True)
 
         if serializer.is_valid():
@@ -207,6 +200,7 @@ class Rotations(views.APIView):
 
     def get(self, request, format=None):
         data = []
+        """
         coms = StructureCom.objects.order_by('annotation_session')\
             .values('annotation_session__animal__prep_id', 'label', 'source').distinct()
         for com in coms:
@@ -215,6 +209,7 @@ class Rotations(views.APIView):
                 "label": com['label'],
                 "source": com['source'],
             })
+        """
         serializer = RotationSerializer(data, many=True)
         return Response(serializer.data)
 
@@ -284,10 +279,12 @@ class NeuroglancerPublicViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-class NeuroglancerViewSet(viewsets.ModelViewSet):
+class NeuroglancerPrivateViewSet(viewsets.ModelViewSet):
     """
     A viewset for viewing and editing user instances.
     """
+    permission_classes = [permissions.IsAuthenticated]
+
     serializer_class = NeuroglancerStateSerializer
     queryset = NeuroglancerState.objects.all()
 

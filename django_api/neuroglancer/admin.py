@@ -216,11 +216,19 @@ class PointsAdmin(admin.ModelAdmin):
 class AnnotationSessionAdmin(AtlasAdminModel):
     """Administer the annotation session data.
     """
-    list_display = ['animal', 'annotator', 'label',
-                    'show_points_without_link', 'label_type', 'created', 'updated']
-    ordering = ['animal', 'label__label_type', 'created', 'annotator']
-    list_filter = ['label__label_type', 'created', 'updated']
-    search_fields = ['animal__prep_id', 'label__label_type', 'label__label', 'annotator__first_name']
+    list_display = ['animal', 'get_labels', 'annotation_type', 'annotator', 'created', 'updated']
+    ordering = ['animal', 'created', 'annotator']
+    list_filter = ['created', 'updated']
+    search_fields = ['animal__prep_id', 'annotator__first_name']
+    readonly_fields = ['created', 'updated', 'annotation_type']
+
+
+    def get_labels(self, obj):
+        # for the many to many case 
+        labs = "\n".join([p.label for p in obj.labels.all()])
+        return labs
+
+
 
     def label_type(self, obj):
         """Returns the label type of the annotation session.
