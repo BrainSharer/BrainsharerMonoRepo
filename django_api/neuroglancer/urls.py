@@ -1,6 +1,6 @@
 from django.urls import path, include
-from neuroglancer.views import GetAnnotation, GetLabels, NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
-    SearchAnnotations, SearchLabels, annotation_session_api, create_state, Rotation, Segmentation
+from neuroglancer.views import NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
+    create_state, Rotation, Segmentation, get_annotation, get_labels, new_annotation, search_annotation, save_annotation, search_label
 
 from rest_framework import routers
 app_name = 'neuroglancer'
@@ -11,15 +11,16 @@ router.register(r'neuroglancer/', NeuroglancerPrivateViewSet, basename='neurogla
 router.register(r'neuroglancers', NeuroglancerPublicViewSet, basename='neuroglancers') # public data
 
 annotation_urls = [
-    path('annotations/search', SearchAnnotations.as_view(), name='search_annotations'),
-    path('annotations/search/', SearchAnnotations.as_view(), name='search_annotations'),
-    path('annotations/search/<str:search_string>', SearchAnnotations.as_view(), name='search_annotations'),
-    path('annotations/<int:session_id>', GetAnnotation.as_view(), name='get_annotations'),
-    path('annotations/labels', GetLabels.as_view(), name='search_labels'),
-    path('annotations/labels/', SearchLabels.as_view(), name='search_labels'),
-    path('annotations/labels/<str:search_string>', SearchLabels.as_view(), name='search_labels'),
-    path('annotations/', annotation_session_api, name='annotation_model_session'),
+    path('annotations/labels', get_labels, name='get_labels'),
+    path('annotations/labels/', search_label, name='search_labels'),
+    path('annotations/labels/<str:search_string>', search_label, name='search_labels'),
     path('annotations/segmentation/<int:session_id>', Segmentation.as_view(),name = 'create_segmentation'),
+    path('annotations/<int:session_id>', get_annotation, name='annotation_session_get'),
+    path('annotations/new/', new_annotation, name='annotation_session_new'),
+    path('annotations/save/', save_annotation, name='annotation_session_save'),
+    path('annotations/search', search_annotation, name='search_annotations'),
+    path('annotations/search/', search_annotation, name='search_annotations'),
+    path('annotations/search/<str:search_string>', search_annotation, name='search_annotations'),
 ]
 
 general_urls = [
@@ -27,12 +28,4 @@ general_urls = [
     path('createstate', create_state)
 ]
 
-transformation_relate_urls = [ 
-    path('rotation/<str:prep_id>/<int:annotator_id>/<str:source>/', Rotation.as_view()),
-    path('rotation/<str:prep_id>/<int:annotator_id>/<str:source>/<int:reverse>', Rotation.as_view()),
-    path('rotation/<str:prep_id>/<int:annotator_id>/<str:source>/<str:reference_scales>', Rotation.as_view()),
-    path('rotation/<str:prep_id>/<int:annotator_id>/<str:source>/<int:reverse>/<str:reference_scales>', Rotation.as_view())
-]
-
-
-urlpatterns = annotation_urls + general_urls + transformation_relate_urls
+urlpatterns = annotation_urls + general_urls

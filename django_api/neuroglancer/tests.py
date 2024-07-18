@@ -1,31 +1,24 @@
 import json
-import numpy as np
-import random
 from rest_framework import status
 from django.test import Client, TestCase
-from django.db.models import Count
-from django.apps import apps
+from rest_framework.test import APIClient
 
 from authentication.models import User
 from brain.models import Animal, ScanRun
-from neuroglancer.models import AnnotationSession, NeuroglancerState, BrainRegion, LAUREN_ID, CellType
-from neuroglancer.contours.annotation_layer import random_string
+from neuroglancer.models import AnnotationSession, LAUREN_ID, AnnotationLabel
 
 
 class TestSetUp(TestCase):
     client = Client()
 
     def setUp(self):
-        self.coms = [1,2,4,5,8,9,10,11,12,13,19,20,22,23,28,29,44,45,18,17,27,26]
-        self.cell_type = CellType.objects.first()
-        self.brain_region = BrainRegion.objects.first()
         self.username = 'beth'
         self.annotator_username = 'beth'
         self.annotator_id = 2
-        self.prep_id = 'DK39'
+        self.prep_id = 'MD589'
         self.atlas_name = 'Atlas'
-        self.annotation_type = 'POLYGON_SEQUENCE'
-        self.label = random_string()
+        self.label = 'SC'
+        self.annotation_session_id = 7927
         # annotator
         try:
             query_set = User.objects.filter(username=self.annotator_username)
@@ -78,289 +71,135 @@ class TestSetUp(TestCase):
                                                    number_of_slides=100)
         if query_set is not None and len(query_set) > 0:
             self.scan_run = query_set[0]
-        # brain_region    
+
+        # label
         try:
-            query_set = BrainRegion.objects.filter(abbreviation='point')
-        except BrainRegion.DoesNotExist:
-            self.brain_region = None
+            query_set = AnnotationLabel.objects.filter(label=self.label)
+        except AnnotationLabel.DoesNotExist:
+            print(f'Cannot find label {self.label}')
+
         if query_set is not None and len(query_set) > 0:
-            self.brain_region = query_set[0]
-        else:
-            self.brain_region = BrainRegion.objects.create(abbreviation='point')
+            self.annotation_label = query_set[0]
 
         
         # annotation session brain
         query_set = AnnotationSession.objects \
             .filter(animal=self.animal)\
-            .filter(brain_region=self.brain_region)\
-            .filter(annotator=self.annotator)\
-            .filter(annotation_type=self.annotation_type)
+            .filter(labels=self.annotation_label)\
+            .filter(annotator=self.annotator)
+
 
         if query_set is not None and len(query_set) > 0:
             self.annotation_session = query_set[0]
         else:
             self.annotation_session = AnnotationSession.objects.create(\
                 animal=self.animal,
-                brain_region=self.brain_region,
-                annotator=self.lauren,
-                annotation_type=self.annotation_type
+                labels=self.label,
+                annotator=self.lauren
                 )
         
 
         self.reverse=1
-        self.COMsource = 'MANUAL'
         self.reference_scales = '10,10,20'
 
 
 
-class TestTransformation(TestSetUp):
-    """A class for testing the rotations/transformations
-    """
-
-    def assert_rotation_is_not_identity(self,response):
-        data = str(response.content, encoding='utf8')
-        data = json.loads(data)
-        translation = data['translation']
-        s = np.sum(translation)
-        self.assertNotEqual(s, 0.0, msg="Translation is not equal to zero")
-    
-    def test_rotation_list(self):
-        """Test the API that returns the list of available transformations
-
-        URL = /rotations
-
-        """
-        response = self.client.get(f"/rotations")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreater(len(response.data), 0)
-
-    def test_get_rotation(self):
-        """Test the API that returns the list of available transformations
-        path('rotation/<str:prep_id>/<int:annotator_id>/<str:source>/'
-        URL = /rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/
-
-        """
-        command = f"/rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/"
-        response = self.client.get(command)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assert_rotation_is_not_identity(response)
-
-    def test_get_rotation_inverse(self):
-        """Test the API that returns the list of available transformations
-
-        URL = /rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reverse}
-
-        """
-        response = self.client.get(f"/rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reverse}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assert_rotation_is_not_identity(response)
-    
-    def test_get_rotation_rescale(self):
-        """Test the API that returns the list of available transformations
-
-        URL = /rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reference_scales}
-
-        """
-        response = self.client.get(f"/rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reference_scales}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assert_rotation_is_not_identity(response)
-    
-    def test_get_rotation_inverse_rescale(self):
-        """Test the API that returns the list of available transformations
-
-        URL = /rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reverse}/{self.reference_scales}
-
-        """
-        response = self.client.get(f"/rotation/{self.prep_id}/{self.annotator_id}/{self.COMsource}/{self.reverse}/{self.reference_scales}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assert_rotation_is_not_identity(response)
-   
-    def test_rotation_url_with_bad_animal(self):
-        """Test the API that retrieves a specific transformation for a nonexistant animal and checks that the identity transform is returned
-
-        URL = /rotation/XXX/2/MANUAL/
-
-        """
-        response = self.client.get("/rotation/XXX/2/MANUAL/")
-        data = str(response.content, encoding='utf8')
-        data = json.loads(data)
-        translation = data['translation']
-        s = np.sum(translation)
-        self.assertEqual(s, 0, msg="Translation is equal to zero")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
 class TestAnnotations(TestSetUp):
     """A class for testing the annotations
+    path('annotations/labels', get_labels, name='get_labels'),
+    path('annotations/labels/', search_label, name='search_labels'),
+    path('annotations/labels/<str:search_string>', search_label, name='search_labels'),
+    path('annotations/segmentation/<int:session_id>', Segmentation.as_view(),name = 'create_segmentation'),
+    path('annotations/<int:session_id>', get_annotation, name='annotation_session_get'),
+    path('annotations/new/', new_annotation, name='annotation_session_new'),
+    path('annotations/save/', save_annotation, name='annotation_session_save'),
+    path('annotations/search', search_annotation, name='search_annotations'),
+    path('annotations/search/', search_annotation, name='search_annotations'),
+    path('annotations/search/<str:search_string>', search_annotation, name='search_annotations'),
+
     """
-
-    def find_biggest_id(self, annotation_model='MarkedCell'):
-        model = apps.get_model('neuroglancer', annotation_model)
-        results = (model.objects.filter(annotation_session__neuroglancer_model__id__isnull=False)\
-                .values('annotation_session__id', 'annotation_session__neuroglancer_model__id')\
-                .annotate(dcount=Count('annotation_session__id'))\
-                .order_by('-dcount'))
-        if len(results) > 0:
-            results = results[0]
-        else:
-            return 0,0,0
-        session_id = results['annotation_session__id']
-        state_id = results['annotation_session__neuroglancer_model__id']
-        dcount = results['dcount']
-        return session_id, state_id, dcount
-
-
-    def delete_random_rows(self, annotation_model, session_id, predelete):
-        model = apps.get_model('neuroglancer', annotation_model)
-        deleterows = random.randint(1, predelete)
-        ids = list(model.objects.filter(annotation_session__id=session_id).values_list('pk', flat=True))
-        ids = random.sample(ids, deleterows)
-        model.objects.filter(pk__in=ids).delete()
-        return len(ids)
-
-    def check_row_count(self, annotation_model, session_id):
-        model = apps.get_model('neuroglancer', annotation_model)
-        rows = model.objects.filter(annotation_session__id=session_id)
-        return len(rows)
-
-    def create_url(self, annotation_model):
-        session_id, state_id, dcount = self.find_biggest_id(annotation_model=annotation_model)
-        if session_id > 0:
-            data = NeuroglancerState.objects.get(pk=state_id)
-            json_txt = data.neuroglancer_state
-            layers = json_txt['layers']
-            for layer in layers:
-                if 'annotations' in layer:
-                    layer_name = layer['name']
-                    break
-
-            url = f"http://localhost:8000/save_annotations/{state_id}/{layer_name}"
-            return url, session_id, dcount
-        else:
-            return None, None, None
-
-    '''
-    def test_get_big_marked_cell(self):
-        """Test the API that returns a volume
-        URL = /get_volume/{session_id}
-        """
-
-        session_id, state_id, dcount = self.find_biggest_id('MarkedCell')
-        response = self.client.get(f"/get_marked_cell/{session_id}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-    '''
-
-    def test_get_big_volume(self):
-        """Test the API that returns a volume
-        URL = /get_volume/{session_id}
-        """
-
-        session_id, state_id, dcount = self.find_biggest_id('PolygonSequence')
-        response = self.client.get(f"/get_volume/{session_id}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
     
-    def test_get_com(self):
-        """Test the API that returns coms
-        URL = /get_com/{self.prep_id}/{self.annotator_id}/{self.COMsource}
+    def test_get_label(self):
+        """Test the API that returns labels
         """
-
-        response = self.client.get(f"/get_com/{self.prep_id}/{self.annotator_id}/{self.COMsource}")
+        response = self.client.get("/annotations/labels")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_save_marked_cells(self):
-        """Test saving annotations.        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
+    def test_get_label_empty(self):
+        """Test the API that returns labels, like above
         """
-        model = 'MarkedCell'
-        url, session_id, dcount = self.create_url(annotation_model=model)
-        predelete = self.check_row_count(model, session_id=session_id)
-        deletedrows = self.delete_random_rows(model, session_id, dcount)
-        postdelete = self.check_row_count(model, session_id=session_id)
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        postsave = self.check_row_count(model, session_id=session_id)
-        self.assertEqual(predelete, postsave)
-        self.assertEqual(predelete, deletedrows + postdelete)
-
-
-
-    def test_save_structure_com(self):
-        """Test saving annotations.        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
-        """
-        model = 'StructureCom'
-        url, session_id , dcount = self.create_url(annotation_model=model)
-        if url is not None:
-            pre = self.check_row_count(model, session_id=session_id)
-            response = self.client.get(url)
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            post = self.check_row_count(model, session_id=session_id)
-            self.assertEqual(pre, post)
-
-    '''
-    def test_save_volume(self):
-        """Test saving annotations.        
-        URL = /save_annotations/<int:neuroglancer_state_id>/<str:annotation_layer_name>
-        """
-        model = 'PolygonSequence'
-        url, session_id, dcount = self.create_url(annotation_model=model)
-        predelete = self.check_row_count(model, session_id=session_id)
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        postsave = self.check_row_count(model, session_id=session_id)
-        self.assertEqual(predelete, postsave)
-    '''
-
-
-    def test_get_volume_list(self):
-        """Test the API that returns the list of volumes
-
-        URL = /get_volume_list
-
-        """
-        response = self.client.get(f"/get_volume_list")
+        response = self.client.get("/annotations/labels/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_get_com_list(self):
-        """Test the API that returns the list of coms
-
-        URL = /get_com_list
-
+    def test_search_labels(self):
+        """Test the API that returns a new layer
         """
-        response = self.client.get(f"/get_com_list")
+        response = self.client.get(f"/annotations/labels/{self.label}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_get_marked_cell_list(self):
-        """Test the API that returns the list of marked cell
-
-        URL = /get_marked_cell_list
-
+    def test_segmentation(self):
+        """Test the API that returns a new layer
         """
-        response = self.client.get(f"/get_marked_cell_list")
+        response = self.client.get(f"/annotations/segmentation/{self.annotation_session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-class TestNeuroglancer(TestSetUp):
-    """URLs taken from neuroglancer/urls.py. 
-    We should have one test per url.    
-    """
-
-    def test_neuroglancer_url(self):
-        """tests the API that returns the list of available neuroglancer states
-        
-        URL = /neuroglancer
-
+    def test_get_annotation(self):
+        """Test the API that returns labels
         """
-        response = self.client.get("/neuroglancer")
+        response = self.client.get(f"/annotations/{self.annotation_session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_get_landmark_list(self):
-        """tests the API that returns the list of available neuroglancer states
-        
-        URL = /landmark_list
-
+    def test_search_labels_no_ending_slash(self):
+        """Test the API that returns a new layer
         """
-        response = self.client.get("/landmark_list")
+        response = self.client.get("/annotations/search")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_brain_region_count(self):
-        n = BrainRegion.objects.count()
-        self.assertGreater(n, 0, msg='Error: Brain region table is empty')
+    def test_search_labels_ending_slash(self):
+        """Test the API that returns a new layer
+        """
+        response = self.client.get("/annotations/search/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    ## Now do the posts
+    def test_wrong_method_on_annotations_new(self):
+        """Test the API that returns a new layer
+        """
+        response = self.client.get("/annotations/new/")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_wrong_method_on_annotations_save(self):
+        """Test the API that returns a new layer
+        """
+        response = self.client.get("/annotations/save/")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_annotations_new_id(self):
+        """Test the API that creates a new annotation session
+        """
+        data = {"id": str(self.annotation_session_id), "label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
+        client = APIClient()
+        response = client.post('/annotations/new/', data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_annotations_new_noid(self):
+        """Test the API that creates a new annotation session
+        """
+        data = {"label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
+        client = APIClient()
+        response = client.post('/annotations/new/', data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_annotations_save(self):
+        """Test the API that updates an existing annotation session
+        """
+        data = {"id": str(self.annotation_session_id), "label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
+        client = APIClient()
+        response = client.post('/annotations/save/', data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+

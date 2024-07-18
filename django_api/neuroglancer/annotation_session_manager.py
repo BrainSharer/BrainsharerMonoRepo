@@ -15,6 +15,20 @@ from neuroglancer.models import DEBUG
 M_UM_SCALE = 1000000
 COLOR = 1
 
+def get_label_ids(label: str):
+
+    labels = label.split('\n')
+    if DEBUG:
+        print(f'labels: {labels} type={type(labels)} len={len(labels)}')
+
+    try:
+        label_objects = AnnotationLabel.objects.filter(label__in=labels)
+    except AnnotationLabel.DoesNotExist:
+        return []
+
+    return [label.id for label in label_objects]
+
+
 def get_exact_match(model_class, m2m_field, ids):
     """
     Retrieves instances of the given `model_class` that have an exact match
@@ -124,7 +138,8 @@ class AnnotationSessionManager():
         self.downsample_factor = self.isotropic / self.resolution 
         self.zresolution = self.isotropic
         self.label = label
-        self.color = self.fetch_color_by_label(label)
+
+        self.color = self.fetch_color_by_label(self.label)
 
 
     def create_polygons(self, data: dict):

@@ -16,7 +16,7 @@ import logging
 
 from brain.models import ScanRun
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.annotation_session_manager import AnnotationSessionManager, get_session
+from neuroglancer.annotation_session_manager import AnnotationSessionManager, get_label_ids, get_session
 from neuroglancer.atlas import align_atlas, get_scales
 from neuroglancer.models import AnnotationLabel, AnnotationSession, \
     NeuroglancerState, BrainRegion, SearchSessions, CellType
@@ -31,62 +31,115 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
-class GetLabels(views.APIView):
-    def get(self, request, format=None):
-        cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
-        brain_regions = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
-        cell_types = [{"id": row.id, "label_type": "cell", "label": row.cell_type} for row in cell_types]            
-        brain_regions = [{"id": row.id, "label_type": "brain_region", "label": row.abbreviation} for row in brain_regions]            
-        serializer = LabelSerializer(cell_types + brain_regions, many=True)
-        return Response(serializer.data)
+@api_view(['GET'])
+def get_labels(request):
+    cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
+    brain_regions = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
+    cell_types = [{"id": row.id, "label_type": "cell", "label": row.cell_type} for row in cell_types]            
+    brain_regions = [{"id": row.id, "label_type": "brain_region", "label": row.abbreviation} for row in brain_regions]            
+    serializer = LabelSerializer(cell_types + brain_regions, many=True)
+    return Response(serializer.data)
 
-class SearchLabels(views.APIView):
-    def get(self, request, search_string=None, format=None):
-        data = []
-        if search_string:
-            cell_types = CellType.objects\
-                .filter(cell_type__icontains=search_string).order_by('cell_type').distinct()
-            brain_regions = BrainRegion.objects\
-                .filter(abbreviation__icontains=search_string).order_by('abbreviation').distinct()
+@api_view(['GET'])
+def search_label(request, search_string=None):
+    data = []
+    if search_string:
+        cell_types = CellType.objects\
+            .filter(cell_type__icontains=search_string).order_by('cell_type').distinct()
+        brain_regions = BrainRegion.objects\
+            .filter(abbreviation__icontains=search_string).order_by('abbreviation').distinct()
 
-            for row in cell_types:
-                data.append({"id": row.id, "label_type": "cell", "label": row.cell_type})
-            for row in brain_regions:
-                data.append({"id": row.id, "label_type": "brain_region", "label": row.abbreviation})
-            
-        serializer = LabelSerializer(data, many=True)
-        return Response(serializer.data)
+        for row in cell_types:
+            data.append({"id": row.id, "label_type": "cell", "label": row.cell_type})
+        for row in brain_regions:
+            data.append({"id": row.id, "label_type": "brain_region", "label": row.abbreviation})
+        
+    serializer = LabelSerializer(data, many=True)
+    return Response(serializer.data)
 
-class SearchAnnotations(views.APIView):
-    def get(self, request, search_string=None, format=None):
-        data = []
-        if search_string:
-            rows = SearchSessions.objects\
-                .filter(animal_abbreviation_username__icontains=search_string).order_by('animal_abbreviation_username').distinct()
+@api_view(['GET'])
+def search_annotation(request, search_string=None):
+    data = []
+    if search_string:
+        rows = SearchSessions.objects\
+            .filter(animal_abbreviation_username__icontains=search_string).order_by('animal_abbreviation_username').distinct()
 
-            for row in rows:
-                data.append({
-                    "id": row.id,
-                    "animal_abbreviation_username": row.animal_abbreviation_username,
-                })
-            
-        serializer = AnnotationSessionSerializer(data, many=True)
-        return Response(serializer.data)
-
-class GetAnnotation(views.APIView):
-    def get(self, request, session_id, format=None):
-        session = {}
-        if session_id:
-            try:
-                data = AnnotationSession.objects.get(pk=session_id)
-            except AnnotationSession.DoesNotExist:
-                return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
-            session['id'] = data.id
-            session['annotation'] = data.annotation
+        for row in rows:
+            data.append({
+                "id": row.id,
+                "animal_abbreviation_username": row.animal_abbreviation_username,
+            })
+        
+    serializer = AnnotationSessionSerializer(data, many=True)
+    return Response(serializer.data)
 
 
-        serializer = AnnotationSessionDataSerializer(session, many=False)
-        return Response(serializer.data)
+@api_view(['GET'])
+def get_annotation(request, session_id):
+    
+    session = {}
+    if session_id:
+        try:
+            data = AnnotationSession.objects.get(pk=session_id)
+        except AnnotationSession.DoesNotExist:
+            return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        session['id'] = data.id
+        session['annotation'] = data.annotation
+
+    serializer = AnnotationSessionDataSerializer(session, many=False)
+    return Response(serializer.data)
+    
+
+@api_view(['POST'])
+def new_annotation(request):
+    """This is a simple method to create a new annotation session for scenario 1 and 3
+    URL = /annotations/new/
+    """
+    
+    if 'id' in request.data:
+        del request.data['id']
+    if 'label' not in request.data:
+        return Response({"detail": "Label is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    label_ids = get_label_ids(request.data.get('label'))
+    request.data.update({'labels': label_ids})
+
+    serializer = AnnotationModelSerializer(data=request.data)
+
+    # check to make sure the serializer is valid, if so return the ID, if not, return error code.
+    if serializer.is_valid():
+        serializer.save()
+        return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def save_annotation(request):
+    """This is a simple method to update annotation session for scenario 2
+    URL = /annotations/save/
+    """
+
+    if 'id' in request.data and request.data.get('id').isdigit():
+        ## We simply get the annotation session based on its ID
+        id = int(request.data.get('id'))
+        try:
+            existing_session = AnnotationSession.objects.get(pk=id)
+        except AnnotationSession.DoesNotExist:
+            return Response({"detail": f"Annotation data does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        label_ids = get_label_ids(request.data.get('label'))
+        request.data.update({'labels': label_ids})
+
+        serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=False)
+        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'id': serializer.data.get('id')}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    else:
+        return Response({"detail": "Could not get ID from POST"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST', 'PATCH'])
@@ -146,7 +199,8 @@ class Segmentation(views.APIView):
         except ScanRun.DoesNotExist:
             return Response({"msg": f"Scan run data does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-        annotation_session_manager = AnnotationSessionManager(scan_run, annotationSession.label)
+        label = annotationSession.labels.first()
+        annotation_session_manager = AnnotationSessionManager(scan_run, label)
         polygons = annotation_session_manager.create_polygons(annotationSession.annotation)
         if not isinstance(polygons, dict):
             return Response({"msg": polygons}, status=status.HTTP_404_NOT_FOUND)
@@ -155,7 +209,7 @@ class Segmentation(views.APIView):
         if volume is None or volume.shape[0] == 0:
             return Response({"msg": "Volume could not be created"}, status=status.HTTP_404_NOT_FOUND)        
         folder_name = annotation_session_manager.create_segmentation_folder(volume, annotationSession.animal, 
-                                                 annotationSession.label, origin.tolist())
+                                                 label, origin.tolist())
         segmentation_save_folder = f"precomputed://{settings.HTTP_HOST}/structures/{folder_name}"
         if DEBUG:
             end_time = timer()
