@@ -5,18 +5,19 @@ INNER JOIN annotation_session_labels ASL ON (AS2.id = ASL.annotationsession_id A
 inner join auth_user AU ON AS2.FK_user_id = AU.id
 WHERE 1=1 
 -- and asl.annotationlabel_id in (16)
-and AS2.FK_user_id=38
+and AS2.FK_user_id=1
 -- and AL.label_type = 'cell'
 -- and AL.label like 'Round3_Unsure_2000'
-and ASL.annotationlabel_id in (24,97)
--- and as2.annotation like '%volume%'
-and AS2.FK_prep_id = 'DK41'
--- and AS2.id = 7226
+-- and ASL.annotationlabel_id in (24,97)
+and AS2.annotation like '%volume%'
+-- and AL.label like '%C%'
+and AS2.FK_prep_id = 'MD585'
+-- and AS2.id = 8093
 and AS2.active = 1
 group by AS2.id
 ORDER BY AS2.FK_prep_id, AL.label; 
 
-select * from annotation_session_labels where annotationsession_id = 7226;
+select * from annotation_session_labels where annotationsession_id = 8092;
 
 
 select * from annotation_label al
@@ -84,3 +85,14 @@ from annotation_session as2
 inner join annotation_session_labels ASL on as2.id = ASL.annotationsession_id
 inner join annotation_label al on ASL.annotationlabel_id = al.id
 where as2.id = 4059;
+
+desc annotation_session;
+
+select *
+from annotation_session as2 
+inner join auth_user au on as2.FK_user_id = au.id
+inner join annotation_label al on as2.FK_label_id ;
+
+
+select *
+from annotation_session_labels;

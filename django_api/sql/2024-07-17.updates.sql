@@ -53,6 +53,11 @@ INNER JOIN annotation_label al ON mc.source = al.label
 WHERE as2.active = 1
 ORDER BY as2.id; 
 
+desc annotation_session;
+ALTER TABLE annotation_session DROP COLUMN annotation_type;
+ALTER TABLE annotation_session DROP COLUMN FK_state_id;
+-- ALTER TABLE annotation_session ADD COLUMN label VARCHAR(255) NOT NULL AFTER FK_prep_id;
+
 
 
 -- finished adds, drops and alters
