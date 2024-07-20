@@ -1,6 +1,6 @@
 from django.urls import path, include
 from neuroglancer.views import AnnotationPrivateViewSet, NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
-    create_state, Rotation, Segmentation, get_annotation, get_labels, new_annotation, search_annotation, save_annotation, search_label
+    create_state, Segmentation, get_labels, search_annotation, search_label
 
 from rest_framework import routers
 app_name = 'neuroglancer'

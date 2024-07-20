@@ -4,24 +4,21 @@
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 import logging
-from neuroglancer.models import AnnotationSession, NeuroglancerState
+from neuroglancer.models import AnnotationLabel, AnnotationSession, NeuroglancerState
 from authentication.models import User
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
-class AnnotationSerializer(serializers.Serializer):
-    """This one feeds the data import of annotations.
-    """
-    id = serializers.CharField()
-    point = serializers.ListField()
-    type = serializers.CharField()
-    description = serializers.CharField()
-
 class AnnotationModelSerializer(serializers.ModelSerializer):
     class Meta:
         model=AnnotationSession
+        fields='__all__'
+
+class AnnotationLabelModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=AnnotationLabel
         fields='__all__'
 
 class AnnotationSessionDataSerializer(serializers.Serializer):
@@ -39,71 +36,11 @@ class AnnotationSessionSerializer(serializers.Serializer):
     animal_abbreviation_username = serializers.CharField()
 
 
-class PolygonSerializer(serializers.Serializer):
-    """This class serializes the polygons that are created in Neuroglancer.
-    """
-    source = serializers.ListField(required=False)
-    pointA = serializers.ListField(required=False)
-    pointB = serializers.ListField(required=False)
-    childAnnotationIds = serializers.ListField(required=False)
-    type = serializers.CharField()
-    id = serializers.CharField()
-    parentAnnotationId = serializers.CharField(required=False)
-    description = serializers.CharField(required=False)
-    props = serializers.ListField()
-
-class ComListSerializer(serializers.Serializer):
-    """This one feeds the dropdown in Neuroglancer.
-    """
-    prep_id = serializers.CharField()
-    annotator = serializers.CharField()
-    annotator_id = serializers.CharField()
-    source = serializers.CharField()
-    count = serializers.CharField()
-
-class MarkedCellListSerializer(serializers.Serializer):
-    """This one feeds the marked cell dropdown in Neuroglancer.
-    """
-    session_id = serializers.CharField()
-    prep_id = serializers.CharField()
-    annotator = serializers.CharField()
-    source = serializers.CharField()
-    cell_type = serializers.CharField()
-    cell_type_id = serializers.CharField()
-    structure = serializers.CharField()
-    structure_id = serializers.CharField()
-
-class PolygonListSerializer(serializers.Serializer):
-    """This one feeds the dropdown for importing within Neuroglancer.
-    """
-    session_id = serializers.CharField()
-    prep_id = serializers.CharField()
-    annotator = serializers.CharField()
-    brain_region = serializers.CharField()
-
-class BrainRegionSerializer(serializers.Serializer):
-    """A serializer class for the brain region model."""
-    id = serializers.IntegerField()
-    abbreviation = serializers.CharField()
-
-class CellTypeSerializer(serializers.Serializer):
-    """A serializer class for the brain region model."""
-    id = serializers.IntegerField()
-    cell_type = serializers.CharField()
-
 class LabelSerializer(serializers.Serializer):
     """A serializer class for the brain region model."""
     id = serializers.IntegerField()
     label_type = serializers.CharField()
     label = serializers.CharField()
-
-class RotationSerializer(serializers.Serializer):
-    """A serializer class for the rotations/transformations used in the alignment
-    tool in Neuroglancer.
-    """
-    prep_id = serializers.CharField()
-    label = serializers.CharField()
-    source = serializers.CharField()
 
 class NeuroglancerNoStateSerializer(serializers.ModelSerializer):
     """Override method of entering a url into the DB.

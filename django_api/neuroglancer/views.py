@@ -16,13 +16,12 @@ from timeit import default_timer as timer
 
 from brain.models import ScanRun
 from neuroglancer.create_state_views import NeuroglancerJSONStateManager
-from neuroglancer.annotation_session_manager import AnnotationSessionManager, get_label_ids, get_session
-from neuroglancer.atlas import align_atlas, get_scales
+from neuroglancer.annotation_session_manager import AnnotationSessionManager, get_label_ids
 from neuroglancer.models import AnnotationLabel, AnnotationSession, \
-    NeuroglancerState, BrainRegion, SearchSessions, CellType
-from neuroglancer.serializers import AnnotationModelSerializer, AnnotationSessionDataSerializer, AnnotationSessionSerializer, LabelSerializer, \
-    RotationSerializer, NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
-from brainsharer.pagination import LargeResultsSetPagination
+    NeuroglancerState, SearchSessions
+from neuroglancer.serializers import AnnotationLabelModelSerializer, AnnotationModelSerializer, AnnotationSessionDataSerializer, \
+    AnnotationSessionSerializer, LabelSerializer, \
+    NeuroglancerNoStateSerializer, NeuroglancerStateSerializer
 from neuroglancer.models import DEBUG
 
 
@@ -30,26 +29,19 @@ from neuroglancer.models import DEBUG
 
 @api_view(['GET'])
 def get_labels(request):
-    cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
-    brain_regions = BrainRegion.objects.filter(active=True).order_by('abbreviation').all()
-    cell_types = [{"id": row.id, "label_type": "cell", "label": row.cell_type} for row in cell_types]            
-    brain_regions = [{"id": row.id, "label_type": "brain_region", "label": row.abbreviation} for row in brain_regions]            
-    serializer = LabelSerializer(cell_types + brain_regions, many=True)
+    labels = AnnotationLabel.objects.filter(active=True).order_by('label_type').order_by('label').all()
+    serializer = AnnotationLabelModelSerializer(labels, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
 def search_label(request, search_string=None):
     data = []
     if search_string:
-        cell_types = CellType.objects\
-            .filter(cell_type__icontains=search_string).order_by('cell_type').distinct()
-        brain_regions = BrainRegion.objects\
-            .filter(abbreviation__icontains=search_string).order_by('abbreviation').distinct()
+        labels = AnnotationLabel.objects\
+            .filter(label__icontains=search_string).order_by('label').distinct()
 
-        for row in cell_types:
-            data.append({"id": row.id, "label_type": "cell", "label": row.cell_type})
-        for row in brain_regions:
-            data.append({"id": row.id, "label_type": "brain_region", "label": row.abbreviation})
+        for row in labels:
+            data.append({"id": row.id, "label_type": row.label_type, "label": row.label})
         
     serializer = LabelSerializer(data, many=True)
     return Response(serializer.data)
@@ -69,111 +61,6 @@ def search_annotation(request, search_string=None):
         
     serializer = AnnotationSessionSerializer(data, many=True)
     return Response(serializer.data)
-
-
-@api_view(['GET'])
-def get_annotation(request, session_id):
-    
-    session = {}
-    if session_id:
-        try:
-            data = AnnotationSession.objects.get(pk=session_id)
-        except AnnotationSession.DoesNotExist:
-            return Response({"Error": "Record does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        session['id'] = data.id
-        session['annotation'] = data.annotation
-
-    serializer = AnnotationSessionDataSerializer(session, many=False)
-    return Response(serializer.data)
-    
-
-@api_view(['POST'])
-def new_annotation(request):
-    """This is a simple method to create a new annotation session for scenario 1 and 3
-    URL = /annotations/new/
-    """
-    
-    if 'id' in request.data:
-        del request.data['id']
-    if 'label' not in request.data:
-        return Response({"detail": "Label is required"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    label_ids = get_label_ids(request.data.get('label'))
-    request.data.update({'labels': label_ids})
-
-    serializer = AnnotationModelSerializer(data=request.data)
-
-    # check to make sure the serializer is valid, if so return the ID, if not, return error code.
-    if serializer.is_valid():
-        serializer.save()
-        return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
-    else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['POST'])
-def save_annotation(request):
-    """This is a simple method to update annotation session for scenario 2
-    URL = /annotations/save/
-    """
-
-    if 'id' in request.data and request.data.get('id').isdigit():
-        ## We simply get the annotation session based on its ID
-        id = int(request.data.get('id'))
-        try:
-            existing_session = AnnotationSession.objects.get(pk=id)
-        except AnnotationSession.DoesNotExist:
-            return Response({"detail": f"Annotation data does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
-        label_ids = get_label_ids(request.data.get('label'))
-        request.data.update({'labels': label_ids})
-
-        serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=False)
-        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'id': serializer.data.get('id')}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    else:
-        return Response({"detail": "Could not get ID from POST"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['POST', 'PATCH'])
-def annotation_session_api(request):
-
-    if request.method == 'POST':
-        ## check if there is an already existing annotation session.
-        existing_session = get_session(request.data)
-        if existing_session is None:
-            if DEBUG:
-                print('No existing session found, so insert a new one')
-            serializer = AnnotationModelSerializer(data=request.data)
-        else:
-            if DEBUG:
-                print('We found a session so we will update it')
-
-            serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-    # PATCH method to partially update a person
-    elif request.method == 'PATCH':
-        obj = AnnotationSession.objects.get(pk=request.data.get('id'))
-        serializer = AnnotationModelSerializer(obj, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'data': serializer.data}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    else:    
-        return Response({'msg': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
 
 class Segmentation(views.APIView):
     """Method to create a 3D volume from existing annotation
@@ -214,67 +101,6 @@ class Segmentation(views.APIView):
             print(f'Creating segmentation took {total_elapsed_time} seconds.')
 
         return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
-
-
-def apply_scales_to_annotation_rows(rows, prep_id):
-    """To fetch the scan resolution of an animal from the database and apply it to a 
-    list of annotation rows
-
-    :param rows: list of query result from either the StructureCom, MarkedCell, 
-        or PolygonSequence table.
-    :param prep_id: string animal id
-    """
-
-    scale_xy, z_scale = get_scales(prep_id)
-    for row in rows:
-        row.x = row.x / scale_xy
-        row.y = row.y / scale_xy
-        row.z = row.z / z_scale + decimal.Decimal(0.5)
-
-class Rotation(views.APIView):
-    """A view that returns the transformation from the atlas to the image stack of one 
-    particular brain.
-    """
-
-    def get(self, request, prep_id, annotator_id, source, reverse=0, reference_scales='None', format=None):
-        data = {}
-        R, t = align_atlas(prep_id, annotator_id, source,
-                           reverse=reverse, reference_scales=eval(reference_scales))
-        data['rotation'] = R.tolist()
-        data['translation'] = t.tolist()
-        return JsonResponse(data)
-
-
-class Rotations(views.APIView):
-    """A view that returns the available set of rotations.
-    """
-
-    def get(self, request, format=None):
-        data = []
-        """
-        coms = StructureCom.objects.order_by('annotation_session')\
-            .values('annotation_session__animal__prep_id', 'label', 'source').distinct()
-        for com in coms:
-            data.append({
-                "prep_id": com['annotation_session__animal__prep_id'],
-                "label": com['label'],
-                "source": com['source'],
-            })
-        """
-        serializer = RotationSerializer(data, many=True)
-        return Response(serializer.data)
-
-
-
-class GetCellTypes(views.APIView):
-    """View that returns a list of cell types
-    """
-
-    def get(self, request, format=None):
-        data = {}
-        cell_types = CellType.objects.filter(active=True).order_by('cell_type').all()
-        data['cell_type'] = [i.cell_type for i in cell_types]
-        return JsonResponse(data)
 
 
 ##### Neuroglancer views
