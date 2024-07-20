@@ -1,5 +1,5 @@
 from django.urls import path, include
-from neuroglancer.views import NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
+from neuroglancer.views import AnnotationPrivateViewSet, NeuroglancerPrivateViewSet, NeuroglancerPublicViewSet,  \
     create_state, Rotation, Segmentation, get_annotation, get_labels, new_annotation, search_annotation, save_annotation, search_label
 
 from rest_framework import routers
@@ -15,12 +15,13 @@ annotation_urls = [
     path('annotations/labels/', search_label, name='search_labels'),
     path('annotations/labels/<str:search_string>', search_label, name='search_labels'),
     path('annotations/segmentation/<int:session_id>', Segmentation.as_view(),name = 'create_segmentation'),
-    path('annotations/<int:session_id>', get_annotation, name='annotation_session_get'),
-    path('annotations/new/', new_annotation, name='annotation_session_new'),
-    path('annotations/save/', save_annotation, name='annotation_session_save'),
     path('annotations/search', search_annotation, name='search_annotations'),
     path('annotations/search/', search_annotation, name='search_annotations'),
     path('annotations/search/<str:search_string>', search_annotation, name='search_annotations'),
+    path('annotations/api/<int:session_id>', AnnotationPrivateViewSet.as_view(), name='annotation_session_get_put'),
+    path('annotations/api/', AnnotationPrivateViewSet.as_view(), name='annotation_session_post'),
+
+
 ]
 
 general_urls = [

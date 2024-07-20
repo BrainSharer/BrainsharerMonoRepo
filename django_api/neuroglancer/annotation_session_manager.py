@@ -18,6 +18,7 @@ COLOR = 1
 def get_label_ids(label: str):
 
     labels = label.split('\n')
+    labels = [label.strip() for label in labels]
     if DEBUG:
         print(f'labels: {labels} type={type(labels)} len={len(labels)}')
 

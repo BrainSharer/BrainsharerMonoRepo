@@ -101,23 +101,11 @@ class TestSetUp(TestCase):
 
         self.reverse=1
         self.reference_scales = '10,10,20'
+        self.annotation_api_url = '/annotations/api/'
 
 
 
 class TestAnnotations(TestSetUp):
-    """A class for testing the annotations
-    path('annotations/labels', get_labels, name='get_labels'),
-    path('annotations/labels/', search_label, name='search_labels'),
-    path('annotations/labels/<str:search_string>', search_label, name='search_labels'),
-    path('annotations/segmentation/<int:session_id>', Segmentation.as_view(),name = 'create_segmentation'),
-    path('annotations/<int:session_id>', get_annotation, name='annotation_session_get'),
-    path('annotations/new/', new_annotation, name='annotation_session_new'),
-    path('annotations/save/', save_annotation, name='annotation_session_save'),
-    path('annotations/search', search_annotation, name='search_annotations'),
-    path('annotations/search/', search_annotation, name='search_annotations'),
-    path('annotations/search/<str:search_string>', search_annotation, name='search_annotations'),
-
-    """
     
     def test_get_label(self):
         """Test the API that returns labels
@@ -143,43 +131,31 @@ class TestAnnotations(TestSetUp):
         response = self.client.get(f"/annotations/segmentation/{self.annotation_session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_get_annotation(self):
+    def test_get_annotation_pre(self):
         """Test the API that returns labels
         """
-        response = self.client.get(f"/annotations/{self.annotation_session_id}")
+        response = self.client.get(f"{self.annotation_api_url}{self.annotation_session_id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_search_labels_no_ending_slash(self):
+    def test_search_annotations_no_ending_slash(self):
         """Test the API that returns a new layer
         """
         response = self.client.get("/annotations/search")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_search_labels_ending_slash(self):
+    def test_search_annotations_ending_slash(self):
         """Test the API that returns a new layer
         """
         response = self.client.get("/annotations/search/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    ## Now do the posts
-    def test_wrong_method_on_annotations_new(self):
-        """Test the API that returns a new layer
-        """
-        response = self.client.get("/annotations/new/")
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def test_wrong_method_on_annotations_save(self):
-        """Test the API that returns a new layer
-        """
-        response = self.client.get("/annotations/save/")
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_annotations_new_id(self):
         """Test the API that creates a new annotation session
         """
         data = {"id": str(self.annotation_session_id), "label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
         client = APIClient()
-        response = client.post('/annotations/new/', data, format='json')
+        response = client.post(self.annotation_api_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -188,16 +164,16 @@ class TestAnnotations(TestSetUp):
         """
         data = {"label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
         client = APIClient()
-        response = client.post('/annotations/new/', data, format='json')
+        response = client.post(self.annotation_api_url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_annotations_save(self):
         """Test the API that updates an existing annotation session
         """
-        data = {"id": str(self.annotation_session_id), "label": self.label, "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
+        data = {"id": str(self.annotation_session_id), "label": "SC\nICXXXXX", "animal": self.animal.prep_id, "annotator": self.annotator.id, "annotation" : {"source": [1,2,3]}}
         client = APIClient()
-        response = client.post('/annotations/save/', data, format='json')
+        response = client.put(f"{self.annotation_api_url}{self.annotation_session_id}", data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
