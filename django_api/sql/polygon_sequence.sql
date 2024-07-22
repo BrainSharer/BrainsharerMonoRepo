@@ -1,4 +1,4 @@
-SELECT AS2.id, AS2.FK_prep_id, AU.id, AU.username , group_concat(AL.label) , left(AS2.annotation,50)
+SELECT AS2.id, AS2.FK_prep_id, AU.id, AU.username , group_concat(AL.label) , left(AS2.annotation,150)
 FROM annotation_session AS2 
 INNER JOIN annotation_label AL 
 INNER JOIN annotation_session_labels ASL ON (AS2.id = ASL.annotationsession_id AND AL.id = ASL.annotationlabel_id)
@@ -9,19 +9,27 @@ and AS2.FK_user_id=1
 -- and AL.label_type = 'cell'
 -- and AL.label like 'Round3_Unsure_2000'
 -- and ASL.annotationlabel_id in (24,97)
-and AS2.annotation like '%volume%'
+-- and AS2.annotation like '%volume%'
 -- and AL.label like '%C%'
-and AS2.FK_prep_id = 'MD585'
--- and AS2.id = 8093
+and AS2.FK_prep_id = 'DK78'
 and AS2.active = 1
 group by AS2.id
 ORDER BY AS2.FK_prep_id, AL.label; 
 
-select * from annotation_session_labels where annotationsession_id = 8092;
+show create table annotation_session; 
+
+delete from annotation_session_labels where annotationsession_id in (7395, 7396, 7397);
+delete from annotation_session where id in (7395, 7396, 7397);
+
+select * from annotation_session as2
+inner join auth_user au on as2.FK_user_id = au.id
+inner join annotation_l
+where FK_prep_id = 'DK78'
+and active = 1;
 
 
 select * from annotation_label al
-where id in (14, 96,97)
+where label like 'Fiducial'
 order by al.label;
 
 select distinct as2.id, as2.created, as2.updated 
@@ -94,5 +102,8 @@ inner join auth_user au on as2.FK_user_id = au.id
 inner join annotation_label al on as2.FK_label_id ;
 
 
-select *
+select label, length(label)
+from annotation_label where label in ('IC','SC');
+
+select * 
 from annotation_session_labels;

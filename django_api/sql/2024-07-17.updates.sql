@@ -23,7 +23,6 @@ ALTER TABLE annotation_session DROP COLUMN FK_label_id;
 ALTER TABLE annotation_session DROP FOREIGN KEY `FK__annotation_session_brain_region`;
 ALTER TABLE annotation_session DROP INDEX `K__annotation_session_FK_brain_region_id`;
 ALTER TABLE annotation_session DROP COLUMN FK_brain_region_id;
-
 DROP VIEW IF EXISTS v_search_sessions;
 CREATE VIEW v_search_sessions AS
 SELECT
@@ -53,12 +52,13 @@ INNER JOIN annotation_label al ON mc.source = al.label
 WHERE as2.active = 1
 ORDER BY as2.id; 
 
-desc annotation_session;
-ALTER TABLE annotation_session DROP COLUMN annotation_type;
-ALTER TABLE annotation_session DROP COLUMN FK_state_id;
--- ALTER TABLE annotation_session ADD COLUMN label VARCHAR(255) NOT NULL AFTER FK_prep_id;
-
+-- ALTER TABLE annotation_session DROP COLUMN annotation_type;
+-- ALTER TABLE annotation_session DROP COLUMN FK_state_id;
+ALTER TABLE marked_cells DROP FOREIGN KEY `FK__marked_cells_annotation_session`;
+ALTER TABLE structure_com DROP FOREIGN KEY `FK__structure_com_annotation_session`;
+ALTER TABLE polygon_sequences DROP FOREIGN KEY `FK_polygon_sequences_annotation_session`;
 
 
 -- finished adds, drops and alters
+insert into annotation_label (label_type, label) values ('cell', 'Fiducial_test');
 
