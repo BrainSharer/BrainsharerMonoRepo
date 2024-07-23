@@ -1,4 +1,4 @@
-SELECT AS2.id, AS2.FK_prep_id, AU.id, AU.username , group_concat(AL.label) , left(AS2.annotation,150)
+SELECT AS2.id, AS2.FK_prep_id, AU.id, AU.username , group_concat(AL.label) , AS2.annotation
 FROM annotation_session AS2 
 INNER JOIN annotation_label AL 
 INNER JOIN annotation_session_labels ASL ON (AS2.id = ASL.annotationsession_id AND AL.id = ASL.annotationlabel_id)
@@ -11,15 +11,14 @@ and AS2.FK_user_id=1
 -- and ASL.annotationlabel_id in (24,97)
 -- and AS2.annotation like '%volume%'
 -- and AL.label like '%C%'
-and AS2.FK_prep_id = 'DK78'
+and AS2.FK_prep_id = 'DK41'
 and AS2.active = 1
 group by AS2.id
 ORDER BY AS2.FK_prep_id, AL.label; 
 
-show create table annotation_session; 
 
-delete from annotation_session_labels where annotationsession_id in (7395, 7396, 7397);
-delete from annotation_session where id in (7395, 7396, 7397);
+delete from annotation_session_labels where annotationsession_id > 8091;
+delete from annotation_session where id > 8091;
 
 select * from annotation_session as2
 inner join auth_user au on as2.FK_user_id = au.id
@@ -27,6 +26,7 @@ inner join annotation_l
 where FK_prep_id = 'DK78'
 and active = 1;
 
+insert into annotation_label (label_type, label) values ('cell', 'Fiducialjunk');
 
 select * from annotation_label al
 where label like 'Fiducial'

@@ -3,12 +3,9 @@
 
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
-import logging
 from neuroglancer.models import AnnotationLabel, AnnotationSession, NeuroglancerState
 from authentication.models import User
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
 
 
 class AnnotationModelSerializer(serializers.ModelSerializer):

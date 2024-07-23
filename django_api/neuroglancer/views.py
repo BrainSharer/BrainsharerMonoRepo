@@ -4,7 +4,6 @@ is the 'V' in the MVC framework for the Neuroglancer app
 portion of the portal.
 """
 
-import decimal
 from rest_framework import viewsets, views, permissions, status
 from django.http import JsonResponse
 from django.conf import settings
@@ -57,7 +56,7 @@ def search_annotation(request, search_string=None):
         for row in rows:
             data.append({
                 "id": row.id,
-                "animal_abbreviation_username": row.animal_abbreviation_username,
+                "animal_abbreviation_username": row.animal_abbreviation_username
             })
         
     serializer = AnnotationSessionSerializer(data, many=True)
@@ -102,6 +101,71 @@ class Segmentation(views.APIView):
             print(f'Creating segmentation took {total_elapsed_time} seconds.')
 
         return JsonResponse({'url': segmentation_save_folder, 'name': folder_name})
+
+##### Annotation API view
+
+class AnnotationPrivateViewSet(APIView):
+    """
+    A viewset for viewing and editing user instances.
+    """
+
+    queryset = AnnotationSession.objects.all()
+    # permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, session_id):
+        if DEBUG:
+            print('AnnotationPrivateViewSet.get')
+        session = {}
+        if session_id:
+            try:
+                data = AnnotationSession.objects.get(pk=session_id)
+            except AnnotationSession.DoesNotExist:
+                return Response({"details": "Annotation record does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            session['id'] = data.id
+            session['annotation'] = data.annotation
+
+        serializer = AnnotationSessionDataSerializer(session, many=False)
+        return Response(serializer.data)
+
+
+    def post(self, request):
+        if DEBUG:
+            print('AnnotationPrivateViewSet.post')
+        if 'id' in request.data:
+            del request.data['id']
+        if 'label' not in request.data:
+            return Response({"detail": "Label is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        label_ids = get_label_ids(request.data.get('label'))
+        request.data.update({'labels': label_ids})
+
+        serializer = AnnotationModelSerializer(data=request.data)
+
+        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request, session_id):
+        if DEBUG:
+            print('AnnotationPrivateViewSet.put')
+        try:
+            existing_session = AnnotationSession.objects.get(pk=session_id)
+        except AnnotationSession.DoesNotExist:
+            return Response({"detail": f"Annotation data does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+        label_ids = get_label_ids(request.data.get('label'))
+        request.data.update({'labels': label_ids})
+
+        serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=False)
+        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'id': serializer.data.get('id')}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 ##### Neuroglancer views
@@ -166,68 +230,4 @@ class NeuroglancerPrivateViewSet(viewsets.ModelViewSet):
     serializer_class = NeuroglancerStateSerializer
     queryset = NeuroglancerState.objects.all()
 
-
-
-class AnnotationPrivateViewSet(APIView):
-    """
-    A viewset for viewing and editing user instances.
-    """
-
-    queryset = AnnotationSession.objects.all()
-    # permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, session_id):
-        if DEBUG:
-            print('AnnotationPrivateViewSet.get')
-        session = {}
-        if session_id:
-            try:
-                data = AnnotationSession.objects.get(pk=session_id)
-            except AnnotationSession.DoesNotExist:
-                return Response({"details": "Annotation record does not exist"}, status=status.HTTP_404_NOT_FOUND)
-            session['id'] = data.id
-            session['annotation'] = data.annotation
-
-        serializer = AnnotationSessionDataSerializer(session, many=False)
-        return Response(serializer.data)
-
-
-    def post(self, request):
-        if DEBUG:
-            print('AnnotationPrivateViewSet.post')
-        if 'id' in request.data:
-            del request.data['id']
-        if 'label' not in request.data:
-            return Response({"detail": "Label is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        label_ids = get_label_ids(request.data.get('label'))
-        request.data.update({'labels': label_ids})
-
-        serializer = AnnotationModelSerializer(data=request.data)
-
-        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'id': serializer.data.get('id')}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def put(self, request, session_id):
-        if DEBUG:
-            print('AnnotationPrivateViewSet.put')
-        try:
-            existing_session = AnnotationSession.objects.get(pk=session_id)
-        except AnnotationSession.DoesNotExist:
-            return Response({"detail": f"Annotation data does not exist"}, status=status.HTTP_404_NOT_FOUND)
-        
-        label_ids = get_label_ids(request.data.get('label'))
-        request.data.update({'labels': label_ids})
-
-        serializer = AnnotationModelSerializer(existing_session, data=request.data, partial=False)
-        # check to make sure the serializer is valid, if so return the ID, if not, return error code.
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'id': serializer.data.get('id')}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
