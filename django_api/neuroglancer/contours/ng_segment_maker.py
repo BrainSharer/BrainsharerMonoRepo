@@ -15,7 +15,6 @@ from neuroglancer.contours.neuroglancer_manager import NumpyToNeuroglancer
 class NgConverter(NumpyToNeuroglancer):
     def __init__(self, volume=None, scales=None, offset=[0, 0, 0], layer_type='segmentation'):
         if volume is not None:
-            #self.volume = np.pad(volume, [[1, 0], [1, 0], [1, 0]])
             self.volume = volume
         self.scales = scales
         self.offset = offset
@@ -28,15 +27,13 @@ class NgConverter(NumpyToNeuroglancer):
                 self.volume.shape) > 3 else 1,
             layer_type=self.layer_type,
             # Channel images might be 'uint8'
-            data_type=np.uint8,
+            data_type=np.uint16,
             # raw, jpeg, compressed_segmentation, fpzip, kempressed
             encoding='raw',
             resolution=self.scales,            # Voxel scaling, units are in nanometers
             # x,y,z offset in voxels from the origin
-            #voxel_offset=self.offset - np.array([1, 1, 1]),
             voxel_offset=self.offset,
             chunk_size=[64, 64, 64],           # units are voxels
-            # e.g. a cubic millimeter dataset
             volume_size=self.volume.shape[:3],
         )
         self.precomputed_vol = CloudVolume(

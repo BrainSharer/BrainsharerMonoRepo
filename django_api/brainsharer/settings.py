@@ -122,7 +122,7 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-BASE_BACKEND_URL = 'https://tobor.eddyod.com/brainsharer'
+BASE_BACKEND_URL = 'http://localhost:8080'
 BASE_FRONTEND_URL = 'http://localhost:4200'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
@@ -132,15 +132,15 @@ DEFAULT_FROM_EMAIL = "drinehart@physics.ucsd.edu"
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 GITHUB_OAUTH2_CLIENT_ID = '3ad4b114f66ffb3b6ed8'
 GOOGLE_OAUTH2_CLIENT_ID = '821517150552-71h6bahua9qul09l90veb8g3hii6ed25.apps.googleusercontent.com'
-HTTP_HOST = "http://tobor"
+HTTP_HOST = "http://tobor.eddyod.com"
 INTERNAL_IPS = ['127.0.0.1']
 LANGUAGE_CODE = 'en-us'
 LOGIN_REDIRECT_URL = BASE_FRONTEND_URL
 LOGOUT_REDIRECT_URL = BASE_FRONTEND_URL
-LOGIN_URL = 'https://tobor.eddyod.com/brainsharer/local/login'
+LOGIN_URL = 'http://localhost:8080/local/login'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'share')
 MEDIA_URL = '/share/'
-NG_URL = "https://tobor.eddyod.com/ng"
+NG_URL = "http://localhost:8080/ng"
 #SESSION_COOKIE_AGE = 60 * ACCESS_TOKEN_LIFETIME_MINUTES
 #SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SITE_ID = 2

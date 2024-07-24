@@ -259,7 +259,7 @@ class TifInline(admin.TabularInline):
         tif_file = obj.file_name
         png = tif_file.replace('tif', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{animal}/scene/{png}"
-        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
+        onerror = 'https://brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
             '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt="" /></div>'.format(thumbnail, onerror))
 
@@ -277,7 +277,7 @@ class TifInline(admin.TabularInline):
         png = tif_file.replace('tif', 'png')
         filepath = f"{animal}/section/{png}"
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{filepath}"
-        onerror = 'https://www.brainsharer.org/images/screenshot/placeholder.png'
+        onerror = 'https://brainsharer.org/images/screenshot/placeholder.png'
         return mark_safe(
             '<div class="profile-pic-wrapper"><img src="{}" onerror="this.onerror=null; this.src=\'{}\'" alt=""/></div>'.format(thumbnail, onerror))
 
@@ -344,7 +344,9 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
     list_display = ('prep_id', 'file_name', 'slide_status', 'comments', 'scene_count')
     search_fields = ['scan_run__prep__prep_id', 'file_name']
     ordering = ['file_name', 'created']
-    readonly_fields = ['file_name', 'slide_physical_id', 'scan_run', 'processed', 'file_size']
+    readonly_fields = ['file_name', 'slide_physical_id', 'scan_run', 'processed', 'file_size', 
+                       'previous_preview_tag', 'current_preview_tag', 'following_preview_tag']
+
 
     def get_fields(self, request, obj):
         """This method fetches the correct 
@@ -361,10 +363,25 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
                             .order_by('-active','scene_number','scene_index').values_list('scene_index', flat=True))
         scene_indexes = sorted(set(scene_indexes))
 
-        print('scene_indexes in admin')
-        print(scene_indexes)
+        slide_ids = list(Slide.objects.filter(scan_run=obj.scan_run).filter(active=True).order_by('slide_physical_id').values_list('slide_physical_id', flat=True))
+        all_previews = ['previous_preview_tag', 'current_preview_tag', 'following_preview_tag']
+        self.previews = []
+        current_index = slide_ids.index(obj.slide_physical_id)
+        if current_index > 0:
+            previous_index = slide_ids.index(slide_ids[current_index - 1])
+            self.previews.append(all_previews[0])
+            self.previous_slide = Slide.objects.filter(scan_run=obj.scan_run).filter(active=True).filter(slide_physical_id=slide_ids[previous_index]).first()
 
+        self.previews.append(all_previews[1])
 
+        try:
+            following_index = slide_ids.index(slide_ids[current_index + 1])
+            self.previews.append(all_previews[2])
+            self.following_slide = Slide.objects.filter(scan_run=obj.scan_run).filter(active=True).filter(slide_physical_id=slide_ids[following_index]).first()
+        except IndexError:
+            pass
+
+        
         fields = ['file_name', 'scan_run', 'slide_physical_id', 'slide_status']
         replication_fields = {
             0: ['insert_before_one'],
@@ -381,9 +398,30 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
                 fields.extend(replication_fields[scene_index])
         
         fields.extend(['comments'])
+        fields.extend(self.previews)
+
         return fields
 
     inlines = [TifInline, ]
+
+
+    def previous_preview_tag(self, obj):
+        png = self.previous_slide.file_name.replace('czi', 'png')
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.previous_slide.scan_run.prep}/slides_preview/{png}"
+        return mark_safe(f'<h3>{self.previous_slide.file_name} {self.previous_slide.checksum}</h3><img src="{thumbnail}" alt="previous preview"/>')
+    previous_preview_tag.short_description = 'Previous' 
+
+    def current_preview_tag(self, obj):
+        png = obj.file_name.replace('czi', 'png')
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{obj.scan_run.prep}/slides_preview/{png}"
+        return mark_safe(f'<h3>{obj.file_name} {obj.checksum}</h3><img src="{thumbnail}" alt="current preview"/>')
+    current_preview_tag.short_description = 'Current'
+    
+    def following_preview_tag(self, obj):
+        png = self.following_slide.file_name.replace('czi', 'png')
+        thumbnail = f"https://imageserv.dk.ucsd.edu/data/{self.following_slide.scan_run.prep}/slides_preview/{png}"
+        return mark_safe(f'<h3>{self.following_slide.file_name} {self.following_slide.checksum}</h3><img src="{thumbnail}" alt="following preview"/>')
+    following_preview_tag.short_description = 'Following'
 
     def scene_count(self, obj):
         """Determines how many scenes are 

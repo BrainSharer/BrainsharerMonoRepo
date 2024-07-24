@@ -14,8 +14,6 @@ import numpy as np
 from scipy.ndimage.measurements import center_of_mass
 from skimage.filters import gaussian
 
-from neuroglancer.annotation_controller import interpolate2d
-
 class VolumeMaker:
 
     def calculate_origin_and_volume_for_one_segment(self, segment, interpolate=0):
@@ -85,7 +83,7 @@ class VolumeMaker:
         for section in range(nsections):
             points = volume[:,:,section].tolist()
             print(section, points[0])
-            #interpolated = interpolate2d(points.tolist(), n)
+            interpolated = interpolate2d(points.tolist(), n)
             #new_section = [interpolated, section]
             #new_volume.append(new_section)
         return volume

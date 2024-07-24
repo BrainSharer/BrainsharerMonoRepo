@@ -177,36 +177,6 @@ class NeuroglancerState(models.Model):
         return results
 
 
-class NeuroglancerView(AtlasModel):
-    group_name = models.CharField(max_length=50, verbose_name='Animal/Structure name')
-    lab = models.ForeignKey(Lab, models.CASCADE, null=True, db_column="FK_lab_id", verbose_name='Lab')
-    layer_name = models.CharField(max_length=255, blank=False, null=False)
-    description = models.TextField(max_length=2001, blank=False, null=False)
-    url = models.TextField(max_length=2001, blank=False, null=False)
-    thumbnail_url = models.TextField(max_length=2001, blank=False, null=False, verbose_name='Thumbnail name')
-    layer_type = EnumField(choices=['annotation', 'image','segmentation'], blank=False, null=False, default='image')
-    cross_section_orientation = models.CharField(max_length=255, blank=True, null=True, verbose_name='Cross section orientation (4 numbers seperated by comma)')
-    resolution = models.FloatField(verbose_name="XY Resolution (µm)")
-    zresolution = models.FloatField(verbose_name="Z Resolution (µm)")
-    width = models.IntegerField(null=False, blank=False, default=60000, verbose_name="Width (pixels)")
-    height = models.IntegerField(null=False, blank=False, default=30000, verbose_name="Height (pixels)")
-    depth = models.IntegerField(null=False, blank=False, default=450, verbose_name="Depth (pixels, sections)")
-    max_range = models.IntegerField(null=False, blank=False, default=5000, verbose_name="Intensity range (INT8=0,255, INT16=0,65535)")
-    updated = models.DateTimeField(auto_now=True, editable=False, null=False, blank=False)
-
-    class Meta:
-        managed = False
-        db_table = 'available_neuroglancer_data'
-        verbose_name = 'Available Neuroglancer data'
-        verbose_name_plural = 'Available Neuroglancer data'
-        ordering = ['lab', 'group_name', 'layer_name']
-
-
-    def __str__(self):
-        return u'{} {}'.format(self.group_name, self.description)
-
-
-
 class Points(NeuroglancerState):
     """Model corresponding to the annotation points table in the database
     """
@@ -261,7 +231,7 @@ def get_region_from_abbreviation(abbreviation):
 class SearchSessions(models.Model):
     id = models.BigAutoField(primary_key=True)
     animal_abbreviation_username = models.CharField(max_length=2001, null=False, db_column="animal_abbreviation_username", verbose_name="Animal")
-    annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
+    label_type = models.CharField(max_length=100, blank=False, null=False)
 
     class Meta:
         managed = False
@@ -269,16 +239,30 @@ class SearchSessions(models.Model):
         verbose_name = 'Search session'
         verbose_name_plural = 'Search sessions'
 
+class AnnotationLabel(AtlasModel):
+    id = models.BigAutoField(primary_key=True)
+    label_type = EnumField(choices=['brain region', 'cell'], blank=False, null=False, default='brain region')
+    label = models.CharField(max_length=50, blank=False, null=False)
+    description = models.TextField(max_length=2001, blank=False, null=False)
+
+    class Meta:
+        managed = False
+        db_table = 'annotation_label'
+        verbose_name = 'Annotation label'
+        verbose_name_plural = 'Annotation labels'
+
+    def __str__(self):
+        return f'{self.label}'
+
 class AnnotationSession(AtlasModel):
     """This model describes a user session in Neuroglancer."""
     id = models.BigAutoField(primary_key=True)
     animal = models.ForeignKey(Animal, models.CASCADE, null=True, db_column="FK_prep_id", verbose_name="Animal")
-    neuroglancer_model = models.ForeignKey(NeuroglancerState, models.CASCADE, null=True, db_column="FK_state_id", verbose_name="Neuroglancer state")
-    brain_region = models.ForeignKey(BrainRegion, models.CASCADE, null=True, db_column="FK_brain_region_id",
-                               verbose_name="Brain region")
+    #neuroglancer_model = models.ForeignKey(NeuroglancerState, models.CASCADE, null=True, db_column="FK_state_id", verbose_name="Neuroglancer state")
+    #label = models.ForeignKey(AnnotationLabel, models.CASCADE, null=True, db_column="FK_label_id", verbose_name="Brain region")
+    labels = models.ManyToManyField(AnnotationLabel, related_name="labels", db_column="annotation_session_id",  verbose_name="Annotation label")
     annotator = models.ForeignKey(settings.AUTH_USER_MODEL, models.CASCADE, db_column="FK_user_id",
                                verbose_name="Annotator", blank=False, null=False)
-    annotation_type = EnumField(choices=['POLYGON_SEQUENCE', 'MARKED_CELL', 'STRUCTURE_COM'], blank=False, null=False)
     annotation = models.JSONField(verbose_name="Annotation")
 
     updated = models.DateTimeField(auto_now=True)
@@ -290,175 +274,20 @@ class AnnotationSession(AtlasModel):
         verbose_name_plural = 'Annotation sessions'
 
     @property
-    def source(self):
-        if self.is_polygon_sequence():
-            one_row = PolygonSequence.objects.filter(annotation_session__id=self.id).first()
-        elif self.is_marked_cell():
-            one_row = MarkedCell.objects.filter(annotation_session__id=self.id).first()
-        elif self.is_structure_com():
-            one_row = StructureCom.objects.filter(annotation_session__id=self.id).first()
-        if one_row is None:
-            return None
-        return one_row.source
-    
-    
-    @property
-    def cell_type(self):
-        cell_type = None
-        if self.is_marked_cell():
-            one_row = MarkedCell.objects.filter(annotation_session__id=self.id).first()
-            if one_row is not None and one_row.cell_type is not None:
-                cell_type = one_row.cell_type
-        else:
-            cell_type = None
-
-        return cell_type
-
-    def __str__(self):
-        return f'{self.animal} {self.brain_region} {self.annotation_type}'
-    
-    def is_polygon_sequence(self):
-        return self.annotation_type == 'POLYGON_SEQUENCE'
-    
-    def is_marked_cell(self):
-        return self.annotation_type == 'MARKED_CELL'
-    
-    def is_structure_com(self):
-        return self.annotation_type == 'STRUCTURE_COM'
-    
-    def get_session_model(self):
-        if self.is_polygon_sequence():
-            return PolygonSequence
-        elif self.is_marked_cell():
-            return MarkedCell
-        elif self.is_structure_com():
-            return StructureCom
-
-class AnnotationAbstract(models.Model):
-    """Abstract model for the 3 new annotation data models
-    """
-    id = models.BigAutoField(primary_key=True)
-    x = models.DecimalField(verbose_name="X (um)", max_digits=6, decimal_places=2)
-    y = models.DecimalField(verbose_name="Y (um)", max_digits=6, decimal_places=2)
-    z = models.DecimalField(verbose_name="Z (um)", max_digits=6, decimal_places=2)
-
-
-    annotation_session = models.ForeignKey(AnnotationSession, models.CASCADE, null=False, db_column="FK_session_id",
-                               verbose_name="Annotation session")
-    @property
-    def animal(self):
-        return '%s'%self.annotation_session.animal.prep_id
-    @property
     def annotation_type(self):
-        return '%s'%self.annotation_session.annotation_type
-    @property
-    def brain_region(self):
-        return '%s'%self.annotation_session.brain_region.abbreviation
-    @property
-    def annotator(self):
-        return '%s'%self.annotation_session.annotator.username
-    @property
-    def created(self):
-        return '%s'%self.annotation_session.created
-    @property
-    def session_id(self):
-        return '%s'%self.annotation_session.id
+        annotation_type = "NA"
+        if self.annotation is not None:
+            if 'cell' in self.annotation:
+                annotation_type = 'cell'
+            elif 'point' in self.annotation:
+                annotation_type = 'point/COM'
+            elif 'volume' in self.annotation:
+                annotation_type = 'volume'
+            else:
+                annotation_type = 'NA'
+        return annotation_type
 
-    class Meta:
-        abstract = True
 
-class MarkedCell(AnnotationAbstract):
-    """This model is for the marked cell points entered in Neuroglancer.
-    
-    :Inheritance:
-        AnnotationAbstract
-    """
-
-    class SourceChoices(models.TextChoices):
-            MACHINE_SURE = 'MACHINE_SURE', gettext_lazy('Machine Sure')
-            MACHINE_UNSURE = 'MACHINE_UNSURE', gettext_lazy('Machine Unsure')
-            HUMAN_POSITIVE = 'HUMAN_POSITIVE', gettext_lazy('Human Positive')
-            HUMAN_NEGATIVE = 'HUMAN_NEGATIVE', gettext_lazy('Human Negative')
-            UNMARKED = UNMARKED, gettext_lazy('Unmarked')
-
-    source = models.CharField(max_length=25, choices=SourceChoices.choices, default=None)    
-    cell_type = models.ForeignKey(CellType, models.CASCADE, db_column="FK_cell_type_id",
-                               verbose_name="Cell Type")
-    class Meta:
-        managed = False
-        db_table = 'marked_cells'
-        verbose_name = 'Marked cell'
-        verbose_name_plural = 'Marked cells'
-    def __str__(self):
-        return u'{}'.format(self.annotation_session)
-
-class MarkedCellWorkflow(MarkedCell):
-    """This model is for the marked cell points workflow entered in Neuroglancer.
-    
-    :Inheritance:
-        MarkedCells
-    """
-    
-    class Meta:
-        managed = False
-        proxy = True
-        verbose_name = 'Marked cell workflow'
-        verbose_name_plural = 'Marked cells workflow'
-    def __str__(self):
-        return u'{}'.format(self.annotation_session)
-
-class PolygonSequence(AnnotationAbstract):
-    """This model is for the polygons drawn by an anatomist in Neuroglancer.
-    
-    :Inheritance:
-        AnnotationAbstract"""
-
-    polygon_index = models.CharField(max_length=40, blank=False, null=False)
-    point_order = models.IntegerField(blank=False, null=False, default=0)
-    class SourceChoices(models.TextChoices):
-            NA = 'NA', gettext_lazy('NA')
-
-    source = models.CharField(
-        max_length=25,
-        choices=SourceChoices.choices,
-        default=SourceChoices.NA
-    )    
-    
-    class Meta:
-        managed = False
-        db_table = 'polygon_sequences'
-        verbose_name = 'Polygon sequence'
-        verbose_name_plural = 'Polygon sequences'
-        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z', 'point_order'], name='unique polygon')]        
-
-    def __str__(self):
-        return u'{} {}'.format(self.annotation_session, self.source)
-
-class StructureCom(AnnotationAbstract):
-    """This model is for the COMs for a structure (brain region).
-    They are usually entered by an anatomist in Neuroglancer.
-    
-    :Inheritance:
-        AnnotationAbstract"""
-    class SourceChoices(models.TextChoices):
-            MANUAL = 'MANUAL', gettext_lazy('MANUAL')
-            COMPUTER = 'COMPUTER', gettext_lazy('COMPUTER')
-
-    source = models.CharField(
-        max_length=25,
-        choices=SourceChoices.choices,
-        default=SourceChoices.MANUAL
-    )    
-    
-    class Meta:
-        managed = False
-        db_table = 'structure_com'
-        verbose_name = 'Structure COM'
-        verbose_name_plural = 'Structure COMs'
-        constraints = [models.UniqueConstraint(fields=['source', 'annotation_session', 'x', 'y', 'z'], name='unique COM')]        
-
-    def __str__(self):
-        return u'{} {}'.format(self.annotation_session, self.source)
 
 
 

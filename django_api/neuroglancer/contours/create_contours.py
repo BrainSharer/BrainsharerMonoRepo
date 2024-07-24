@@ -24,7 +24,7 @@ def get_scales(animal, downsample_factor):
     return [int(downsample_factor*res*1000), int(downsample_factor*res*1000), int(zresolution*1000)]
 
 
-def make_volumes(volume, animal, downsample_factor):
+def make_volumesDEPRECATED(volume, animal, downsample_factor):
     vmaker = VolumeMaker()
     structure, contours = volume.get_volume_name_and_contours()
     downsampled_contours = downsample_contours(contours, downsample_factor)

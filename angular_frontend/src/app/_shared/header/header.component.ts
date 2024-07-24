@@ -56,7 +56,7 @@ export class HeaderComponent {
      */
     public clickLocalLogout() {
         this.authService.logout();
-        window.location.href = environment.API_URL + '/local/logout/';
+        window.location.href = environment.API_URL + '/local/signout/';
     }
 
     public clickLocalRegister() {
