@@ -1,4 +1,4 @@
-abakit @ file:///home/eodonnell/programming/abakit
+#abakit @ file:///home/eodonnell/programming/abakit
 asgiref==3.8.1
 attrs==22.2.0
 autobahn==23.1.2

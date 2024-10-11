@@ -414,7 +414,29 @@ class SlideAdmin(AtlasAdminModel, ExportCsvMixin):
     def current_preview_tag(self, obj):
         png = obj.file_name.replace('czi', 'png')
         thumbnail = f"https://imageserv.dk.ucsd.edu/data/{obj.scan_run.prep}/slides_preview/{png}"
-        return mark_safe(f'<h3>{obj.file_name} {obj.checksum}</h3><img src="{thumbnail}" alt="current preview"/>')
+        short_checksum = obj.checksum[-5:]  # Get last 5 digits
+        
+        return mark_safe(f'''
+            <h3>{obj.file_name} [<span class="checksum" 
+                data-full="{obj.checksum}" 
+                onclick="toggleChecksum(this)" 
+                style="cursor: pointer;"
+                title="Click to toggle full checksum">
+                {short_checksum}
+            </span>]</h3>
+            <img src="{thumbnail}" alt="current preview"/>
+            <script>
+                function toggleChecksum(element) {{
+                    var fullChecksum = element.getAttribute('data-full');
+                    if (element.textContent.length === 5) {{
+                        element.textContent = fullChecksum;
+                    }} else {{
+                        element.textContent = fullChecksum.slice(-5);
+                    }}
+                }}
+            </script>
+        ''')
+
     current_preview_tag.short_description = 'Current'
     
     def following_preview_tag(self, obj):
